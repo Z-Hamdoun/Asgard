@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 """
-Attention changer de source : source ~/envs/aruco-env/bin/activate
+Attention changer de source : source ~/envs/cacs-env/bin/activate
 
 Conclusion d'une longue discussion avec chat gpt :
 
