@@ -1,0 +1,2 @@
+Ce fichier est destiné à coder les protocoles de communications entre deux drones.
+On utilise pour cela la bibliothèque pyMAVLink
