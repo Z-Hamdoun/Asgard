@@ -1,2 +1,27 @@
 Ce fichier est destiné à coder les protocoles de communications entre deux drones.
 On utilise pour cela la bibliothèque pyMAVLink
+
+
+La structure des communications entre les drones est la suivante :
+        (avantage de l'ESP32 : échange de données fiables)
+
+
+                Py                                                          Py
+                |                                                           |
+                |                                                           |
+            MAVPROXY   <-------------------------------------------->  MAVPROXY
+                |                            ESP32                         |
+                |                                                          |
+                FC                                                         FC
+                |                                                          |
+                |                                                          |
+                |                                                          |
+                T1                                                         T2 (ELRS)
+                                                                            |
+                                                                            |
+                                                                            |
+                                                                            |
+                                                                            GND
+
+La connexion aux FC se fait à l'aide de la classe MAVLinCS (présente dans pymavlink_codes)
+La gestion des collisions au niveau ESP32 se ferait par un protocole maître-esclave
