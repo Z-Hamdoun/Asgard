@@ -9,7 +9,8 @@ SERIAL_PORT = '/dev/serial0'  # chemin d'accès au port série sur le système d
 BAUD_RATE = 115200         # Vitesse haute pour la liaison RPI ↔ ESP32
 
 def init_serial_connection() -> serial.Serial:
-    """Initialise et retourne l'objet de connexion serie.
+    """Initialise et retourne l'objet de connexion serie, utilisé ensuite comme une source de
+    données
     Etablit et prépare la communication série UART entre l'exécutant de ce code (ici un RPI) et
     l'ESP32
     """
@@ -18,16 +19,20 @@ def init_serial_connection() -> serial.Serial:
         ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1) #Initialisation du port série
         #timeout définit une limite de x secondes pour l'attente des données en lecture
         #Passé ce délai la lecture est interrompue
+
         ser.flush() # Vide le buffer d'entree/sortie, pour être sûr de lire des données "fraîches"
         print(f"Port serie {SERIAL_PORT} ouvert avec succes a {BAUD_RATE} bauds.")
         return ser
+    
     except serial.SerialException as e:
         print(f"Erreur d'initialisation du port serie: {e}")
         print("   -> Verifiez le cablage (TX/RX), les droits d'acces, et la configuration du RPI (raspi-config).")
         sys.exit(1) # Quitter si la connexion echoue
 
 def parse_data(line) -> dict:
-    """Analyse la ligne de donnees 'Clé:Valeur' envoyee par l'ESP32."""
+    """Analyse de chaînes de caractère
+    Cette fonction est définie pour des chapines du type "POS:XX,SPD:YY"
+    """
     data = {}
     
     # L'ESP32 est cense envoyer 'POS:10.5,SPD:2.4'
