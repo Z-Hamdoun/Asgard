@@ -1,0 +1,28 @@
+# --- User Specific Requests ---
+# Ignore files named __init__ (this is unusual, see __pycache__ below)
+__init__
+
+# Ignore directories named 'cache'
+cache/
+
+
+# --- Standard Python & Virtual Environments ---
+## Virtual Environments
+# Common names for virtual environments: venv, .venv, env, .env
+venv/
+.venv/
+env/
+.env/
+
+## Python Bytecode & Cache
+# Ignore the Python cache directory
+__pycache__/
+
+# Ignore compiled Python files
+*.pyc
+*.pyo
+*.pyd
+
+## General Cache
+# Ignore common cache directories
+.cache/
