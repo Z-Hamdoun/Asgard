@@ -1,4 +1,4 @@
-#include<Arduino.h>
+#include <Arduino.h>
 // --- Configuration des paramètres ---
 // Vitesse de communication (doit correspondre au BAUD_RATE du RPi)
 #define BAUD_RATE 115200 
