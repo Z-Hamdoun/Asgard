@@ -71,6 +71,30 @@ def main():
 
         time.sleep(0.01)
 
+def send_gps_coordinates(ser: serial.Serial, latitude: float, longitude: float):
+    """
+    Formate et envoie les coordonnées GPS à l'appareil connecté via la connexion série.
+    
+    Le format de la chaîne envoyée est : 'LAT:valeur,LON:valeur\\n'
+    """
+    try:
+        # 1. Formatage des données en une chaîne 'Clé:Valeur'
+        # Utilisez le même séparateur (virgule et deux-points) que la fonction parse_data 
+        # pour assurer la cohérence. L'ajout de '\n' (saut de ligne) est crucial
+        # pour indiquer à l'ESP32 que la transmission du message est complète.
+        message = f"LAT:{latitude:.6f},LON:{longitude:.6f}\n"
+        
+        # 2. Encodage et Envoi
+        # Les données doivent être encodées en bytes avant l'envoi sur le port série.
+        ser.write(message.encode('utf-8'))
+        
+        print(f"-> Envoyé à l'ESP32: {message.strip()}")
+
+    except serial.SerialTimeoutException:
+        print("Erreur: Délai d'attente dépassé lors de l'écriture des données.")
+    except Exception as e:
+        print(f"Erreur inattendue lors de l'envoi de données série: {e}")
+        
 if __name__ == "__main__":
     try:
         main()
