@@ -21,7 +21,7 @@ def init_serial_connection() -> serial.Serial:
         #Passé ce délai la lecture est interrompue
 
         ser.flush() # Vide le buffer d'entree/sortie, pour être sûr de lire des données "fraîches"
-        print(f"Port serie {SERIAL_PORT} ouvert avec succes a {BAUD_RATE} bauds.")
+        print(f"RPI : port serie {SERIAL_PORT} ouvert avec succes a {BAUD_RATE} bauds.")
         return ser
     
     except serial.SerialException as e:
@@ -67,7 +67,7 @@ def main():
             print(f"[{msg.get_type()}] Recu d'un drone (ID: {msg.get_srcSystem()}):")
 
             if msg.get_type() == 'ATTITUDE':
-                print(f"   -> Roulis: {msg.roll:.2f} deg, Tangage: {msg.pitch:.2f} deg")
+                print(f"Message reçu -> Roulis: {msg.roll:.2f} deg, Tangage: {msg.pitch:.2f} deg")
 
         time.sleep(0.01)
 
@@ -88,13 +88,13 @@ def send_gps_coordinates(ser: serial.Serial, latitude: float, longitude: float):
         # Les données doivent être encodées en bytes avant l'envoi sur le port série.
         ser.write(message.encode('utf-8'))
         
-        print(f"-> Envoyé à l'ESP32: {message.strip()}")
+        print(f"-> Envoyé par RPI à l'ESP32: {message.strip()}")
 
     except serial.SerialTimeoutException:
         print("Erreur: Délai d'attente dépassé lors de l'écriture des données.")
     except Exception as e:
         print(f"Erreur inattendue lors de l'envoi de données série: {e}")
-        
+
 if __name__ == "__main__":
     try:
         main()
