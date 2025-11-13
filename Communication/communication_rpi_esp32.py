@@ -5,17 +5,20 @@ from pymavlink import mavutil
 
 # --- CONFIGURATION DU PORT SERIE ---
 # Assurez-vous que ce port et ce Baud Rate correspondent a l'ESP32 Serial1.begin()!
-SERIAL_PORT = '/dev/serial0'  # Souvent le lien symbolique vers le bon UART
-BAUD_RATE = 921600         # Vitesse haute pour la liaison RPI ↔ ESP32
+SERIAL_PORT = '/dev/serial0'  # chemin d'accès au port série sur le système d'exploitation
+BAUD_RATE = 115200         # Vitesse haute pour la liaison RPI ↔ ESP32
 
 def init_serial_connection() -> serial.Serial:
     """Initialise et retourne l'objet de connexion serie.
-    Le type de retour est un gestionnaire de flux, qui permet de contrôler et d'intéragir avec le matériel UART
+    Etablit et prépare la communication série UART entre l'exécutant de ce code (ici un RPI) et
+    l'ESP32
     """
     try:
         # Configuration : Port, Vitesse, et Timeout de 1 seconde pour la lecture
-        ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1) 
-        ser.flush() # Vide le buffer d'entree/sortie
+        ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1) #Initialisation du port série
+        #timeout définit une limite de x secondes pour l'attente des données en lecture
+        #Passé ce délai la lecture est interrompue
+        ser.flush() # Vide le buffer d'entree/sortie, pour être sûr de lire des données "fraîches"
         print(f"Port serie {SERIAL_PORT} ouvert avec succes a {BAUD_RATE} bauds.")
         return ser
     except serial.SerialException as e:
