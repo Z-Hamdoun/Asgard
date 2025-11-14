@@ -1,0 +1,12 @@
+
+===== **Problème** ==================================
+Comment gérer le positionnement relatif du petit drone
+par rapport au gros drone à partir du flux d'image seulement?
+
+===== **Solution** ==================================
+- recupérer directement l'entrée de la camera sous la forme d'un tableau RGB
+        preserve les couleurs
+- convertir les données en HSV
+        permet une meilleure définition de ce qui est [couleur des points] 
+        enregistrer en PNG lorsqu'on sauvegarde de la data étiquetée (lors de la phase de test)
+- sélectionner les pixels de la bonne couleur grâce au Hue (H dans HSV)
