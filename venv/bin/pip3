@@ -1,4 +1,4 @@
-#!/home/zakaria/Desktop/helics/dassault-helics-2026/venv/bin/python3
+#!/home/zakaria/Desktop/helics/dassault-helics-2026/venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys

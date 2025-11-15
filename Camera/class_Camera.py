@@ -165,7 +165,7 @@ class Camera:
                 # récupérer appsink (doit exister maintenant)
                 self._appsink = self._pipeline.get_by_name("appsink")
                 if self._appsink is None:
-                    raise RuntimeError("Impossible de récupérer appsink depuis le pipeline GStreamer. Pipeline: " + pipeline)
+                    raise RuntimeError("Impossible de récupérer appsink depuis le pipeline GStreamer. Pipeline: " + pipeline_str)
 
                 # démarrer le pipeline après la vérification
                 self._pipeline.set_state(self._Gst.State.PLAYING)

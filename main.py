@@ -41,8 +41,9 @@ try:
         # while True:
         #    gz_camera.get_frame(affiche=True)
         #    time.sleep(0.01)
-except Exception:
+except Exception as e:
     print("Erreur innatendue")
+    print(e)
 
 # interruption manuelle avec Ctrl+C
 except KeyboardInterrupt:
