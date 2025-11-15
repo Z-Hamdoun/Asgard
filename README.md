@@ -1,4 +1,4 @@
-# Project Valkirie
+# Project Valkyrie
 
 ## Simulation
 

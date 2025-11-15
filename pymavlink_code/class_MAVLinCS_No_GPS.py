@@ -2524,8 +2524,12 @@ class MAVLinCS_No_GPS:
                 if self._send_automatic_home_request:
                     if self._nb_heartbeat_since_last_home_request >= self._home_request_delay:
                         if self._sysid_to_request_home is None or isinstance(self._sysid_to_request_home, int):
+                            if self._sysid_to_request_home is None:
+                                sysid = self.master.target_system
+                            else:
+                                sysid = self._sysid_to_request_home
                             self.master.mav.command_long_send(
-                                self._sysid_to_request_home, # target_system
+                                sysid, # target_system
                                 mavutil.mavlink.MAV_COMP_ID_AUTOPILOT1, # target_component
                                 mavutil.mavlink.MAV_CMD_REQUEST_MESSAGE, # Commande pour demander un message
                                 0, # confirmation
