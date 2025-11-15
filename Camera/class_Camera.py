@@ -196,9 +196,14 @@ class Camera:
                 self._dist_coeffs = np.array([-0.1, 0.05, 0.001, 0.0005, 0], dtype=np.float64) # Celle-là non plus
             else:
                 # Matrices de la caméra Gazebo (à vérifier)
+                # self._camera_matrix = np.array([
+                #     [1272.5231351852417, 0.0, 648.0],
+                #     [0, 1272.5229930877686, 365.0],
+                #     [0, 0, 1]
+                # ], dtype=np.float64)
                 self._camera_matrix = np.array([
-                    [1272.5231351852417, 0.0, 648.0],
-                    [0, 1272.5229930877686, 365.0],
+                    [205.4696273803711, 0.0, 320.0],
+                    [0, 205.4696559906006, 240.0],
                     [0, 0, 1]
                 ], dtype=np.float64)
                 self._dist_coeffs = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
@@ -321,9 +326,9 @@ class Camera:
 
         Returns:
             tuple:
-                - **image** (*bytes*) – Image en bytes.
-                - **height** (*float*) – Hauteur en px.
-                - **width** (*float*) – Largeur en px.
+                - **image** (*bytes*) - Image en bytes.
+                - **height** (*float*) - Hauteur en px.
+                - **width** (*float*) - Largeur en px.
         """
         height, width = img.shape
         _, img_encoded = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, quality])
@@ -351,9 +356,9 @@ class Camera:
 
         Returns:
             tuple:
-                - **dx** (*float*) – Déplacement vers l'avant du drone (m).
-                - **dy** (*float*) – Déplacement vers la droite du drone (m).
-                - **dz** (*float*) – Déplacement vers le dessous du drone (m).
+                - **dx** (*float*) - Déplacement vers l'avant du drone (m).
+                - **dy** (*float*) - Déplacement vers la droite du drone (m).
+                - **dz** (*float*) - Déplacement vers le dessous du drone (m).
         """
         dx, dy, dz = float(tvec[0]), float(tvec[1]), float(tvec[2])
         if not self._simulation:
@@ -370,11 +375,11 @@ class Camera:
 
         Returns:
             tuple:
-                - **dx** (*float*) – déplacement vers l'avant en m. 0 s'il n'y a pas le bon code ArUco.
-                - **dy** (*float*) – déplacement vers la droite en m. 0 s'il n'y a pas le bon code ArUco.
-                - **dz** (*float*) – déplacement vers le bas en m. 0 s'il n'y a pas le bon code ArUco.
-                - **info** (*str | None*) – Infos diverses de la détection. None s'il n'y a pas le bon code ArUco.
-                - **frame** (*np.ndarray | None*) – Frame analysée. None s'il n'y a pas le bon code ArUco.
+                - **dx** (*float*) - déplacement vers l'avant en m. 0 s'il n'y a pas le bon code ArUco.
+                - **dy** (*float*) - déplacement vers la droite en m. 0 s'il n'y a pas le bon code ArUco.
+                - **dz** (*float*) - déplacement vers le bas en m. 0 s'il n'y a pas le bon code ArUco.
+                - **info** (*str | None*) - Infos diverses de la détection. None s'il n'y a pas le bon code ArUco.
+                - **frame** (*np.ndarray | None*) - Frame analysée. None s'il n'y a pas le bon code ArUco.
         """
         #Image à un instant t
         t_begin = self.time_boot_ms
@@ -414,7 +419,7 @@ class Camera:
                     corner[:,:,1] += self._last_crop[0]
 
                 #cv2.aruco.drawDetectedMarkers(frame, corners, ids)
-                self.save_image(image=frame)
+                #self.save_image(image=frame)
 
                 _, tvec, _ = cv2.aruco.estimatePoseSingleMarkers([corner], self.aruco_size, self._camera_matrix, self._dist_coeffs)
                 tvec = tvec[0][0]  # Extraire le vecteur de translation
@@ -462,11 +467,11 @@ class Camera:
 
         Returns:
             tuple:
-                - **dx** (*float*) – déplacement vers l'avant en m. 0 s'il n'y a pas le bon code ArUco.
-                - **dy** (*float*) – déplacement vers la droite en m. 0 s'il n'y a pas le bon code ArUco.
-                - **dz** (*float*) – déplacement vers le bas en m. 0 s'il n'y a pas le bon code ArUco.
-                - **info** (*str | None*) – Infos diverses de la détection. None s'il n'y a pas le bon code ArUco.
-                - **frame** (*np.ndarray | None*) – Frame analysée. None s'il n'y a pas le bon code ArUco.
+                - **dx** (*float*) - déplacement vers l'avant en m. 0 s'il n'y a pas le bon code ArUco.
+                - **dy** (*float*) - déplacement vers la droite en m. 0 s'il n'y a pas le bon code ArUco.
+                - **dz** (*float*) - déplacement vers le bas en m. 0 s'il n'y a pas le bon code ArUco.
+                - **info** (*str | None*) - Infos diverses de la détection. None s'il n'y a pas le bon code ArUco.
+                - **frame** (*np.ndarray | None*) - Frame analysée. None s'il n'y a pas le bon code ArUco.
         """
         #Image à un instant t
         t_begin = self.time_boot_ms
