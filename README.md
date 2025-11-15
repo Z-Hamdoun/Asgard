@@ -2,17 +2,17 @@
 
 ## Simulation
 
-`* Lancement du monde Gazebo`
+* Lancement du monde Gazebo
 ```sh
 gz sim -v4 -r ~/gz_ws/src/ardupilot_gazebo/worlds/iris_zephyr_aruco.sdf
 ```
 
-`* Lancement Ardupilot SITL du gros drone`
+* Lancement Ardupilot SITL du gros drone
 ```sh
 ~/ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --console -I0 --sysid=1 --use-dir=$HOME/gz_ws/ardupilot_output/iris_with_gimbal
 ```
 
-`* Petit drone`
+* Petit drone
 ```sh
 ~/ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --console -I1 --sysid=2 --use-dir=$HOME/gz_ws/ardupilot_output/drone1
 ```
@@ -20,5 +20,7 @@ gz sim -v4 -r ~/gz_ws/src/ardupilot_gazebo/worlds/iris_zephyr_aruco.sdf
 ## RPI
 
 **Nom d'utilisateur RPI**: `Asgard`
+
 **MDP**: `Dassault2025`
+
 *Connecté sur le wifi "Asgard" avec le meme mot de passe*
