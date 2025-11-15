@@ -32,15 +32,20 @@ try:
     armed_drone1 = drone1.arm()
 
     if armed_drone0 and armed_drone1:
-        # simple takeoff
+        # Takeoff simple
         drone0.logger.log("Drone armé")
         drone0.takeoff(3)
         drone1.takeoff(3)
 
         # Exemple de code pour recuperer les images de la camera gazebo
-        # while True:
-        #    gz_camera.get_frame(affiche=True)
-        #    time.sleep(0.01)
+        while True:
+            result = gz_camera.analyse(affichage=True)
+            if result[-2] is not None:
+                print('[Aruco] Going to AruCo marker')
+                print(result[0], result[1], result[2])
+                drone0.send_landing_target(result[0], result[1], result[2])
+                
+            time.sleep(0.01)
 except Exception as e:
     print("Erreur innatendue")
     print(e)
