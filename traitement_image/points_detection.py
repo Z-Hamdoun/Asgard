@@ -51,4 +51,4 @@ def RT(frame, objectPoints, cameraMatrix,  distCoeffs = np.zeros(5), sensitivity
     On a la relation :      Xcam = R*Xmonde + tvec
     Donc :                  Xmonde = R.T * (Xcam - tvec)
     """
-    V = -R.T*tvec
+    V = R.T*tvec
