@@ -19,11 +19,17 @@ gz sim -v4 -r ~/gz_ws/src/ardupilot_gazebo/worlds/iris_zephyr_aruco.sdf
 
 ## RPI 1 (carte 32Gb)
 
-**Nom d'utilisateur RPI**: `Asgard`
+**hostname**: `...`
 
-**MDP**: `Dassault2025`
+**username**: `Asgard`
 
-*Connecté sur le wifi "Asgard" avec le meme mot de passe*
+**password**: `Dassault2025`
+
+**WiFi SSID**: `Asgard`
+
+**WiFi pwd**: `Dassault2025`
+
+**SSH**: ...
 
 ## RPI 2 (carte 64Gb)
 
