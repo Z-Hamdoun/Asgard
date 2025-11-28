@@ -28,9 +28,15 @@ gz sim -v4 -r ~/gz_ws/src/ardupilot_gazebo/worlds/iris_zephyr_aruco.sdf
 ## RPI 2 (carte 64Gb)
 
 Raspberry Pi OS Lite (64-bit)
+
 **hostname**: `uav-companion`
+
 **username**: `helics`
+
 **password**: `opensesame`
+
 **WiFi SSID**: `hotspot-helics`
+
 **WiFi pwd**: `wifisupelec`
+
 **SSH**: activated + using password authentification
