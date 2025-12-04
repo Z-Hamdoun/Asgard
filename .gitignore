@@ -26,3 +26,4 @@ __pycache__/
 ## General Cache
 # Ignore common cache directories
 .cache/
+pymavlink_code/__pycache__/class_MAVLinCS.cpython-310.pyc
