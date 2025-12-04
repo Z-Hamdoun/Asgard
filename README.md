@@ -25,7 +25,7 @@ La commande suivante est utilisée pour lancer la simulation du contrôleur de v
 **Structure générique de la commande :**
 
 ```sh
-~/ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --console -I&lt;INSTANCE&gt; --sysid=&lt;SYSTEM_ID&gt; --use-dir=&lt;OUTPUT_DIR&gt; \[OPTIONS\]  
+~/ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --console -I&lt;INSTANCE&gt; --sysid=&lt;SYSTEM_ID&gt; --use-dir=<OUTPUT_DIR> [OPTIONS]  
 ```
 
 **Explication des paramètres :**
