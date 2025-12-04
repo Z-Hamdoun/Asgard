@@ -1,6 +1,7 @@
 from pymavlink_code.class_MAVLinCS import MAVLinCS
 from Camera.class_Camera import Camera
 from pymavlink import mavutil
+from divers.class_Logger import Logger
 import time
 
 
@@ -19,19 +20,26 @@ class Drone(MAVLinCS):
         sysid_to_request_home = None,
         pos_rate = 4,
         dialect = "ardupilotmega",
-        logger = ...):
+        logger: Logger = Logger()):
         super().__init__(address, source_system, source_component, target_system, baud, timeout_heartbeat, send_automatic_timesync, timesync_delay, send_automatic_home_request, home_request_delay, sysid_to_request_home, pos_rate, dialect, logger)
         
     def precision_land(self):
         ...
         
-    def loiter(self):
-        ...
+    def loiter(self, gz_camera):
+        while True:
+            result = gz_camera.analyse(affichage=True)
+            if result[-2] is not None:
+                print('[Aruco] Going to AruCo marker')
+                print(result[0], result[1], result[2])
+                self.send_landing_target(result[0], result[1], result[2])
+                
+            time.sleep(0.01)
 
 
 try:
     # Master drone
-    drone0 = MAVLinCS(
+    drone0 = Drone(
         address="127.0.0.1:14550",
         source_system=201,
         source_component=mavutil.mavlink.MAV_COMP_ID_MISSIONPLANNER,
@@ -41,7 +49,7 @@ try:
     )
 
     # Petit drone
-    drone1 = MAVLinCS(
+    drone1 = Drone(
         address="127.0.0.1:14560",
         source_system=201,
         source_component=mavutil.mavlink.MAV_COMP_ID_MISSIONPLANNER,
@@ -62,16 +70,11 @@ try:
         drone0.logger.log("Drone armé")
         drone0.takeoff(3)
         drone1.takeoff(3)
+        
+        # Loitering pour le Gros drone:
+        drone0.loiter(gz_camera)
 
-        # Exemple de code pour recuperer les images de la camera gazebo
-        while True:
-            result = gz_camera.analyse(affichage=True)
-            if result[-2] is not None:
-                print('[Aruco] Going to AruCo marker')
-                print(result[0], result[1], result[2])
-                drone0.send_landing_target(result[0], result[1], result[2])
-                
-            time.sleep(0.01)
+        
 except Exception as e:
     print("Erreur innatendue")
     print(e)
