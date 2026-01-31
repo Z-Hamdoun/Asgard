@@ -59,7 +59,7 @@ La commande suivante est utilisée pour lancer la simulation du contrôleur de v
 
 **hostname**: `...`
 
-**username**: `Asgard`
+**username**: `asgard`
 
 **password**: `Dassault2025`
 
