@@ -10,3 +10,4 @@ sudo apt install graphviz
 ```sh
 sudo apt install default-jre
 ```
+* Extension VS Code *PlantUML* by jebbs
