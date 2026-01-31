@@ -79,7 +79,7 @@ Raspberry Pi OS Lite (64-bit)
 
 **password**: `opensesame`
 
-**WiFi SSID**: `hotspot-helics`
+**WiFi SSID**: `Asgard`
 
 **WiFi pwd**: `wifisupelec`
 
