@@ -9,22 +9,20 @@ state INIT {
 }
 
 ARMING --> TAKEOFF : armed
-TAKEOFF --> CLIMB : altitude_reached
+TAKEOFF --> REACH_DEST : altitude_reached
 
-CLIMB --> RENDEZVOUS : ready_for_rdv
-RENDEZVOUS --> FORMATION : peer_ready
+REACH_DEST --> COMMUNICATE : dest_reached
+COMMUNICATE --> STABILIZE : peer_ready
 
-FORMATION --> MISSION : start_mission
-MISSION --> RETURN_HOME : mission_done
-
-RETURN_HOME --> LAND : home_reached
-LAND --> [*]
+STABILIZE --> RTL: mission_done
+RTL --> [*]
 
 ' Failsafe transitions
 state FAILSAFE #red
 INIT --> FAILSAFE : comm_lost
 ARMING --> FAILSAFE : error
 TAKEOFF --> FAILSAFE : timeout
-FORMATION --> FAILSAFE : peer_lost
-MISSION --> FAILSAFE : low_battery
+REACH_DEST --> FAILSAFE: low_battery
+REACH_DEST --> FAILSAFE: comm_lost
+STABILIZE --> FAILSAFE : peer_lost
 @enduml
