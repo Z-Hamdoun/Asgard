@@ -20,7 +20,7 @@ class Drone(MAVLinCS):
         sysid_to_request_home = None,
         pos_rate = 4,
         dialect = "ardupilotmega",
-        logger: Logger = Logger()):
+        logger: Logger = Logger(log_file="logs.txt")):
         super().__init__(address, source_system, source_component, target_system, baud, timeout_heartbeat, send_automatic_timesync, timesync_delay, send_automatic_home_request, home_request_delay, sysid_to_request_home, pos_rate, dialect, logger)
         
     def precision_land(self):
