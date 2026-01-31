@@ -1,9 +1,0 @@
-0 ms
-[INFO] Creating master object..
-
-0 ms
-[INFO] Master object created
-
-0 ms
-[INFO] Waiting for HEARTBEAT from (1:1)..
-

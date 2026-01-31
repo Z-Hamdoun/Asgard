@@ -1,4 +1,6 @@
-class State:
+from abc import ABC
+
+class State(ABC):
     @property
     def name(self):
         return self.__class__.__name__

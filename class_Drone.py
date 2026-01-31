@@ -25,7 +25,7 @@ class Drone(MAVLinCS):
         
         # Variables d'Etat
         self.current_state = None
-        self.camera = None # Sera assigné dans le main
+        self.camera = None # Sera assigne dans le main
         self.target_system = target_system # On garde l'ID pour les logs, 1 pour drone maitre et 2 pour l'autre
         
     def update(self):
