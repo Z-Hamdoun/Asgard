@@ -12,7 +12,6 @@ cache/
 venv/
 .venv/
 env/
-.env/
 
 ## Python Bytecode & Cache
 # Ignore the Python cache directory

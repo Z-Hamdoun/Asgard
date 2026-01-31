@@ -7,3 +7,2100 @@
 0 ms
 [INFO] Waiting for HEARTBEAT from (1:1)..
 
+550 ms
+[INFO] HEARTBEAT received from (1:1)
+
+550 ms
+[SUCCESS] Stop waiting for HEARTBEAT
+
+550 ms
+[INFO] Sending msg rate request to 1. Msg Type: GLOBAL_POSITION_INT, Rate: 4
+
+550 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+550 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 0
+                command: MAV_CMD_SET_MESSAGE_INTERVAL (511)
+                param1: 33 (The MAVLink message ID)
+                param2: 250000 (The interval between two messages. Set to -1 to disable and 0 to request default rate.)
+                param3: 0 (Reserved (default:0))
+                param4: 0 (Reserved (default:0))
+                param5: 0 (Reserved (default:0))
+                param6: 0 (Reserved (default:0))
+                param7: 0 (Target address of message stream (if message has target address fields). 0: Flight-stack default (recommended), 1: address of requester, 2: broadcast.)
+                
+
+550 ms
+[INFO] Waiting for COMMAND_ACK..
+
+555 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+555 ms
+Got COMMAND_ACK: SET_MESSAGE_INTERVAL: ACCEPTED
+
+600 ms
+[SUCCESS] COMMAND_ACK received: stop waiting for COMMAND_ACK
+
+601 ms
+[SUCCESS] Msg rate accepted
+
+601 ms
+[INFO] Sending msg rate request to 1. Msg Type: ATTITUDE, Rate: 4
+
+601 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 0
+                command: MAV_CMD_SET_MESSAGE_INTERVAL (511)
+                param1: 30 (The MAVLink message ID)
+                param2: 250000 (The interval between two messages. Set to -1 to disable and 0 to request default rate.)
+                param3: 0 (Reserved (default:0))
+                param4: 0 (Reserved (default:0))
+                param5: 0 (Reserved (default:0))
+                param6: 0 (Reserved (default:0))
+                param7: 0 (Target address of message stream (if message has target address fields). 0: Flight-stack default (recommended), 1: address of requester, 2: broadcast.)
+                
+
+601 ms
+[INFO] Waiting for COMMAND_ACK..
+
+605 ms
+Got COMMAND_ACK: SET_MESSAGE_INTERVAL: ACCEPTED
+
+651 ms
+[SUCCESS] COMMAND_ACK received: stop waiting for COMMAND_ACK
+
+651 ms
+[SUCCESS] Msg rate accepted
+
+651 ms
+[INFO] Sending msg rate request to 1. Msg Type: EXTENDED_SYS_STATE, Rate: 2
+
+651 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 0
+                command: MAV_CMD_SET_MESSAGE_INTERVAL (511)
+                param1: 245 (The MAVLink message ID)
+                param2: 500000 (The interval between two messages. Set to -1 to disable and 0 to request default rate.)
+                param3: 0 (Reserved (default:0))
+                param4: 0 (Reserved (default:0))
+                param5: 0 (Reserved (default:0))
+                param6: 0 (Reserved (default:0))
+                param7: 0 (Target address of message stream (if message has target address fields). 0: Flight-stack default (recommended), 1: address of requester, 2: broadcast.)
+                
+
+651 ms
+[INFO] Waiting for COMMAND_ACK..
+
+655 ms
+Got COMMAND_ACK: SET_MESSAGE_INTERVAL: ACCEPTED
+
+701 ms
+[SUCCESS] COMMAND_ACK received: stop waiting for COMMAND_ACK
+
+701 ms
+[SUCCESS] Msg rate accepted
+
+701 ms
+[SUCCESS] Connection initialized
+
+701 ms
+[INFO] Creating master object..
+
+701 ms
+[INFO] Master object created
+
+701 ms
+[INFO] Waiting for HEARTBEAT from (2:1)..
+
+1709 ms
+[INFO] HEARTBEAT received from (2:1)
+
+1709 ms
+[SUCCESS] Stop waiting for HEARTBEAT
+
+1710 ms
+[INFO] Sending msg rate request to 2. Msg Type: GLOBAL_POSITION_INT, Rate: 4
+
+1710 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+1710 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 0
+                command: MAV_CMD_SET_MESSAGE_INTERVAL (511)
+                param1: 33 (The MAVLink message ID)
+                param2: 250000 (The interval between two messages. Set to -1 to disable and 0 to request default rate.)
+                param3: 0 (Reserved (default:0))
+                param4: 0 (Reserved (default:0))
+                param5: 0 (Reserved (default:0))
+                param6: 0 (Reserved (default:0))
+                param7: 0 (Target address of message stream (if message has target address fields). 0: Flight-stack default (recommended), 1: address of requester, 2: broadcast.)
+                
+
+1710 ms
+[INFO] Waiting for COMMAND_ACK..
+
+1714 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+1715 ms
+Got COMMAND_ACK: SET_MESSAGE_INTERVAL: ACCEPTED
+
+1760 ms
+[SUCCESS] COMMAND_ACK received: stop waiting for COMMAND_ACK
+
+1760 ms
+[SUCCESS] Msg rate accepted
+
+1760 ms
+[INFO] Sending msg rate request to 2. Msg Type: ATTITUDE, Rate: 4
+
+1761 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 0
+                command: MAV_CMD_SET_MESSAGE_INTERVAL (511)
+                param1: 30 (The MAVLink message ID)
+                param2: 250000 (The interval between two messages. Set to -1 to disable and 0 to request default rate.)
+                param3: 0 (Reserved (default:0))
+                param4: 0 (Reserved (default:0))
+                param5: 0 (Reserved (default:0))
+                param6: 0 (Reserved (default:0))
+                param7: 0 (Target address of message stream (if message has target address fields). 0: Flight-stack default (recommended), 1: address of requester, 2: broadcast.)
+                
+
+1761 ms
+[INFO] Waiting for COMMAND_ACK..
+
+1765 ms
+Got COMMAND_ACK: SET_MESSAGE_INTERVAL: ACCEPTED
+
+1811 ms
+[SUCCESS] COMMAND_ACK received: stop waiting for COMMAND_ACK
+
+1811 ms
+[SUCCESS] Msg rate accepted
+
+1812 ms
+[INFO] Sending msg rate request to 2. Msg Type: EXTENDED_SYS_STATE, Rate: 2
+
+1812 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 0
+                command: MAV_CMD_SET_MESSAGE_INTERVAL (511)
+                param1: 245 (The MAVLink message ID)
+                param2: 500000 (The interval between two messages. Set to -1 to disable and 0 to request default rate.)
+                param3: 0 (Reserved (default:0))
+                param4: 0 (Reserved (default:0))
+                param5: 0 (Reserved (default:0))
+                param6: 0 (Reserved (default:0))
+                param7: 0 (Target address of message stream (if message has target address fields). 0: Flight-stack default (recommended), 1: address of requester, 2: broadcast.)
+                
+
+1813 ms
+[INFO] Waiting for COMMAND_ACK..
+
+1819 ms
+Got COMMAND_ACK: SET_MESSAGE_INTERVAL: ACCEPTED
+
+1863 ms
+[SUCCESS] COMMAND_ACK received: stop waiting for COMMAND_ACK
+
+1863 ms
+[SUCCESS] Msg rate accepted
+
+1863 ms
+[SUCCESS] Connection initialized
+
+1926 ms
+[INFO] Sending arm request to 1
+
+1927 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_COMPONENT_ARM_DISARM (400)
+                param1: 1 (Arm (MAV_BOOL_FALSE: disarm). Values not equal to 0 or 1 are invalid.)
+                param2: 0 (0: arm-disarm unless prevented by safety checks (i.e. when landed), 21196: force arming/disarming (e.g. allow arming to override preflight checks and disarming in flight))
+                param3: 0 (Reserved (default:0))
+                param4: 0 (Reserved (default:0))
+                param5: 0 (Reserved (default:0))
+                param6: 0 (Reserved (default:0))
+                param7: 0 (Reserved (default:0))
+                
+
+1927 ms
+[INFO] Waiting for COMMAND_ACK..
+
+1933 ms
+Got COMMAND_ACK: COMPONENT_ARM_DISARM: ACCEPTED
+
+1937 ms
+AP: Arming motors
+
+1977 ms
+[SUCCESS] COMMAND_ACK received: stop waiting for COMMAND_ACK
+
+1977 ms
+[INFO] Waiting for armament..
+
+2979 ms
+[SUCCESS] Drone armed: stop waiting for armament
+
+2979 ms
+[SUCCESS] Vehicle armed
+
+2979 ms
+[INFO] Sending arm request to 2
+
+2979 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_COMPONENT_ARM_DISARM (400)
+                param1: 1 (Arm (MAV_BOOL_FALSE: disarm). Values not equal to 0 or 1 are invalid.)
+                param2: 0 (0: arm-disarm unless prevented by safety checks (i.e. when landed), 21196: force arming/disarming (e.g. allow arming to override preflight checks and disarming in flight))
+                param3: 0 (Reserved (default:0))
+                param4: 0 (Reserved (default:0))
+                param5: 0 (Reserved (default:0))
+                param6: 0 (Reserved (default:0))
+                param7: 0 (Reserved (default:0))
+                
+
+2979 ms
+[INFO] Waiting for COMMAND_ACK..
+
+2989 ms
+Got COMMAND_ACK: COMPONENT_ARM_DISARM: ACCEPTED
+
+2994 ms
+AP: Arming motors
+
+3029 ms
+[SUCCESS] COMMAND_ACK received: stop waiting for COMMAND_ACK
+
+3029 ms
+[INFO] Waiting for armament..
+
+3552 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+3571 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+4282 ms
+[SUCCESS] Drone armed: stop waiting for armament
+
+4282 ms
+[SUCCESS] Vehicle armed
+
+4282 ms
+Drone armé
+
+4282 ms
+[WARNING] Mode STABILIZE != GUIDED
+
+4282 ms
+[INFO] Sending change mode request to 1: GUIDED
+
+4282 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_DO_SET_MODE (176)
+                param1: 1 (Mode)
+                param2: 4 (Custom mode - this is system specific, please refer to the individual autopilot specifications for details.)
+                param3: 0 (Custom sub mode - this is system specific, please refer to the individual autopilot specifications for details.)
+                param4: 0 (Empty)
+                param5: 0 (Empty)
+                param6: 0 (Empty)
+                param7: 0 (Empty)
+                
+
+4282 ms
+[INFO] Waiting for COMMAND_ACK..
+
+4286 ms
+Got COMMAND_ACK: DO_SET_MODE: ACCEPTED
+
+4332 ms
+[SUCCESS] COMMAND_ACK received: stop waiting for COMMAND_ACK
+
+4332 ms
+[INFO] Waiting for mode change..
+
+4332 ms
+[SUCCESS] Mode changed: stop waiting for mode changing
+
+4332 ms
+[SUCCESS] Mod changed
+
+4333 ms
+[INFO] Sending takeoff request to 1: (alt, pitch): (3, 0)..
+
+4333 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_NAV_TAKEOFF (22)
+                param1: 0 (Minimum pitch (if airspeed sensor present), desired pitch without sensor)
+                param2: 0 (Empty)
+                param3: 0 (Empty)
+                param4: 0 (Yaw angle (if magnetometer present), ignored without magnetometer. NaN to use the current system yaw heading mode (e.g. yaw towards next waypoint, yaw to home, etc.).)
+                param5: 0 (Latitude)
+                param6: 0 (Longitude)
+                param7: 3 (Altitude)
+                
+
+4333 ms
+[INFO] Waiting for COMMAND_ACK..
+
+4337 ms
+Got COMMAND_ACK: NAV_TAKEOFF: ACCEPTED
+
+4383 ms
+[SUCCESS] COMMAND_ACK received: stop waiting for COMMAND_ACK
+
+4711 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+4715 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+6555 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+6566 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+7712 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+7750 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+9447 ms
+[SUCCESS] Altitude reached: stop waiting for takeoff end
+
+9447 ms
+[WARNING] Mode STABILIZE != GUIDED
+
+9448 ms
+[INFO] Sending change mode request to 2: GUIDED
+
+9448 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_DO_SET_MODE (176)
+                param1: 1 (Mode)
+                param2: 4 (Custom mode - this is system specific, please refer to the individual autopilot specifications for details.)
+                param3: 0 (Custom sub mode - this is system specific, please refer to the individual autopilot specifications for details.)
+                param4: 0 (Empty)
+                param5: 0 (Empty)
+                param6: 0 (Empty)
+                param7: 0 (Empty)
+                
+
+9448 ms
+[INFO] Waiting for COMMAND_ACK..
+
+9473 ms
+Got COMMAND_ACK: DO_SET_MODE: ACCEPTED
+
+9498 ms
+[SUCCESS] COMMAND_ACK received: stop waiting for COMMAND_ACK
+
+9498 ms
+[INFO] Waiting for mode change..
+
+9498 ms
+[SUCCESS] Mode changed: stop waiting for mode changing
+
+9498 ms
+[SUCCESS] Mod changed
+
+9498 ms
+[INFO] Sending takeoff request to 2: (alt, pitch): (3, 0)..
+
+9499 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_NAV_TAKEOFF (22)
+                param1: 0 (Minimum pitch (if airspeed sensor present), desired pitch without sensor)
+                param2: 0 (Empty)
+                param3: 0 (Empty)
+                param4: 0 (Yaw angle (if magnetometer present), ignored without magnetometer. NaN to use the current system yaw heading mode (e.g. yaw towards next waypoint, yaw to home, etc.).)
+                param5: 0 (Latitude)
+                param6: 0 (Longitude)
+                param7: 3 (Altitude)
+                
+
+9499 ms
+[INFO] Waiting for COMMAND_ACK..
+
+9502 ms
+Got COMMAND_ACK: NAV_TAKEOFF: ACCEPTED
+
+9549 ms
+[SUCCESS] COMMAND_ACK received: stop waiting for COMMAND_ACK
+
+9557 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+9566 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+10714 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+10729 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+10794 ms
+AP: EKF3 IMU0 MAG0 in-flight yaw alignment complete
+
+10823 ms
+AP: EKF3 IMU1 MAG0 in-flight yaw alignment complete
+
+12558 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+12562 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+13715 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+13721 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+14966 ms
+[SUCCESS] Altitude reached: stop waiting for takeoff end
+
+15560 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+15574 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+15717 ms
+[INFO] Sending landing target..
+
+15722 ms
+AP: PrecLand: Target Found
+
+15908 ms
+[INFO] Sending landing target..
+
+16045 ms
+[INFO] Sending landing target..
+
+16187 ms
+AP: EKF3 IMU0 MAG0 in-flight yaw alignment complete
+
+16219 ms
+[INFO] Sending landing target..
+
+16234 ms
+AP: EKF3 IMU1 MAG0 in-flight yaw alignment complete
+
+16374 ms
+[INFO] Sending landing target..
+
+16512 ms
+[INFO] Sending landing target..
+
+16694 ms
+[INFO] Sending landing target..
+
+16716 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+16719 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+16837 ms
+[INFO] Sending landing target..
+
+17008 ms
+[INFO] Sending landing target..
+
+17166 ms
+[INFO] Sending landing target..
+
+17339 ms
+[INFO] Sending landing target..
+
+17529 ms
+[INFO] Sending landing target..
+
+17680 ms
+[INFO] Sending landing target..
+
+17855 ms
+[INFO] Sending landing target..
+
+18048 ms
+[INFO] Sending landing target..
+
+18206 ms
+[INFO] Sending landing target..
+
+18347 ms
+[INFO] Sending landing target..
+
+18503 ms
+[INFO] Sending landing target..
+
+18562 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+18571 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+18677 ms
+[INFO] Sending landing target..
+
+18857 ms
+[INFO] Sending landing target..
+
+19030 ms
+AP: PrecLand: Init Complete
+
+19048 ms
+[INFO] Sending landing target..
+
+19250 ms
+[INFO] Sending landing target..
+
+19409 ms
+[INFO] Sending landing target..
+
+19591 ms
+[INFO] Sending landing target..
+
+19718 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+19721 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+19772 ms
+[INFO] Sending landing target..
+
+19935 ms
+[INFO] Sending landing target..
+
+20094 ms
+[INFO] Sending landing target..
+
+20235 ms
+[INFO] Sending landing target..
+
+20389 ms
+[INFO] Sending landing target..
+
+20525 ms
+[INFO] Sending landing target..
+
+20677 ms
+[INFO] Sending landing target..
+
+20839 ms
+[INFO] Sending landing target..
+
+20997 ms
+[INFO] Sending landing target..
+
+21166 ms
+[INFO] Sending landing target..
+
+21345 ms
+[INFO] Sending landing target..
+
+21536 ms
+[INFO] Sending landing target..
+
+21564 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+21572 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+21758 ms
+[INFO] Sending landing target..
+
+21932 ms
+[INFO] Sending landing target..
+
+22094 ms
+[INFO] Sending landing target..
+
+22293 ms
+[INFO] Sending landing target..
+
+22464 ms
+[INFO] Sending landing target..
+
+22696 ms
+[INFO] Sending landing target..
+
+22720 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+22734 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+22885 ms
+[INFO] Sending landing target..
+
+23071 ms
+[INFO] Sending landing target..
+
+23228 ms
+[INFO] Sending landing target..
+
+23392 ms
+[INFO] Sending landing target..
+
+23577 ms
+[INFO] Sending landing target..
+
+23736 ms
+[INFO] Sending landing target..
+
+23912 ms
+[INFO] Sending landing target..
+
+24073 ms
+[INFO] Sending landing target..
+
+24223 ms
+[INFO] Sending landing target..
+
+24437 ms
+[INFO] Sending landing target..
+
+24565 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+24573 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+24611 ms
+[INFO] Sending landing target..
+
+24805 ms
+[INFO] Sending landing target..
+
+24978 ms
+[INFO] Sending landing target..
+
+25149 ms
+[INFO] Sending landing target..
+
+25340 ms
+[INFO] Sending landing target..
+
+25499 ms
+[INFO] Sending landing target..
+
+25657 ms
+[INFO] Sending landing target..
+
+25721 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+25725 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+25855 ms
+[INFO] Sending landing target..
+
+26014 ms
+[INFO] Sending landing target..
+
+26208 ms
+[INFO] Sending landing target..
+
+26347 ms
+[INFO] Sending landing target..
+
+26519 ms
+[INFO] Sending landing target..
+
+26690 ms
+[INFO] Sending landing target..
+
+26857 ms
+[INFO] Sending landing target..
+
+27049 ms
+[INFO] Sending landing target..
+
+27220 ms
+[INFO] Sending landing target..
+
+27399 ms
+[INFO] Sending landing target..
+
+27553 ms
+[INFO] Sending landing target..
+
+27569 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+27585 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+27731 ms
+[INFO] Sending landing target..
+
+27882 ms
+[INFO] Sending landing target..
+
+28045 ms
+[INFO] Sending landing target..
+
+28219 ms
+[INFO] Sending landing target..
+
+28397 ms
+[INFO] Sending landing target..
+
+28576 ms
+[INFO] Sending landing target..
+
+28723 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+28726 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+28756 ms
+[INFO] Sending landing target..
+
+28923 ms
+[INFO] Sending landing target..
+
+29118 ms
+[INFO] Sending landing target..
+
+29289 ms
+[INFO] Sending landing target..
+
+29418 ms
+[INFO] Sending landing target..
+
+29584 ms
+[INFO] Sending landing target..
+
+29756 ms
+[INFO] Sending landing target..
+
+29932 ms
+[INFO] Sending landing target..
+
+30091 ms
+[INFO] Sending landing target..
+
+30259 ms
+[INFO] Sending landing target..
+
+30456 ms
+[INFO] Sending landing target..
+
+30571 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+30580 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+30618 ms
+[INFO] Sending landing target..
+
+30794 ms
+[INFO] Sending landing target..
+
+30948 ms
+[INFO] Sending landing target..
+
+31114 ms
+[INFO] Sending landing target..
+
+31297 ms
+[INFO] Sending landing target..
+
+31454 ms
+[INFO] Sending landing target..
+
+31619 ms
+[INFO] Sending landing target..
+
+31724 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+31731 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+31778 ms
+[INFO] Sending landing target..
+
+31950 ms
+[INFO] Sending landing target..
+
+32091 ms
+[INFO] Sending landing target..
+
+33376 ms
+[INFO] Sending landing target..
+
+33523 ms
+[INFO] Sending landing target..
+
+33573 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+33583 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+33698 ms
+[INFO] Sending landing target..
+
+33887 ms
+[INFO] Sending landing target..
+
+34060 ms
+[INFO] Sending landing target..
+
+34203 ms
+[INFO] Sending landing target..
+
+34324 ms
+[INFO] Sending landing target..
+
+34471 ms
+[INFO] Sending landing target..
+
+34646 ms
+[INFO] Sending landing target..
+
+34725 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+34744 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+34824 ms
+[INFO] Sending landing target..
+
+35031 ms
+[INFO] Sending landing target..
+
+35198 ms
+[INFO] Sending landing target..
+
+35359 ms
+[INFO] Sending landing target..
+
+35519 ms
+[INFO] Sending landing target..
+
+35703 ms
+[INFO] Sending landing target..
+
+35882 ms
+[INFO] Sending landing target..
+
+36039 ms
+[INFO] Sending landing target..
+
+36207 ms
+[INFO] Sending landing target..
+
+36396 ms
+[INFO] Sending landing target..
+
+36545 ms
+[INFO] Sending landing target..
+
+36574 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+36577 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+36703 ms
+[INFO] Sending landing target..
+
+36849 ms
+[INFO] Sending landing target..
+
+37006 ms
+[INFO] Sending landing target..
+
+37157 ms
+[INFO] Sending landing target..
+
+37348 ms
+[INFO] Sending landing target..
+
+37549 ms
+[INFO] Sending landing target..
+
+37727 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+37740 ms
+[INFO] Sending landing target..
+
+37744 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+37899 ms
+[INFO] Sending landing target..
+
+38092 ms
+[INFO] Sending landing target..
+
+38239 ms
+[INFO] Sending landing target..
+
+38428 ms
+[INFO] Sending landing target..
+
+38596 ms
+[INFO] Sending landing target..
+
+38753 ms
+[INFO] Sending landing target..
+
+38910 ms
+[INFO] Sending landing target..
+
+39103 ms
+[INFO] Sending landing target..
+
+39294 ms
+[INFO] Sending landing target..
+
+39470 ms
+[INFO] Sending landing target..
+
+39577 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+39583 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+39652 ms
+[INFO] Sending landing target..
+
+39792 ms
+[INFO] Sending landing target..
+
+39951 ms
+[INFO] Sending landing target..
+
+40107 ms
+[INFO] Sending landing target..
+
+40262 ms
+[INFO] Sending landing target..
+
+40440 ms
+[INFO] Sending landing target..
+
+40632 ms
+[INFO] Sending landing target..
+
+40729 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+40739 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+40799 ms
+[INFO] Sending landing target..
+
+40963 ms
+[INFO] Sending landing target..
+
+41121 ms
+[INFO] Sending landing target..
+
+41287 ms
+[INFO] Sending landing target..
+
+41455 ms
+[INFO] Sending landing target..
+
+41620 ms
+[INFO] Sending landing target..
+
+41802 ms
+[INFO] Sending landing target..
+
+41980 ms
+[INFO] Sending landing target..
+
+42149 ms
+[INFO] Sending landing target..
+
+42338 ms
+[INFO] Sending landing target..
+
+42496 ms
+[INFO] Sending landing target..
+
+42580 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+42595 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+42662 ms
+[INFO] Sending landing target..
+
+42853 ms
+[INFO] Sending landing target..
+
+43015 ms
+[INFO] Sending landing target..
+
+43219 ms
+[INFO] Sending landing target..
+
+43409 ms
+[INFO] Sending landing target..
+
+43566 ms
+[INFO] Sending landing target..
+
+43732 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+43738 ms
+[INFO] Sending landing target..
+
+43741 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+43934 ms
+[INFO] Sending landing target..
+
+44097 ms
+[INFO] Sending landing target..
+
+44263 ms
+[INFO] Sending landing target..
+
+44426 ms
+[INFO] Sending landing target..
+
+44614 ms
+[INFO] Sending landing target..
+
+44800 ms
+[INFO] Sending landing target..
+
+44990 ms
+[INFO] Sending landing target..
+
+45158 ms
+[INFO] Sending landing target..
+
+45355 ms
+[INFO] Sending landing target..
+
+45522 ms
+[INFO] Sending landing target..
+
+45582 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+45588 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+45692 ms
+[INFO] Sending landing target..
+
+45870 ms
+[INFO] Sending landing target..
+
+46049 ms
+[INFO] Sending landing target..
+
+46208 ms
+[INFO] Sending landing target..
+
+46392 ms
+[INFO] Sending landing target..
+
+46559 ms
+[INFO] Sending landing target..
+
+46706 ms
+[INFO] Sending landing target..
+
+46734 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+46740 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+46889 ms
+[INFO] Sending landing target..
+
+47051 ms
+[INFO] Sending landing target..
+
+47205 ms
+[INFO] Sending landing target..
+
+47348 ms
+[INFO] Sending landing target..
+
+47510 ms
+[INFO] Sending landing target..
+
+47665 ms
+[INFO] Sending landing target..
+
+47834 ms
+[INFO] Sending landing target..
+
+47999 ms
+[INFO] Sending landing target..
+
+48191 ms
+[INFO] Sending landing target..
+
+48373 ms
+[INFO] Sending landing target..
+
+48521 ms
+[INFO] Sending landing target..
+
+48584 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+48590 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+48672 ms
+[INFO] Sending landing target..
+
+48843 ms
+[INFO] Sending landing target..
+
+49019 ms
+[INFO] Sending landing target..
+
+49232 ms
+[INFO] Sending landing target..
+
+49404 ms
+[INFO] Sending landing target..
+
+49563 ms
+[INFO] Sending landing target..
+
+49711 ms
+[INFO] Sending landing target..
+
+49735 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+49743 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+49847 ms
+[INFO] Sending landing target..
+
+50043 ms
+[INFO] Sending landing target..
+
+50208 ms
+[INFO] Sending landing target..
+
+50386 ms
+[INFO] Sending landing target..
+
+50594 ms
+[INFO] Sending landing target..
+
+50793 ms
+[INFO] Sending landing target..
+
+50957 ms
+[INFO] Sending landing target..
+
+51146 ms
+[INFO] Sending landing target..
+
+51314 ms
+[INFO] Sending landing target..
+
+51473 ms
+[INFO] Sending landing target..
+
+51586 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+51593 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+51649 ms
+[INFO] Sending landing target..
+
+51810 ms
+[INFO] Sending landing target..
+
+51975 ms
+[INFO] Sending landing target..
+
+52143 ms
+[INFO] Sending landing target..
+
+52292 ms
+[INFO] Sending landing target..
+
+52477 ms
+[INFO] Sending landing target..
+
+52698 ms
+[INFO] Sending landing target..
+
+52737 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+52742 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+52860 ms
+[INFO] Sending landing target..
+
+53051 ms
+[INFO] Sending landing target..
+
+53243 ms
+[INFO] Sending landing target..
+
+53383 ms
+[INFO] Sending landing target..
+
+53579 ms
+[INFO] Sending landing target..
+
+53734 ms
+[INFO] Sending landing target..
+
+53897 ms
+[INFO] Sending landing target..
+
+54070 ms
+[INFO] Sending landing target..
+
+54236 ms
+[INFO] Sending landing target..
+
+54352 ms
+[INFO] Sending landing target..
+
+54478 ms
+[INFO] Sending landing target..
+
+54588 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+54592 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+54603 ms
+[INFO] Sending landing target..
+
+54736 ms
+[INFO] Sending landing target..
+
+54858 ms
+[INFO] Sending landing target..
+
+54984 ms
+[INFO] Sending landing target..
+
+55124 ms
+[INFO] Sending landing target..
+
+55261 ms
+[INFO] Sending landing target..
+
+55738 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+55744 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+57590 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+57596 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+58739 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+58743 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+59054 ms
+AP: PrecLand: Target Lost
+
+59621 ms
+AP: Disarming motors
+
+60592 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+60598 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+61740 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+61743 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+63593 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+63603 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+64741 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+64746 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+66595 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+66604 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+67743 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+67747 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+69596 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+69598 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+70743 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+70746 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+72597 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+72600 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+73744 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+73748 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+75597 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+75600 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+76745 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+76748 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+78598 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+78602 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+79746 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+79749 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+81599 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+81603 ms
+Got COMMAND_ACK: REQUEST_MESSAGE: ACCEPTED
+
+82746 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 2
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+84565 ms
+[INFO] Closing..
+
+84599 ms
+[LOG] Sending COMMAND_LONG
+                target_system: 1
+                target_component: 1
+                command: MAV_CMD_REQUEST_MESSAGE (512)
+                param1: 242 (The MAVLink message ID of the requested message.)
+                param2: 0 (Use for index ID, if required. Otherwise, the use of this parameter (if any) must be defined in the requested message. By default assumed not used (0).)
+                param3: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param4: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param5: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param6: 0 (The use of this parameter (if any), must be defined in the requested message. By default assumed not used (0).)
+                param7: 0 (Target address for requested message (if message has target address fields). 0: Flight-stack default, 1: address of requester, 2: broadcast.)
+                
+
+84787 ms
+[SUCCESS] Closed
+
+84787 ms
+[INFO] Closing..
+
+85287 ms
+[SUCCESS] Closed
+
