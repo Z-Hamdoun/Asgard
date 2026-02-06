@@ -1313,7 +1313,7 @@ class MAVLinCS:
                     target_system=target_system
                 )
                 if not mod_changed:
-                    self.logger.log("[FAIL] Takeoff aboarded")
+                    self.logger.log("[FAIL] Takeoff aborted")
                     return False
         else:
             self.logger.log("[INFO] Pas de vérification du mode: appareil n'étant pas sur ArduPilot", wanna_print=False)

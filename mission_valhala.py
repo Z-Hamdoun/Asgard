@@ -47,7 +47,7 @@ def main():
             drone0.update()
             # drone1.update()
             
-            time.sleep(0.05) # 20 Hz
+            time.sleep(0.01) # 100 HZ
 
     except KeyboardInterrupt:
         print("Arrêt demandé")
