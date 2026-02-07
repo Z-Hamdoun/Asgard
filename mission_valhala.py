@@ -7,7 +7,6 @@ import time
 
 
 def main():
-    print("--- DÉMARRAGE MISSION ASGARD (FSM) ---")
     
     # 1. Init Logger et Camera
     logger = Logger(log_file='logs.txt')

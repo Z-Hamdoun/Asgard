@@ -3,6 +3,7 @@ from Camera.class_Camera import Camera
 from pymavlink import mavutil
 from divers.class_Logger import Logger
 import time
+from threading import Thread
 
 
 class Drone(MAVLinCS):
@@ -30,48 +31,54 @@ class Drone(MAVLinCS):
         
     def loiter(self):
         while True:
-            result = self.camera.analyse(affichage=True)
+            result = self.camera.analyse(affichage=False)
             if result[-2] is not None:
                 print('[Aruco] Going to AruCo marker')
                 print(result[0], result[1], result[2])
                 self.send_landing_target(result[0], result[1], result[2])
-                
             time.sleep(0.01)
 
 
-try:
-    # Master drone
-    drone0 = Drone(
-        address="127.0.0.1:14550",
-        source_system=201,
-        source_component=mavutil.mavlink.MAV_COMP_ID_MISSIONPLANNER,
-        target_system=1,
-        baud=57600,
-        timeout_heartbeat=None,
-    )
-
-    # Petit drone
-    drone1 = Drone(
-        address="127.0.0.1:14560",
-        source_system=201,
-        source_component=mavutil.mavlink.MAV_COMP_ID_MISSIONPLANNER,
-        target_system=2,
-        baud=57600,
-        timeout_heartbeat=None,
-        camera_topic="/world/iris_runway/model/drone1/model/gimbal/link/pitch_link/sensor/camera/image"
-    )
-
-
-    # Armement des deux drones
-    armed_drone0 = drone0.arm()
-
-    if armed_drone0:
+def valhalla():
+    armed = drone0.arm()
+    if armed:
         # Takeoff simple
         drone0.logger.log("Drone armé")
         drone0.takeoff(3)
         
         # Loitering pour le Gros drone:
         drone0.loiter()
+
+        
+
+def valkyrie():
+    armed = drone1.arm()
+    if armed:
+        drone1.takeoff(3)
+        drone1.do_follow(1)
+
+
+try:
+    # Master drone
+    drone0 = Drone(
+        address="127.0.0.1:14550",
+        target_system=1,
+    )
+
+    # Petit drone
+    drone1 = Drone(
+        address="127.0.0.1:14560",
+        target_system=2,
+        camera_topic="/world/iris_runway/model/drone1/model/gimbal/link/pitch_link/sensor/camera/image"
+    )
+
+
+    mission_valhalla = Thread(target=valhalla)
+    mission_valkyrie = Thread(target=valkyrie)
+    mission_valhalla.start()
+    mission_valkyrie.start()
+    mission_valhalla.join()
+    mission_valkyrie.join()
 
         
 except Exception as e:
