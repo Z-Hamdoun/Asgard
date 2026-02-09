@@ -35,62 +35,6 @@ class Drone(MAVLinCS):
                 print("PNP DETECTE!!!!!!!!!!")
                 self.send_landing_target(-vector[0], vector[1], vector[2])
             time.sleep(0.01)
-    def loiter_pnp1(self, gz_camera):
-        while True:
-            frame = gz_camera.get_frame(affiche=True)
-            vector = pnp.get_landing_vector(frame, verbose=True)
-            if vector:
-                print("PNP DETECTE!!!!!!!!!!!")
-                dx, dy, current_z = vector
-            
-                # --- PARAMÈTRES ---
-                target_z = 2.0  # Hauteur cible (2 mètres)
-                kp_xy = 0.5     # Gain horizontal (Vitesse par mètre d'erreur)
-                kp_z  = 1.0     # Gain vertical (Plus agressif pour tenir l'altitude)
-                max_speed = 0.5 # Vitesse max (m/s) pour la sécurité
-
-                # --- CALCUL DES VITESSES (Correcteur P) ---
-            
-                # 1. Vitesse Horizontale (Pour se centrer)
-                vx = dx * kp_xy
-                vy = dy * kp_xy
-            
-                # 2. Vitesse Verticale (Pour rester à 2m)
-                # Si current_z (3m) > target_z (2m) -> Diff = 1m -> On doit descendre (Vitesse positive en NED)
-                # Attention : En NED, Z positif = Vers le bas.
-                # Donc : Vitesse Z = (Altitude Actuelle - Cible) * Gain
-                error_z = current_z - target_z
-                vz = error_z * kp_z
-
-                # Saturation (Pour ne pas aller trop vite)
-                vx = max(min(vx, max_speed), -max_speed)
-                vy = max(min(vy, max_speed), -max_speed)
-                vz = max(min(vz, max_speed), -max_speed)
-
-                # --- ENVOI DE LA COMMANDE ---
-                # Il faut envoyer ça dans le repère BODY (par rapport au nez du drone)
-                # Ta classe MAVLinCS n'a pas de fonction set_speed_body par défaut, 
-                # voici comment l'appeler directement :
-            
-                self.master.mav.set_position_target_local_ned_send(
-                    0,                          # time_boot_ms
-                    self.master.target_system, # target_system
-                    self.master.target_component,
-                    mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED, # <--- IMPORTANT : Repère BODY
-                    0b110111000111,             # Mask: On ignore Position et Accel, on active VITESSE
-                    0, 0, 0,                    # Pos X, Y, Z (Ignoré)
-                    -vx, -vy, vz,                 # Vitesse X, Y, Z (Notre commande)
-                    0, 0, 0,                    # Accel (Ignoré)
-                    0, 0                        # Yaw
-                )
-            
-                print(f"Correction: Alt={current_z:.2f}m -> Vz={vz:.2f} m/s")
-            
-                # Condition pour passer à l'étape suivante (Largage)
-                # Si on est stable à 2m (+/- 10cm) et centré (+/- 5cm)
-                if abs(error_z) < 0.10 and abs(dx) < 0.05 and abs(dy) < 0.05:
-                    print("STAAAAABLE") # Transition vers l'état largage
-            time.sleep(0.01)
     
     def loiter(self, gz_camera):
         while True:
