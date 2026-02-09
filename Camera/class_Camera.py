@@ -284,7 +284,8 @@ class Camera:
 
     def get_frame(self,
             affiche: bool = False,
-            timeout: float = 5
+            timeout: float = 5,
+            save = False
         ) -> np.ndarray:
         """
         Renvoie la dernière frame capturée, et affiche ou non celle-ci.
@@ -315,6 +316,8 @@ class Camera:
                 if self._simulation:
                     cv2.waitKey(50)
         # Attention à bien renvoyer la frame en RGB
+        if save:
+            cv2.imwrite("image.jpg", frame)
         return frame #cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
     def encode(self, img: np.ndarray, quality: int = 80) -> tuple[bytes, int, int]:

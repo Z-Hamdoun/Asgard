@@ -38,9 +38,8 @@ class Drone(MAVLinCS):
 
 
 try:
-    # Master drone
-    drone0 = Drone(
-        address="127.0.0.1:14550",
+    drone = Drone(
+        address="/dev/ttyAMA0",
         source_system=201,
         source_component=mavutil.mavlink.MAV_COMP_ID_MISSIONPLANNER,
         target_system=1,
@@ -48,45 +47,31 @@ try:
         timeout_heartbeat=None,
     )
 
-    # Petit drone
-    drone1 = Drone(
-        address="127.0.0.1:14560",
-        source_system=201,
-        source_component=mavutil.mavlink.MAV_COMP_ID_MISSIONPLANNER,
-        target_system=2,
-        baud=57600,
-        timeout_heartbeat=None,
-    )
 
     # Gazebo Camera
-    gz_camera = Camera(simulation='SITL')
+    gz_camera = Camera()
 
     # Armement des deux drones
-    armed_drone0 = drone0.arm()
-    armed_drone1 = drone1.arm()
+    armed_drone = False
+    while not armed_drone:
+        armed_drone = drone.arm()
+        time.sleep(5)
 
-    if armed_drone0 and armed_drone1:
+    if armed_drone:
         # Takeoff simple
-        drone0.logger.log("Drone armé")
-        drone0.takeoff(3)
-        drone1.takeoff(3)
-        
-        # Loitering pour le Gros drone:
-        drone0.loiter(gz_camera)
+        drone.logger.log("Drone armé")
+        drone.takeoff(3)
+        time.sleep(5)
+        drone.return_to_launch()
 
         
 except Exception as e:
     print("Erreur innatendue")
     print(e)
 
-# interruption manuelle avec Ctrl+C
-except KeyboardInterrupt:
-    print("Arrêt demandé")
-
 finally:
     try:
-        drone0.close()
-        drone1.close()
+        drone.close()
         gz_camera.close()
     except Exception:
         pass
