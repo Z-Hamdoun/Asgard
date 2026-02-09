@@ -50,7 +50,7 @@ try:
 
 
     # Gazebo Camera
-    camera = Camera()
+    camera = Camera(simulation=None)
 
     # Armement des deux drones
     # armed_drone = False
