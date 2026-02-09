@@ -1,0 +1,1 @@
+L'objectif est de parser les messages serie en entrée avec le librairie MAVLink pour les envoyer entiers dans des paquets ESP-NOW

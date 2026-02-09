@@ -1,0 +1,3 @@
+Test de bande passante bidirectionnelle
+Globalement, quand une carte reçoit un message, elle en envoie un en retour.
+
