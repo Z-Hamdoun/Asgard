@@ -1,13 +1,3 @@
-##################################################################
-
-
-                    This is a **ChatGPT** cut & paste
-            Check before use   
-                        as soon as the RPI camera is running
-
-
-##################################################################
-
 # Detect bright magenta dots from Raspberry Pi camera in real-time
 # Requires: sudo apt install python3-picamera2 python3-opencv
 
