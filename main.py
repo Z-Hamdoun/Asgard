@@ -58,7 +58,7 @@ try:
     if armed_drone:
         # Takeoff simple
         drone.logger.log("Drone armé")
-        drone.takeoff(3)
+        drone.takeoff(1)
         time.sleep(5)
         drone.master.mav.set_position_target_local_ned_send(
         0,                          # time_boot_ms
