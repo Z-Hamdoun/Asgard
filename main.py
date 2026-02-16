@@ -40,12 +40,9 @@ class Drone(MAVLinCS):
 try:
     drone = Drone(
         address="/dev/ttyAMA0",
-        source_system=201,
         source_component=mavutil.mavlink.MAV_COMP_ID_MISSIONPLANNER,
         target_system=1,
-        baud=57600,
-        timeout_heartbeat=None,
-        logger=Logger(log_file="logs_rpi.txt")
+        baud=921600,
     )
 
 
