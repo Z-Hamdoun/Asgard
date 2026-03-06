@@ -66,7 +66,7 @@ try:
         drone.master.target_component,
         mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED, # Repère par rapport au drone
         0b110111111000,             # Masque (On veut juste la POSITION, on ignore le reste)
-        3, 0, 0,                    # X=3m (Devant), Y=0, Z=0
+        1, 0, 0,                    # X=3m (Devant), Y=0, Z=0
         0, 0, 0,                    # Vitesses (ignorées)
         0, 0, 0,                    # Accel (ignorées)
         0, 0                        # Yaw (ignoré)
