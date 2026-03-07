@@ -1,3 +1,0 @@
-Plutôt que de parser les messages avec la librairie MAVLink, je détecte le début et la longueur.
-Cela pourrait poser le problème de la vérification CRC...
-
