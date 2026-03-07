@@ -53,13 +53,16 @@ try:
     armed_drone = False
     while not armed_drone:
         armed_drone = drone.arm()
-        time.sleep(5)
+        time.sleep(10)
 
     if armed_drone:
         # Takeoff simple
         drone.logger.log("Drone armé")
-        drone.takeoff(1)
-        time.sleep(5)
+        took_off = drone.takeoff(1)
+        while not took_off:
+            time.sleep(10)
+            took_off = drone.takeoff(1)
+        time.sleep(10)
         drone.master.mav.set_position_target_local_ned_send(
         0,                          # time_boot_ms
         drone.master.target_system, # target_system
