@@ -29,7 +29,9 @@ class Drone(MAVLinCS):
     def loiter(self, gz_camera):
         while True:
             result = gz_camera.analyse()
+            gz_camera.get_frame(save=True)
             if result[-2] is not None:
+                gz_camera.logger.log("OUI ARUCO")
                 print('[Aruco] Going to AruCo marker')
                 print(result[0], result[1], result[2])
                 self.send_landing_target(result[0], result[1], result[2])
@@ -57,10 +59,10 @@ try:
     if armed_drone:
         # Takeoff simple
         drone.logger.log("Drone armé")
-        took_off = drone.takeoff(2)
+        took_off = drone.takeoff(4)
         while not took_off:
             time.sleep(10)
-            took_off = drone.takeoff(2)
+            took_off = drone.takeoff(4)
         time.sleep(10)
         drone.loiter(camera)
         fin = drone.return_to_launch()
