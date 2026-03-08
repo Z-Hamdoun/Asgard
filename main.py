@@ -28,7 +28,7 @@ class Drone(MAVLinCS):
         
     def loiter(self, gz_camera):
         while True:
-            result = gz_camera.analyse(affichage=True)
+            result = gz_camera.analyse()
             if result[-2] is not None:
                 print('[Aruco] Going to AruCo marker')
                 print(result[0], result[1], result[2])
@@ -57,23 +57,12 @@ try:
     if armed_drone:
         # Takeoff simple
         drone.logger.log("Drone armé")
-        took_off = drone.takeoff(1)
+        took_off = drone.takeoff(2)
         while not took_off:
             time.sleep(10)
-            took_off = drone.takeoff(1)
+            took_off = drone.takeoff(2)
         time.sleep(10)
-        drone.master.mav.set_position_target_local_ned_send(
-        0,                          # time_boot_ms
-        drone.master.target_system, # target_system
-        drone.master.target_component,
-        mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED, # Repère par rapport au drone
-        0b110111111000,             # Masque (On veut juste la POSITION, on ignore le reste)
-        1, 0, 0,                    # X=3m (Devant), Y=0, Z=0
-        0, 0, 0,                    # Vitesses (ignorées)
-        0, 0, 0,                    # Accel (ignorées)
-        0, 0                        # Yaw (ignoré)
-    )
-        time.sleep(5)
+        drone.loiter(camera)
         fin = drone.return_to_launch()
         if fin:
             drone.close()
