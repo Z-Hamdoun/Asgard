@@ -22,7 +22,7 @@ class Camera:
     """Crée une connection avec une caméra."""
     def __init__(self,
             simulation: str | None,
-            resolution_id: int = 2,
+            resolution_id: int = 1,
             do_crop: bool = True,
             camera_topic: str = "/world/iris_runway/model/iris_with_gimbal/model/gimbal/link/pitch_link/sensor/camera/image",
             gstream_port: int = 5600,
@@ -188,12 +188,12 @@ class Camera:
             """Matrice de distorsion de la caméra"""
 
             if simulation is None:
-                self._camera_matrix = np.array([ # C'est pas la bonne matrice
-                        [800,   0, 320],
-                        [  0, 800, 240],
-                        [  0,   0,   1]
-                    ], dtype=np.float64)
-                self._dist_coeffs = np.array([-0.1, 0.05, 0.001, 0.0005, 0], dtype=np.float64) # Celle-là non plus
+                self._camera_matrix = np.array([
+                    [420.0,   0.0, 320.0],  # Fx ~420, Cx = 320 (Largeur/2)
+                    [  0.0, 420.0, 240.0],  # Fy ~420, Cy = 240 (Hauteur/2)
+                    [  0.0,   0.0,   1.0]
+                ], dtype=np.float64)
+                self._dist_coeffs = np.array([0, 0, 0, 0, 0], dtype=np.float64) # Celle-là non plus
             else:
                 # Matrices de la caméra Gazebo (à vérifier)
                 # self._camera_matrix = np.array([
@@ -209,7 +209,7 @@ class Camera:
                 self._dist_coeffs = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
             # Créer le dictionnaire ArUco et les paramètres de détection
-            self._aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+            self._aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_6X6_250)
             """Dictionnaire ArUco."""
 
             self._aruco_params = aruco.DetectorParameters()
@@ -412,8 +412,8 @@ class Camera:
 
         if ids is not None:
             for aruco_id, corner in zip(ids, corners):
-                if aruco_id != self.aruco_id:
-                    continue
+                #if aruco_id != self.aruco_id:
+                #    continue
 
                 if self._last_crop is not None and self.DO_CROP:
                     corner[:,:,0] *= self._last_scale_down
