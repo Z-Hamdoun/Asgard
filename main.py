@@ -46,8 +46,7 @@ try:
     )
 
 
-    # Gazebo Camera
-    # camera = Camera(simulation=None, logger=Logger("log.txt"))
+    camera = Camera(simulation=None, logger=Logger("log.txt"))
 
     # Armement des deux drones
     armed_drone = False
