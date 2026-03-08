@@ -35,6 +35,8 @@ class Drone(MAVLinCS):
                 self.send_landing_target(result[0], result[1], result[2])
                 
             time.sleep(0.01)
+    
+    
 
 
 try:
@@ -58,7 +60,7 @@ try:
     if armed_drone:
         # Takeoff simple
         drone.logger.log("Drone armé")
-        took_off = drone.takeoff(1)
+        took_off = drone.takeoff(3)
         while not took_off:
             time.sleep(10)
             took_off = drone.takeoff(1)
