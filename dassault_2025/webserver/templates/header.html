@@ -1,0 +1,78 @@
+{% macro header(padge_name) %}
+
+<style>
+    header {
+        background: #fff;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+        border-bottom-left-radius: 6px;
+        border-bottom-right-radius: 6px;
+        animation: slideDown 0.8s ease-out;
+    }
+    @keyframes slideDown {
+        from { transform: translateY(-50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    nav ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+    }
+    nav ul section {
+        display: inline-block;
+    }
+    nav ul section li {
+        display: inline;
+        margin: 0 8px;
+    }
+    nav ul section li a {
+        background: #4CAF50;
+        color: white;
+        padding: 8px 16px;
+        text-decoration: none;
+        border-radius: 20px;
+        transition: background 0.3s;
+    }
+    nav ul section li a:hover {
+        background: #45a049;
+    }
+    .nav-button { 
+        background: #4CAF50; 
+        color: white; 
+        padding: 12px; 
+        border-radius: 8px; 
+        border: none; 
+        cursor: pointer; 
+        transition: transform 0.3s, box-shadow 0.3s; 
+    }
+    .select {
+        padding: 10px; 
+        padding-left: 20px;
+        padding-right: 20px;
+        background: #19481c;
+        border-radius: 12px; 
+        font-size: 20px;
+        font-weight: bold;
+    }
+    .select:hover {
+        background: #19481c;
+    }
+</style>
+
+<header>
+
+    <nav>
+        <ul>
+            <section>
+                <li><a href="{{ url_for('index') }}"        class="nav-button {{ 'select' if padge_name == 'index' else '' }}">Accueil</a></li>
+                <li><a href="{{ url_for('localisation') }}" class="nav-button {{ 'select' if padge_name == 'localisation' else '' }}">Localisation</a></li>
+                <li><a href="{{ url_for('control') }}"      class="nav-button {{ 'select' if padge_name == 'control' else '' }}">Control</a></li>
+            </section>
+        </ul>
+    </nav>
+
+</header>
+
+{% endmacro %}

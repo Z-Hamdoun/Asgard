@@ -1,0 +1,150 @@
+<style>
+    select {
+            margin-bottom: 10px;
+            padding: 5px;
+    }
+    .log-container {
+        max-height: 400px;
+        width: 40vw;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 5px;
+        font-size: 12px;
+    }
+    .log {
+        padding: 5px;
+        border-bottom: 1px solid #eee;
+    }
+    .CGM { color: rgb(25, 74, 126) }
+    .STATUSTEXT { color: rgb(67, 95, 126) }
+    .INFO { color: rgb(15, 91, 15); }
+    .WARNING { color: rgb(172, 120, 23); }
+    .ERROR { color: rgb(147, 19, 19); }
+    .log-date{
+        color: rgb(83, 83, 83);
+        font-size: 12px;
+        letter-spacing: -1px;
+    }
+
+    option {
+        color: gray;
+    }
+    option.activate {
+        color: black;
+    }
+</style>
+
+<div class="container">
+
+    <label for="log-filter">Filtrer par niveau :</label>
+    <select id="log-filter">
+        <option value="ALL" class="activate">ALL</option>
+        <option value="UND" class="activate">UNDIFINED</option>
+        <option value="CGM" class="activate">CGM</option>
+        <option value="STATUSTEXT" class="activate">STATUSTEXT</option>
+        <option value="INFO" class="activate">INFO</option>
+        <option value="WARNING" class="activate">WARNING</option>
+        <option value="ERROR" class="activate">ERROR</option>
+    </select>
+
+    <button class="button" id="clear-logs-button">clear</button>
+
+    <div class="log-container" id="log-container"></div>
+</div>
+
+<script type="module">
+
+    import { add_db_listener } from "./static/js/db-listener.js";
+    import { take_action } from "./static/js/take-action.js";
+
+    const ALL_LEVELS = ["UND", "CGM", "STATUSTEXT", "INFO", "WARNING", "ERROR"];
+
+    const logContainer = document.getElementById("log-container");
+    const logFilter = document.getElementById("log-filter");
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        // Ajouter un écouteur au bouton de suppression
+        document.getElementById("clear-logs-button").addEventListener("click", clearLogs);
+    });
+
+    function clearLogs() {
+        fetch("/api/clear_logs", { method: "DELETE" })
+            .then(response => response.json())
+            .then(() => {
+                logContainer.innerHTML = ""; // Supprimer tous les logs affichés
+            })
+            .catch(error => console.error("Erreur lors de la suppression des logs :", error));
+    }
+
+    function addLog(data) {
+        const level = data.level;
+        const message = data.message;
+        const date_heure = data.date_heure;
+
+        const logElement = document.createElement("div");
+        logElement.classList.add("log", level);
+        logElement.dataset.level = level;
+        logElement.innerHTML = `<spam class="log-date">[${date_heure}]</spam> <span class="${level}">${level}</span> - <span id="message"></span>`;
+        logElement.querySelector("#message").textContent = `${message}`;
+
+        logContainer.appendChild(logElement);
+        logContainer.scrollTop = logContainer.scrollHeight; // Scroller vers le bas automatiquement
+    
+        applyFilter(); // Applique immédiatement le filtre actif
+    }
+
+    add_db_listener("Log", "insert", addLog);
+
+    // Fonction pour afficher/masquer les logs selon le filtre
+    function getActiveLevels() {
+        return Array.from(logFilter.options)
+            .filter(opt => opt.classList.contains("activate") && opt.value !== "ALL")
+            .map(opt => opt.value);
+    }
+
+    function handleFilterClick(event) {
+        //event.preventDefault(); // Empêche le changement de sélection native
+        const option = event.target;
+
+        if (option.tagName !== "OPTION") return;
+
+        const selectedOption = logFilter.selectedOptions[0];
+        const value = selectedOption.value;
+
+        if (value === "ALL") {
+            selectedOption.classList.toggle("activate");
+
+            if (selectedOption.classList.contains("activate")) {
+                console.log(logFilter.childNodes);
+                logFilter.childNodes.forEach(opt => {
+                    if (opt.value !== "ALL" && opt.nodeName === "OPTION") {
+                        console.log(opt);
+                        opt.classList.add("activate");
+                    }
+                });
+            }
+            else {
+                logFilter.childNodes.forEach(opt => {
+                    if (opt.value !== "ALL" && opt.nodeName === "OPTION") {
+                        opt.classList.remove("activate");
+                    }
+                });
+            }
+
+        } else {
+            selectedOption.classList.toggle("activate");
+        }
+
+        applyFilter();
+    }
+
+    function applyFilter() {
+        const activeLevels = getActiveLevels();
+        document.querySelectorAll(".log").forEach(log => {
+            log.style.display = activeLevels.includes(log.dataset.level) ? "block" : "none";
+        });
+    }
+
+    logFilter.addEventListener("mousedown", handleFilterClick);
+</script>

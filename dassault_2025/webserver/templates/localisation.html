@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Localisation</title>
+    <!-- Include Leaflet CSS -->
+    <link rel="stylesheet" href="/static/css/leaflet.css">
+    <style>
+        @font-face {
+            font-family: 'Montserrat';
+            src: url('/static/fonts/montserrat/Montserrat-Regular.tff') format('tff');
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Montserrat';
+            src: url('/static/fonts/montserrat/Montserrat-Bold.tff') format('tff');
+            font-weight: 700;
+            font-style: normal;
+        }
+        /* Updated base styles matching index */
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(135deg, #fbc2eb, #a6c1ee);
+            margin: 0;
+            padding: 20px;
+            padding-top: 0;
+            color: #34495e;
+            animation: fadeIn 1s ease-out;
+        }
+        header {
+            background: #fff;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+        /* New responsive map container */
+        #map {
+            width: 90%;           /* Use full container width */
+            height: 70vh;         /* Use full viewport height */
+            margin: 20px auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        /* Panels positioning */
+        .panel {
+            width: 220px;
+            padding: 15px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 20px;
+            z-index: 1000;
+        }
+        .left-panel { left: 20px; }
+        .right-panel { right: 20px; }
+        /* Container for form */
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            max-width: 900px;
+            margin: 20px auto;
+            animation: fadeIn 1s ease-out;
+        }
+        footer {
+            background: #333;
+            text-align: center;
+            padding: 10px;
+            color: white;
+        }
+        /* New entrance animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        /* Styles pour les contrôles de carte */
+        .map-controls {
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .map-controls button, .map-controls select {
+            padding: 8px 15px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .map-controls button:hover, .map-controls select:hover {
+            background: #f5f5f5;
+            border-color: #aaa;
+        }
+        .map-controls button.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        .map-controls button.danger-btn {
+            background: #e74c3c;
+            color: white;
+            border-color: #e74c3c;
+        }
+        .map-controls button.danger-btn:hover {
+            background: #c0392b;
+            border-color: #c0392b;
+        }
+        /* Styles pour les mises à jour en temps réel */
+        .coordinate-value {
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+    </style>
+
+    <style>
+        .coordinate-value {
+            font-size: 0.8em;
+            letter-spacing: -1px;
+        }
+        
+        table#marker-list-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #ddd;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        table#marker-list-table th {
+            background-color: #f9f9f9;
+            font-weight: bold;
+        }
+
+        table#marker-list-table td {
+            background-color: #f9f9f9;
+        }
+
+        table#marker-list-table tr {
+            background-color: #f0f0f0;
+        }
+
+        table#marker-list-table tr:hover {
+            background-color: #f0f0f0;
+        }
+
+        table#marker-list-table button {
+            background: #4CAF50; 
+            color: white; 
+            border-radius: 8px; 
+            border: none; 
+            cursor: pointer; 
+            transition: transform 0.3s, box-shadow 0.3s; 
+            padding: 5px; 
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        table#marker-list-table button:hover {
+            background: #45a049; 
+            transform: scale(1.05); 
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15); 
+        }
+
+        table#marker-list-table select {
+            background: #9ec96c; 
+            color: white; 
+            border-radius: 8px; 
+            border: none; 
+            cursor: pointer; 
+            padding: 5px; 
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        table#marker-list-table .seq-value {
+            font-weight: bold;
+        }
+        
+        
+    </style>
+    {% include "socket.html" %}
+    <script type="module" src="{{ url_for('static', filename='js/db-listener.js') }}"></script>
+</head>
+<body>
+    <!-- Navigation remains unchanged -->
+    {% import "header.html" as header %}
+    {{ header.header("localisation") }}
+    
+    <!-- Panels for displaying coordinates -->
+    <div class="panel left-panel" id="position-panel-{{ AIRCRAFT_ID }}">
+        <h2>Plane</h2>
+        <p>Lat: <span id="latitude-{{AIRCRAFT_ID}}" class="coordinate-value">0</span></p>
+        <p>Lng: <span id="longitude-{{AIRCRAFT_ID}}" class="coordinate-value">0</span></p>
+        <p>Alt: <span id="altitude-{{AIRCRAFT_ID}}" class="coordinate-value">0</span></p>
+    </div>
+    <div class="panel right-panel" id="position-panel-{{ DRONE_ID }}">
+        <h2>Drone</h2>
+        <p>Lat: <span id="latitude-{{DRONE_ID}}" class="coordinate-value">0</span></p>
+        <p>Lng: <span id="longitude-{{DRONE_ID}}" class="coordinate-value">0</span></p>
+        <p>Alt: <span id="altitude-{{DRONE_ID}}" class="coordinate-value">0</span></p>
+    </div>
+    <div class="container">
+        <h2>Carte Interactive</h2>
+        
+        <!-- Contrôles de filtre et d'édition -->
+        <div class="map-controls">
+            <button id="recenter-button-drone">Recentrer drone</button>
+            <button id="recenter-button-plane">Recentrer plane</button>
+            <button id="reset-button" class="danger-btn">Réinitialiser Tout</button>
+            <!--<button id="toggle-realtime" class="mode-btn" onclick="socketToggleRealTime()">Pauser le temps réel</button>-->
+            <button id="toggle-followme" class="mode-btn" onclick="scriptToggleFollowMe()">Activer le follow me</button>
+        </div>
+        
+        <!-- Map container -->
+        <div id="map"></div>
+        
+        <!-- Onglets pour les marqueurs et chemins -->
+        <h3>Marqueurs enregistrés</h3>
+        <!-- table with columns (seq, latitude, longitude, altitude, marker_type) and four button to replace, mouve_up, mouve_down, delete  -->
+        <table id="marker-list-table">
+            <thead>
+                <tr>
+                    <th>Seq</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                    <th>Altitude</th>
+                    <th>Parameter</th>
+                    <th>Marker Type</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        <button id="add-marker-button" onclick="make_new_marker()">Ajouter un marqueur</button>
+    </div>
+    
+    <!-- Socket.IO library (new) -->
+    <script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
+    <!-- Charger d'abord les scripts bas niveau, puis les scripts qui en dépendent -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <!--<script src="{{ url_for('static', filename='js/maps.js') }}"></script>-->
+
+    <script type="module">
+    import { add_db_listener, init_db_listener } from "./static/js/db-listener.js";
+
+    init_db_listener(socket);
+
+    document.addEventListener("DOMContentLoaded", function() {
+
+        function get_markers() {
+            const markers = document.querySelectorAll("#marker-list-table tbody tr");
+            return markers;
+        }
+        
+        // permet de mettre à jour la table des marqueurs
+        let last_id = 0;
+        function add_row_marker(data) {
+            last_id++;
+            let table = document.querySelector("#marker-list-table tbody");
+            let row = `
+            <tr data-id="${last_id}">
+                <td id="seq-${last_id}" class="seq-value">${data.seq}</td>
+                <td id="latitude-${last_id}" class="coordinate-value">${data.latitude}</td>
+                <td id="longitude-${last_id}" class="coordinate-value">${data.longitude}</td>
+                <td>
+                    <input type="number" id="altitude-${last_id}" value="${data.altitude}" onchange="update_rows()">
+                </td>
+                <td>
+                    <input type="text" id="parameter-${last_id}" value="${data.parameter}" onchange="update_rows()">
+                </td>
+                <td>
+                    <select id="marker-type-${last_id}" onchange="update_rows()">
+                        {% for marker_type in MARKER_TYPES %}
+                            <option value="{{marker_type}}" data-label="{{marker_type}}">{{marker_type}}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <button id="replace-marker-${last_id}" onclick="replace_marker(${last_id})">&#9672;</button>
+                    <button id="move-up-marker-${last_id}" onclick="move_up_marker(${last_id})">&uarr;</button>
+                    <button id="move-down-marker-${last_id}" onclick="move_down_marker(${last_id})">&darr;</button>
+                    <button id="delete-marker-${last_id}" onclick="delete_marker(${last_id})">&times;</button>
+                </td>
+            </tr>`;
+            table.insertAdjacentHTML("beforeend", row);
+            updateMarkerType(last_id, data.marker_type);
+        }
+        add_db_listener("Marker", "insert", add_row_marker);
+
+        // permet de mettre à jour la table des marqueurs
+        function update_row_marker(data,row) {
+            if (data.seq) { row.querySelector(`#seq-${row.dataset.id}`).textContent = data.seq; }
+            if (data.latitude) { row.querySelector(`#latitude-${row.dataset.id}`).textContent = data.latitude; }
+            if (data.longitude) { row.querySelector(`#longitude-${row.dataset.id}`).textContent = data.longitude; }
+            if (data.altitude) { row.querySelector(`#altitude-${row.dataset.id}`).value = data.altitude; }
+            if (data.marker_type) { row.querySelector(`#marker-type-${row.dataset.id}`).value = data.marker_type; }
+            if (data.parameter) { row.querySelector(`#parameter-${row.dataset.id}`).value = data.parameter; }
+        }
+        //add_db_listener("Markers", "update", update_row_marker);
+
+        function get_marker_data(row) {
+            return {
+                seq: row.querySelector(`#seq-${row.dataset.id}`).textContent,
+                latitude: row.querySelector(`#latitude-${row.dataset.id}`).textContent,
+                longitude: row.querySelector(`#longitude-${row.dataset.id}`).textContent,
+                altitude: row.querySelector(`#altitude-${row.dataset.id}`).value,
+                marker_type: row.querySelector(`#marker-type-${row.dataset.id}`).value,
+                parameter: row.querySelector(`#parameter-${row.dataset.id}`).value,
+            };
+        }
+
+        // envoie les marqueurs aux serveurs
+        function send_markers() {
+            let data = {
+                "markers": Array.from(get_markers())
+                .map(row => ({
+                    seq: row.querySelector(`#seq-${row.dataset.id}`).textContent,
+                    latitude: row.querySelector(`#latitude-${row.dataset.id}`).textContent,
+                    longitude: row.querySelector(`#longitude-${row.dataset.id}`).textContent,
+                    altitude: row.querySelector(`#altitude-${row.dataset.id}`).value,
+                    marker_type: row.querySelector(`#marker-type-${row.dataset.id}`).value,
+                    parameter: row.querySelector(`#parameter-${row.dataset.id}`).value,
+                }))
+            };
+
+            console.log(JSON.stringify(data));
+
+            fetch("/api/set_markers", {
+                method: "POST",
+                headers: {'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        // dessine les marqueurs sur la carte
+        let all_markers = [];
+        function redraw_markers() {
+
+            // supprime tous les marqueurs existants sauf ceux de l'avion et du drone
+            all_markers.forEach(marker => {
+                map.removeLayer(marker);
+            });
+            all_markers = [];
+
+            // dessine les nouveaux marqueurs
+            get_markers().forEach(marker => {
+                let marker_type = marker.querySelector(`#marker-type-${marker.dataset.id}`).value;
+                let marker_position = {
+                    lat: marker.querySelector(`#latitude-${marker.dataset.id}`).textContent,
+                    lng: marker.querySelector(`#longitude-${marker.dataset.id}`).textContent,
+                };
+                all_markers.push(L.marker(marker_position).addTo(map));
+            });
+        }
+
+        // crée une nouvelle ligne vide pour un marqueur
+        function make_new_marker() {
+            add_row_marker({
+                seq: get_markers().length + 1,
+                latitude: 0,
+                longitude: 0,
+                altitude: 10,
+                parameter: "",
+                marker_type: "waypoint"
+            });
+            send_markers();
+            redraw_markers();
+        }
+        window.make_new_marker = make_new_marker;
+
+        // permet de mettre à jour les marqueurs
+        function update_rows() {
+            let seq = 0;
+            get_markers().forEach(marker => {
+                seq++;
+                marker.querySelector(`#seq-${marker.dataset.id}`).textContent = seq;
+            });
+            send_markers();
+            redraw_markers();
+        }
+        window.update_rows = update_rows;
+
+        // replace selected marker
+        let markers_replace_selected = null;
+
+        function replace_marker(id) {
+            markers_replace_selected = id;
+        }
+        window.replace_marker = replace_marker;
+
+        map.on('click', function(e) {
+            if (markers_replace_selected) {
+                let row = document.querySelector(`tr[data-id="${markers_replace_selected}"]`);
+                update_row_marker({ id: markers_replace_selected, latitude: e.latlng.lat, longitude: e.latlng.lng },row);
+                markers_replace_selected = null;
+                update_rows();
+            }
+        });
+
+        // permet de déplacer un marqueur vers le haut
+        function move_up_marker(id) {
+            let upper_marker = document.querySelector(`tr[data-id="${id - 1}"]`);
+            let current_marker = document.querySelector(`tr[data-id="${id}"]`);
+            if (!upper_marker) {
+                return;
+            }
+            let upper_marker_data = get_marker_data(upper_marker);
+            let current_marker_data = get_marker_data(current_marker);
+            update_row_marker(current_marker_data,upper_marker);
+            update_row_marker(upper_marker_data,current_marker);
+            update_rows();
+        }
+        window.move_up_marker = move_up_marker;
+
+        // permet de déplacer un marqueur vers le bas
+        function move_down_marker(id) {
+            let lower_marker = document.querySelector(`tr[data-id="${id + 1}"]`);
+            let current_marker = document.querySelector(`tr[data-id="${id}"]`);
+            if (!lower_marker) {
+                return;
+            }
+            let lower_marker_data = get_marker_data(lower_marker);
+            let current_marker_data = get_marker_data(current_marker);
+            update_row_marker(current_marker_data,lower_marker);
+            update_row_marker(lower_marker_data,current_marker);
+            update_rows();
+        }
+        window.move_down_marker = move_down_marker;
+
+        // permet de supprimer un marqueur
+        function delete_marker(id) {
+            let marker = document.querySelector(`tr[data-id="${id}"]`);
+            marker.remove();
+            update_rows();
+        }
+        window.delete_marker = delete_marker;
+
+        function updateMarkerType(rowId, markerType) {
+            const select = document.getElementById(`marker-type-${rowId}`);
+            if (select) {
+                const options = select.options;
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].value === markerType) {
+                        select.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        }
+
+        const droneIcon = L.icon({
+            iconUrl: STATIC_URL + 'images/droneImage.png',  // Path to the drone icon
+            iconSize: [32, 32],  // Size of the icon
+            iconAnchor: [16, 16],  // Anchor point (center the icon)
+            popupAnchor: [0, -16]  // Position of the popup relative to the icon
+        });
+        const planeIcon = L.icon({
+            iconUrl: STATIC_URL + 'images/planeImage.png',  // Path to the plane icon
+            iconSize: [16, 16],  // Size of the icon
+            iconAnchor: [8, 8],  // Anchor point (center the icon)
+            popupAnchor: [0, -16]  // Position of the popup relative to the icon
+        });
+
+        let plane_marker = null;
+        let drone_marker = null;
+        let object_position = {};
+        socket.on('position_update', function(data) {
+            const object_id = data.object_id;
+            const latitude = data.latitude;
+            const longitude = data.longitude;
+            const altitude = data.altitude;
+
+            let panel = document.getElementById(`position-panel-${object_id}`);
+            if (panel) {
+                panel.querySelector(`#latitude-${object_id}`).textContent = latitude;
+                panel.querySelector(`#longitude-${object_id}`).textContent = longitude;
+                panel.querySelector(`#altitude-${object_id}`).textContent = altitude;
+            }
+
+            object_position[object_id] = {
+                latitude: latitude,
+                longitude: longitude,
+                altitude: altitude
+            };
+
+            // replce marker on map
+            if (object_id == {{AIRCRAFT_ID}}) {
+                if (plane_marker) {
+                    plane_marker.setLatLng({ lat: latitude, lng: longitude })
+                } else {
+                    plane_marker = L.marker({ lat: latitude, lng: longitude }, { icon: planeIcon }).addTo(map);
+                }
+            } else if (object_id == {{DRONE_ID}}) {
+                if (drone_marker) {
+                    drone_marker.setLatLng({ lat: latitude, lng: longitude });
+                } else {
+                    drone_marker = L.marker({ lat: latitude, lng: longitude }, { icon: droneIcon }).addTo(map);
+                }
+            }
+        });
+
+        function recenterMap(object_id) {
+            // Center map to drone's location
+            //find a way to get the drone location :
+            map.setView(new L.LatLng(object_position[object_id].latitude, object_position[object_id].longitude), 17);
+            console.log("recenter")
+        };
+
+        document.getElementById("recenter-button-drone").addEventListener("click", function() {
+            recenterMap({{DRONE_ID}});
+        });
+        document.getElementById("recenter-button-plane").addEventListener("click", function() {
+            recenterMap({{AIRCRAFT_ID}});
+        });
+    });
+    </script>
+</body>
+</html>

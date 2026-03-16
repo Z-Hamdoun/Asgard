@@ -1,0 +1,67 @@
+
+
+{% macro collapsible(title, id=None) -%}
+  <div class="collapsible-container">
+    <button class="collapsible-toggle" data-target="collapsible-{{ id }}">
+      {{ title }}
+    </button>
+    <div class="collapsible-content open" id="collapsible-{{ id }}">
+      {{ caller() }}
+    </div>
+  </div>
+{%- endmacro %}
+
+{% macro init_collapsible() -%}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.collapsible-toggle').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const targetId = btn.getAttribute('data-target');
+        const content = document.getElementById(targetId);
+        content.classList.toggle('open');
+      });
+    });
+  });
+</script>
+
+<style>
+  .collapsible-container {
+    /*margin: 1em 0;*/
+    /*border: 1px solid #ccc;*/
+    border-radius: 6px;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+
+  .collapsible-toggle {
+    width: 100%;
+    text-align: left;
+    background-color: #f5f5f5;
+    border: none;
+    padding: 0.75em 1em;
+    padding-bottom: 0.2em;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .collapsible-toggle:hover {
+    background-color: #e0e0e0;
+  }
+
+  .collapsible-content {
+    max-height: 0;
+    max-width: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+    transition: max-width 0.3s ease-out, padding 0.3s ease-out;
+    padding: 0 1em;
+  }
+
+  .collapsible-content.open {
+    padding: 1em;
+    max-height: 100%;
+    max-width: 100%;
+  }
+</style>
+{%- endmacro %}

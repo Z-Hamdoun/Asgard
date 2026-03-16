@@ -1,0 +1,216 @@
+{% macro display_parameters(object_id, parameters) -%}
+
+  <button class="button param_button applyAll" data-object="{{ object_id }}" data-action="{{ ACTION_WRITE_PARAMETERS }}">Appliquer</button>
+  <button class="button param_button resetAll" data-object="{{ object_id }}">Par défaut</button>
+  <button class="button param_button cancelAll" data-object="{{ object_id }}">Annuler</button>
+  <button class="button act_button param_button recoverAll" data-object="{{ object_id }}" data-action="{{ ACTION_REFRESH_PARAMETERS }}">Récupérer</button>
+  
+  <table>
+      {% for param in parameters %}
+      <tr data-id="{{ param.id }}" data-type="{{ param.type }}" data-label="{{ param.label }}" data-object="{{ object_id }}" data-default="{{ param.default }}">
+          <td>{{ param.label }}</td>
+          <td> <input type="text" value="{{ param.default }}" class="value-input" /> </td>
+      </tr>
+      {% endfor %}
+  </table>
+  
+{%- endmacro %}
+
+{% macro init_parameters() -%}
+<style>
+  table { width: 100%; border-collapse: collapse; }
+
+  th, td {
+    padding: 3px;
+    border: none;
+    text-align: left;
+  }
+
+  td input {
+    border: 1px solid #000000;
+    border-radius: 4px;
+  }
+  td input:focus {
+    outline: none;
+  }
+
+  td.default input { 
+    color: #888; 
+    border-color: #888; 
+    background-color: transparent;
+  }
+
+  td.changed input { 
+    color: #000; 
+    border-color: #000; 
+    background-color: #e9e197;
+  }
+
+  td.applied-invalid input { 
+    color: #000; 
+    border-color: #000; 
+    background-color: #f44336; 
+  }
+  
+  .param_button { 
+    margin-bottom: 0.5em; 
+    padding-left: 10px; 
+    padding-right: 10px; 
+  }
+</style>
+
+<script type="module">
+  import { take_action } from "./static/js/take-action.js";
+  import { add_db_listener } from "./static/js/db-listener.js";
+
+  document.addEventListener('DOMContentLoaded', function () {
+
+  const rows = document.querySelectorAll('tbody tr');
+  const STATE = {};
+
+  // Initialisation
+  rows.forEach(row => {
+    const id = row.dataset.id;
+    const input = row.querySelector('.value-input');
+    STATE[id] = {
+      default: row.dataset.default,
+      applied: input.value,
+      current: input.value,
+      valid: true
+    };
+    updateRowStyle(row);
+
+    // Écoute des changements
+    input.addEventListener('input', () => {
+      STATE[id].current = input.value;
+      // Validation selon type
+      STATE[id].valid = validateValue(input.value, row.dataset.type);
+      updateRowStyle(row);
+    });
+  });
+
+  // Appliquer tous les paramètres
+  document.querySelectorAll('.applyAll').forEach(button => {
+    button.addEventListener('dblclick', function () {
+
+      let valid = true;
+
+      rows.forEach(row => {
+        if (row.dataset.object == this.dataset.object) {
+          const id = row.dataset.id;
+          const input = row.querySelector('.value-input');
+          STATE[id].current = input.value;
+          STATE[id].valid = validateValue(input.value, row.dataset.type);
+          if (STATE[id].valid) {
+            STATE[id].applied = input.value;
+          } else {
+            valid = false;
+          }
+          updateRowStyle(row);
+        }
+      });
+
+      if (!valid) {
+        return;
+      }
+
+      // Envoie les paramètres à la base de données
+      // format: [{ object_id, label, value }]
+      fetch('/api/set_all_parameters', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                data: Array.from(rows)
+                .filter(row => row.dataset.object == this.dataset.object)
+                .map(row => (
+                { object_id: row.dataset.object, 
+                  label: row.dataset.label, 
+                  value: row.querySelector('.value-input').value 
+                }))
+            })
+            
+      })
+      .catch(error => console.error('Erreur lors de la mise à jour des paramètres :', error));
+
+      // Délai de 1000ms avant d'exécuter take_action
+      setTimeout(() => {
+        take_action(this);
+      }, 1000);
+    });
+  });
+
+  // Réinitialiser tous les paramètres
+  document.querySelectorAll('.resetAll').forEach(button => {
+    button.addEventListener('click', function () {
+    rows.forEach(row => {
+      if (row.dataset.object == this.dataset.object) {
+        const id = row.dataset.id;
+        const input = row.querySelector('.value-input');
+        STATE[id].current = STATE[id].default;
+        input.value = STATE[id].default;
+        STATE[id].valid = true;
+        updateRowStyle(row);
+      }
+    })});
+  });
+
+  // Annuler tous les paramètres
+  document.querySelectorAll('.cancelAll').forEach(button => {
+    button.addEventListener('click', function () {
+    rows.forEach(row => {
+      if (row.dataset.object == this.dataset.object) {
+        const id = row.dataset.id;
+        const input = row.querySelector('.value-input');
+        STATE[id].current = STATE[id].applied;
+        input.value = STATE[id].applied;
+        STATE[id].valid = true;
+        updateRowStyle(row);
+      }
+    })});
+  });
+
+  // Mettre à jour les paramètres de la table
+  function update_parameters(data) {
+
+    const row = document.querySelector(`tr[data-object="${data.object_id}"][data-label="${data.parameter_label}"]`);
+    if (row) {
+      const input = row.querySelector('input.value-input');
+      input.value = data.parameter_value;
+      STATE[data.id].applied = data.parameter_value;
+      STATE[data.id].current = data.parameter_value;
+      updateRowStyle(row);
+    }
+  }
+
+  // Écoute des changements dans la base de données
+  add_db_listener("Parameter", "insert", update_parameters);
+
+  // Validation des valeurs
+  function validateValue(val, type) {
+    if (type === 'int') return /^-?\d+$/.test(val);
+    if (type === 'float') return !isNaN(parseFloat(val));
+    if (type === 'string') return true;
+    if (type === 'bool') return val === "True" || val === "False";
+    return false;
+  }
+
+  // Mettre à jour le style de la ligne
+  function updateRowStyle(row) {
+    const id = row.dataset.id;
+    const cell = row.children[1];
+    const { current, applied, default: def, valid } = STATE[id];
+    cell.classList.remove('default', 'changed', 'applied-invalid');
+    if (current === def && current === applied) {
+      cell.classList.add('default');
+    } else if (current !== applied) {
+      cell.classList.add(valid ? 'changed' : 'applied-invalid');
+    } else {
+      // current === applied but might be invalid? we validate only on input
+      //cell.classList.add('changed');
+    }
+  }
+})
+</script>
+{%- endmacro %}
