@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Asgard Mission Control</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>Drone Asgard - Heartbeat</h1>
+    <div id="status-dot"></div>
+    <p>Latence: <span id="latency">0</span> ms</p>
+
+    <script>
+        const dot = document.getElementById('status-dot');
+        const latencyEcho = document.getElementById('latency');
+        const ws = new WebSocket("ws://" + window.location.host + "/ws");
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const now = Date.now();
+            const delay = now - data.server_time;
+
+            latencyEcho.innerText = delay;
+            
+            dot.classList.add('online');
+            setTimeout(() => dot.classList.remove('online'), 200);
+        };
+    </script>
+</body>
+</html>

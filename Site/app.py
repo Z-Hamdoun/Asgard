@@ -1,10 +1,26 @@
-from flask import Flask, render_template
+from fastapi import FastAPI, WebSocket, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+import asyncio
+import time
 
-app = Flask(__name__)
+app = FastAPI()
 
-@app.route('/')
-def index():
-    return "<h1>Télémétrie Drone - Station de contrôle</h1><p>En attente de données...</p>"
+# 1. On "monte" le dossier static pour qu'il soit accessible via /static
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+# 2. On configure le moteur de templates
+templates = Jinja2Templates(directory="templates")
+
+@app.get("/", response_class=HTMLResponse)
+async def get_index(request: Request):
+    # On renvoie le fichier HTML au navigateur
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        await websocket.send_json({"server_time": int(time.time() * 1000)})
+        await asyncio.sleep(1)
