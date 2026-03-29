@@ -13,13 +13,23 @@
         const dot = document.getElementById('status-dot');
         const latencyEcho = document.getElementById('latency');
         const ws = new WebSocket("ws://" + window.location.host + "/ws");
-
+        // On envoie un ping toutes les secondes
+        setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ client_send_time: Date.now() }));
+            }
+        }, 1000);
         ws.onmessage = function(event) {
             const data = JSON.parse(event.data);
             const now = Date.now();
-            const delay = now - data.server_time;
+            
+            // Calcul du trajet Aller-Retour (RTT)
+            const rtt = now - data.client_send_time;
+            
+            // La latence (un aller simple théorique)
+            const latency = rtt / 2;
 
-            latencyEcho.innerText = delay;
+            latencyEcho.innerText = latency.toFixed(1); // Affiche 1 décimale
             
             dot.classList.add('online');
             setTimeout(() => dot.classList.remove('online'), 200);

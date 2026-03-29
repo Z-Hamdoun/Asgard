@@ -19,9 +19,12 @@ async def get_index(request: Request):
         request=request, 
         name="index.html"
     )
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     while True:
-        await websocket.send_json({"server_time": int(time.time() * 1000)})
-        await asyncio.sleep(1)
+        # On attend que le client envoie quelque chose
+        data = await websocket.receive_json()
+        # On lui renvoie exactement la même chose immédiatement
+        await websocket.send_json(data)
