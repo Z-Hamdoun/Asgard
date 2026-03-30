@@ -43,8 +43,8 @@ class PnPLandingSystem:
         self.upper_hsv2 = np.array([10, 255, 255])
         
         # Parametres de detection
-        self.min_contour_area = 5
-        self.min_circularity_ratio = 0.75
+        self.min_contour_area = 10
+        self.min_circularity_ratio = 0.98
         self.iterations = 0 # facultatif pour eliminer le bruit
 
     def get_landing_vector(self, frame, verbose=False):
@@ -65,10 +65,11 @@ class PnPLandingSystem:
         mask = cv2.inRange(hsv, self.lower_hsv1, self.upper_hsv1) + \
                cv2.inRange(hsv, self.lower_hsv2, self.upper_hsv2)
         
-        opening = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3), np.uint8), iterations=self.iterations)
-        closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, np.ones((3,3), np.uint8), iterations=self.iterations)
+        erosion = cv2.erode(mask, None, iterations=10)
+        #opening = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3), np.uint8), iterations=self.iterations)
+        #closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, np.ones((3,3), np.uint8), iterations=self.iterations)
         
-        contours, _ = cv2.findContours(closing, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(erosion, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         valid_contours = []
         for c in contours:
@@ -80,8 +81,8 @@ class PnPLandingSystem:
         if verbose:
             print(f"[PnP] Candidats (Rose) trouvés : {len(valid_contours)}")
 
-        if len(points_2d) < 5:
-            if verbose: print(f"[PnP] ECHEC : Seulement {len(points_2d)} points potentiels sur 5 requis.")
+        if len(valid_contours) < 5:
+            if verbose: print(f"[PnP] ECHEC : Seulement {len(valid_contours)} points potentiels sur 5 requis.")
             return None 
 
         valid_contours = sorted(valid_contours, key=cv2.contourArea, reverse=True)[:5]
