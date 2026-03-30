@@ -44,7 +44,7 @@ class PnPLandingSystem:
         
         # Parametres de detection
         self.min_contour_area = 5
-        self.min_circularity_ratio = 0.8
+        self.min_circularity_ratio = 0.75
         self.iterations = 0 # facultatif pour eliminer le bruit
 
     def get_landing_vector(self, frame, verbose=False):
