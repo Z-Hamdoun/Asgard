@@ -44,6 +44,7 @@ class PnPLandingSystem:
         
         # Parametres de detection
         self.min_contour_area = 5
+        self.min_circularity_ratio = 0.8
         self.iterations = 0 # facultatif pour eliminer le bruit
 
     def get_landing_vector(self, frame, verbose=False):
@@ -71,11 +72,17 @@ class PnPLandingSystem:
         
         valid_contours = []
         for c in contours:
-            if cv2.contourArea(c) > self.min_contour_area:
+            x, y, w, h = cv2.boundingRect(c)
+            ratio = w/h
+            if cv2.contourArea(c) > self.min_contour_area and ratio > self.min_circularity_ratio:
                 valid_contours.append(c)
         
         if verbose:
             print(f"[PnP] Candidats (Rose) trouvés : {len(valid_contours)}")
+
+        if len(points_2d) < 5:
+            if verbose: print(f"[PnP] ECHEC : Seulement {len(points_2d)} points potentiels sur 5 requis.")
+            return None 
 
         valid_contours = sorted(valid_contours, key=cv2.contourArea, reverse=True)[:5]
 
