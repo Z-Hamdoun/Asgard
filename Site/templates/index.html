@@ -69,9 +69,10 @@
                 function updateCursor(event) {
                     const keyName = event.key;
                     if (keyName === "Enter") {
-                        divconsole.innerHTML += "helics:~$ " + input.value + "<br>";
-                        console.log(divconsole.textContent)
-                        input.value=""
+                        const nouvelleLigne = document.createElement("div");
+                        nouvelleLigne.textContent = "helics:~$" + input.value;
+                        divconsole.appendChild(nouvelleLigne);
+                        input.value = "";
                     }
                     const textBeforeCursor = input.value.substring(0, input.selectionStart);
                     
@@ -97,7 +98,7 @@
     </div>
     <div class="row">
         <div class="case">
-            <h2> Carte</h2>
+            <h2> Photo</h2>
         </div>
         <div class="case">
             <h2> État de la mission</h2>

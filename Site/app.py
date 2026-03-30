@@ -19,12 +19,18 @@ async def get_index(request: Request):
         request=request, 
         name="index.html"
     )
+connected_clients = set()
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    while True:
-        # On attend que le client envoie quelque chose
-        data = await websocket.receive_json()
-        # On lui renvoie exactement la même chose immédiatement
-        await websocket.send_json(data)
+    connected_clients.add(websocket)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            # On renvoie l'info à TOUS les clients connectés
+            # Ainsi, la RPi envoie, et le Navigateur reçoit
+            for client in connected_clients:
+                await client.send_json(data)
+    except:
+        connected_clients.remove(websocket)
