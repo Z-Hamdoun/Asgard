@@ -41,11 +41,8 @@ try:
         drone0.takeoff(3)
         drone1.takeoff(5)
         
-        # Loitering pour le Gros drone:
-        drone1.loiter_pnp(gz_camera)
-        
         # Le petit drone doit suivre le gros drone
-        drone1.do_follow_with_takeoff()
+        drone1.do_follow(target_system=1)
 
         
 except Exception as e:
