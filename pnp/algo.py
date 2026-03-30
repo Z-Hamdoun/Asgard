@@ -3,7 +3,7 @@ import numpy as np
 import math
 
 class PnPLandingSystem:
-    def __init__(self, marker_distance=0.40, net_depth=0.20, laptop=False):
+    def __init__(self, marker_distance=0.40, net_depth=0.20):
         """
         Args:
             marker_distance (float): Coté du carré formé par les coins (en mètres), il faut bien le mesurer!.
@@ -28,24 +28,24 @@ class PnPLandingSystem:
             [0, 0, 1]
         ], dtype=np.float32)
         
-        if laptop :
-            self.camera_matrix = np.array([
-                [1000, 0, 640],
-                [0, 1000, 360],
-                [0, 0, 1] ], dtype=np.float32)
-            
+        # Laptop
+        # self.camera_matrix = np.array([
+        #     [1000, 0, 640],
+        #     [0, 1000, 360],
+        #     [0, 0, 1]
+        # ], dtype=np.float32)
         self.dist_coeffs = np.zeros((4,1))
 
         # Seuils couleurs magenta (utilisez un site pour visualiser ou choisir la couleur)
-        self.lower_hsv1 = np.array([120, 50, 50])
-        self.upper_hsv1 = np.array([179, 255, 255])
-        self.lower_hsv2 = np.array([0, 70, 50])
-        self.upper_hsv2 = np.array([10, 255, 255])
+        self.lower_hsv1 = np.array([120, 30, 30])
+        self.upper_hsv1 = np.array([170, 255, 255])
+        self.lower_hsv2 = np.array([0, 0, 0])
+        self.upper_hsv2 = np.array([0, 0, 0])
         
         # Parametres de detection
         self.min_contour_area = 5
-        self.min_circularity_ratio = 0.75
-        self.iterations = 0 # facultatif pour eliminer le bruit
+        self.erode_iterations = 0 # facultatif pour eliminer le bruit
+        self.dilate_iterations = 1 # idem
 
     def get_landing_vector(self, frame, verbose=False):
         """
@@ -65,24 +65,21 @@ class PnPLandingSystem:
         mask = cv2.inRange(hsv, self.lower_hsv1, self.upper_hsv1) + \
                cv2.inRange(hsv, self.lower_hsv2, self.upper_hsv2)
         
-        opening = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3), np.uint8), iterations=self.iterations)
-        closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, np.ones((3,3), np.uint8), iterations=self.iterations)
+        if self.erode_iterations > 0:
+            mask = cv2.erode(mask, None, iterations=self.erode_iterations)
         
-        contours, _ = cv2.findContours(closing, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if self.dilate_iterations > 0:
+            mask = cv2.dilate(mask, None, iterations=self.dilate_iterations)
+        
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         valid_contours = []
         for c in contours:
-            x, y, w, h = cv2.boundingRect(c)
-            ratio = w/h
-            if cv2.contourArea(c) > self.min_contour_area and ratio > self.min_circularity_ratio:
+            if cv2.contourArea(c) > self.min_contour_area:
                 valid_contours.append(c)
         
         if verbose:
             print(f"[PnP] Candidats (Rose) trouvés : {len(valid_contours)}")
-
-        if len(points_2d) < 5:
-            if verbose: print(f"[PnP] ECHEC : Seulement {len(points_2d)} points potentiels sur 5 requis.")
-            return None 
 
         valid_contours = sorted(valid_contours, key=cv2.contourArea, reverse=True)[:5]
 
