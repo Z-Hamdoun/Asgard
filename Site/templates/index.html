@@ -3,108 +3,212 @@
 <head>
     <title>Asgard Mission Control</title>
     <link rel="stylesheet" href="/static/style.css">
+                <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.min.js"></script>
+            <script>mermaid.initialize({ startOnLoad: true });</script>
+
 </head>
 <body>
     <h1>Mission Asgard - Tableau de controle</h1>
+    <p></p>
     <div class="row">
-        <div class="col">
-            <div class="case">
-                <h2> Heartbeat - Valkyrie</h2>
-                <div id="status-dot"></div>
-                <p>Latence: <span id="latency">0</span> ms</p>
-
-                <script>
-                    const ws = new WebSocket("ws://" + window.location.host + "/ws");
-                    setInterval(() => {
-                        if (ws.readyState === WebSocket.OPEN) {
-                            ws.send(JSON.stringify({ 
-                                type: "ping", 
-                                sent_at: Date.now() 
-                            }));
-                        }
-                    }, 1000);
-
-                    ws.onmessage = function(event) {
-                        const data = JSON.parse(event.data);
-                        
-                        // Si on reçoit un Pong de Valkyrie
-                        if (data.type === "pong" && data.source === "Valkyrie") {
-                            const now = Date.now();
-                            const rtt = now - data.sent_at; // Temps total aller-retour
-                            const latency = rtt / 2;        // Un aller simple théorique
-
-                            document.getElementById('latency').innerText = latency.toFixed(1);
+                    <div class="case">
+                        <h2 >Log</h2>
+                        <div style="width: 500px; height: 1000px">
                             
-                            // Animation du point
-                            const dot = document.getElementById('status-dot');
-                            dot.classList.add('online');
-                            setTimeout(() => dot.classList.remove('online'), 200);
-                        }
-                    };
-                </script>
-            </div>
+                        <select id="choix" class="log-select" onchange="changelog()">
+                            <option value="">-- No Log --</option>
+                            <option value="a">Log Valkyrie</option>
+                            <option value="b">Log Valhalla</option>
+                            <option value="c">Double Log</option>
+                        </select>
+                        <div class="drone-log-container" id="valk-log"></div>
+                        <div class="drone-log-container" id="valh-log"></div>
 
-            <div class="case">
-                <h2> Heartbeat - Valhala</h2>
-                <div id="status-dot2"></div>
-                <p>Latence: <span id="latency2">0</span> ms</p>
-            </div>
-        </div>
-        <div class="case">
-            <h2 style="margin: 5px;"> Console-Log</h2>
-            <div class="console">   
-                <span id="console"></span>
-            </div>
-            <div class="log" onclick="document.getElementById('term-input').focus()">
-                <span>helics:~$</span>
-                <div class="input-wrapper">
-                    <input type="text" id="term-input" spellcheck="false" autofocus>
-                    <span id="cursor" class="custom-cursor">_</span>
+                        <script>
+                        function changelog() {
+                            let choix = document.getElementById("choix").value;
+                            let texte = document.getElementById("texte");
+                            const valk = document.getElementById("valk-log");
+                            const valh = document.getElementById("valh-log");
+                            valk.classList.remove('full', 'null','demi');  
+                            valh.classList.remove('full', 'null','demi');
+                            if (choix === "a") {
+                                valh.classList.add('null');
+                                valk.classList.add('full');
+                            } else if (choix === "b") {
+                                valh.classList.add('full');
+                                valk.classList.add('null');
+                            } else if (choix === "c") {
+                                valh.classList.add('demi');
+                                valk.classList.add('demi');
+                            } else {
+                                valh.classList.add('null');
+                                valk.classList.add('null');
+                            }
+                        }
+                        </script>
+                        </div>
+                    </div>
+        <div class="col">
+            <div class ="row">
+                <div class ="col">
+
+                
+                    <div class="case">
+                        <h2> Heartbeat - Valkyrie</h2>
+                        <div id="status-dot"></div>
+                        <p>Latence: <span id="latency">0</span> ms</p>
+
+                        <script>
+                            const ws = new WebSocket("ws://" + window.location.host + "/ws");
+                            setInterval(() => {
+                                if (ws.readyState === WebSocket.OPEN) {
+                                    ws.send(JSON.stringify({ 
+                                        type: "ping", 
+                                        sent_at: Date.now() 
+                                    }));
+                                }
+                            }, 1000);
+
+                            ws.onmessage = function(event) {
+                                const data = JSON.parse(event.data);
+                                
+                                // Si on reçoit un Pong de Valkyrie
+                                if (data.type === "pong" && data.source === "Valkyrie") {
+                                    const now = Date.now();
+                                    const rtt = now - data.sent_at; // Temps total aller-retour
+                                    const latency = rtt / 2;        // Un aller simple théorique
+
+                                    document.getElementById('latency').innerText = latency.toFixed(1);
+                                    
+                                    // Animation du point
+                                    const dot = document.getElementById('status-dot');
+                                    dot.classList.add('online');
+                                    setTimeout(() => dot.classList.remove('online'), 200);
+                                }
+                            };
+                        </script>
+                    </div>
+
+                    <div class="case">
+                        <h2> Heartbeat - Valhala</h2>
+                        <div id="status-dot2"></div>
+                        <p>Latence: <span id="latency2">0</span> ms</p>
+                    </div>
                 </div>
+                <div class="col">
+                    <div class="case">
+                        <h2 style="margin: 5px;">lancer la mission</h2>
+                        <button class="green-button"> GROS BOUTON VERT</button>
+                    </div>
+                    <div class="case">
+                        <h2 style="margin: 5px;">arrêt d'urgence</h2>
+                        <button class="orange-button">atterrissage d'urgence</button>
+                        <button class="red-button">arrêt d'extrême urgence</button>
+                    </div>
+                </div>
+                    <div class="case">
+                        <h2> Git</h2>
+                        <button class="git-button"> Git pull Valkyrie</button>
+                        <button class="git-button"> Git pull Valhala</button>
+                        <button class="git-button"> Check OK Valkyrie</button>
+                        <button class="git-button"> Check OK Valhala</button>
+                    </div>
             </div>
+                    <div class="case">
+                        <h2 style="margin: 5px;"> Console</h2>
+                        <div class="console">   
+                            <span id="console"></span>
+                        </div>
+                        <div class="log" onclick="document.getElementById('term-input').focus()">
+                            <span>helics:~$</span>
+                            <div class="input-wrapper">
+                                <input type="text" id="term-input" spellcheck="false" autofocus>
+                                <span id="cursor" class="custom-cursor">_</span>
+                            </div>
+                        </div>
 
           
-            <script>
-                const input = document.getElementById('term-input');
-                const cursor = document.getElementById('cursor');
-                const divconsole = document.getElementById('console');
+                        <script>
+                            const input = document.getElementById('term-input');
+                            const cursor = document.getElementById('cursor');
+                            const divconsole = document.getElementById('console');
 
-                function updateCursor(event) {
-                    const keyName = event.key;
-                    if (keyName === "Enter") {
-                        const nouvelleLigne = document.createElement("div");
-                        nouvelleLigne.textContent = "helics:~$" + input.value;
-                        divconsole.appendChild(nouvelleLigne);
-                        input.value = "";
-                    }
-                    const textBeforeCursor = input.value.substring(0, input.selectionStart);
-                    
-                    const tempSpan = document.createElement('span');
-                    tempSpan.style.font = window.getComputedStyle(input).font;
-                    tempSpan.style.visibility = 'hidden';
-                    tempSpan.style.whiteSpace = 'pre';
-                    tempSpan.innerText = textBeforeCursor;
-                    document.body.appendChild(tempSpan);
-                    
-                    const textWidth = tempSpan.getBoundingClientRect().width;
-                    cursor.style.transform = `translateX(${textWidth}px)`;
-                    
-                    document.body.removeChild(tempSpan);
-                }
-                input.addEventListener('input', updateCursor);
-                input.addEventListener('keyup', updateCursor);
-                input.addEventListener('click', updateCursor);
-                input.addEventListener('',)
-            </script>
+                            function updateCursor(event) {
+                                const keyName = event.key;
+                                if (keyName === "Enter") {
+                                    const nouvelleLigne = document.createElement("div");
+                                    nouvelleLigne.textContent = "helics:~$" + input.value;
+                                    divconsole.appendChild(nouvelleLigne);
+                                    input.value = "";
+                                }
+                                const textBeforeCursor = input.value.substring(0, input.selectionStart);
+                            
+                                const tempSpan = document.createElement('span');
+                                tempSpan.style.font = window.getComputedStyle(input).font;
+                                tempSpan.style.visibility = 'hidden';
+                                tempSpan.style.whiteSpace = 'pre';
+                                tempSpan.innerText = textBeforeCursor;
+                                document.body.appendChild(tempSpan);
+                                
+                                const textWidth = tempSpan.getBoundingClientRect().width;
+                                cursor.style.transform = `translateX(${textWidth}px)`;
+                                
+                                document.body.removeChild(tempSpan);
+                            }
+                            input.addEventListener('input', updateCursor);
+                            input.addEventListener('keyup', updateCursor);
+                            input.addEventListener('click', updateCursor);
+                            input.addEventListener('',)
+                        </script>
 
+                    </div>
         </div>
-    </div>
-    <div class="row">
-        <div class="case">
-            <h2> Photo</h2>
-        </div>
+
         <div class="case">
             <h2> État de la mission</h2>
+            <div class="state-diagram">
+                <div class="mermaid">   
+                        stateDiagram-v2
+                    %% Définition des styles (classes)
+                    classDef actual fill:#ff0,stroke:#333,stroke-width:2px;
+
+
+                    [*] --> Wait_mission_start
+                    Wait_mission_start --> arming
+                    arming --> takeoff
+                    takeoff --> research
+                    research --> valk_stimulation
+                    valk_stimulation --> wait_droping
+                    wait_droping --> object_recept
+                    object_recept --> return_to_base
+                    return_to_base --> [*]
+                    %% Application de la classe à un état spécifique
+                    class Wait_mission_start actual
+                </div>
+                <div class="mermaid">   
+                        stateDiagram-v2
+                    %% Définition des styles (classes)
+                    classDef actual fill:#ff0,stroke:#333,stroke-width:2px;
+
+
+                    [*] --> wait_stimulation
+                    wait_stimulation --> arming
+                    arming --> takeoff
+                    takeoff--> reach_object
+                    takeoff--> reach_valh
+                    reach_object--> precision_landing
+                    reach_valh--> precision_loitering
+                    precision_landing --> take_object
+                    precision_loitering --> drop_object
+                    take_object --> takeoff
+                    drop_object --> return_to_base
+                    return_to_base --> landing
+                    landing --> [*]
+                    
+                    class wait_stimulation actual
+                </div>
+            </div>
         </div>
     </div>
 </body>

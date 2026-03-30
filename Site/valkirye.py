@@ -3,7 +3,8 @@ import websockets
 import json
 
 async def responder():
-    uri = "ws://10.113.231.244:8000/ws"
+    ip_ordi="10.113.231.244"
+    uri = f"ws://{ip_ordi}:8000/ws"
     async with websockets.connect(uri) as websocket:
         print("Valkyrie prête et à l'écoute...")
         while True:
