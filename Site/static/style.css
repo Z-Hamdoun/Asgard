@@ -1,14 +1,115 @@
 body {
-    background-color: #1a1a1a;
+    background-color: #0e0c3d;
     color: white;
     font-family: sans-serif;
     text-align: center;
+}
+
+.row {display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 35px;
+    margin:35px 0px;
+}
+.col {display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 35px;
+}
+
+.console{
+  display:flex;
+  justify-content: start;
+  align-items:start;
+  text-align: start;
+  padding: 10px 10px;
+  background: #000;
+  border-radius: 20px;
+  border: 2px solid #fff;
+  margin-bottom: 10px;
+  height: 300px;
+  width: 700px;
+}
+
+.log{
+  background: #000000;
+  color: #72df8b;
+  padding: 10px;
+  border: 1px solid #fff;
+  font-family: 'Courier New', monospace; 
+  font-weight: 500;
+  border-radius: 5px;
+  display: flex;
+  width: 700px;
+  cursor: text;
+}
+
+
+.input-wrapper {
+  margin-left: 4px;
+  position: relative;
+  flex-grow: 1;
+}
+
+
+#term-input {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  outline: none;
+  font-size: 1rem;
+  font-weight: 500;
+  caret-color: transparent; 
+  padding: 0;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.custom-cursor {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 500;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  animation: blink 1s step-end infinite;
+  pointer-events: none;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.case {display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+border: 3px solid #fff;
+background: #2f3b93;
+border-radius: 40px;
+padding: 20px 20px;
+color: #fff;
 }
 
 #status-dot {
     width: 30px;
     height: 30px;
     background: #333;
+    border: 2px solid #000;
+    border-radius: 50%;
+    display: inline-block;
+    transition: background 0.1s;
+}
+
+#status-dot2 {
+    width: 30px;
+    height: 30px;
+    background: #333;
+    border: 2px solid #000;
     border-radius: 50%;
     display: inline-block;
     transition: background 0.1s;

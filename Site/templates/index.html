@@ -5,35 +5,103 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <h1>Drone Asgard - Heartbeat</h1>
-    <div id="status-dot"></div>
-    <p>Latence: <span id="latency">0</span> ms</p>
+    <h1>Mission Asgard - Tableau de controle</h1>
+    <div class="row">
+        <div class="col">
+            <div class="case">
+                <h2> Heartbeat - Valkyrie</h2>
+                <div id="status-dot"></div>
+                <p>Latence: <span id="latency">0</span> ms</p>
 
-    <script>
-        const dot = document.getElementById('status-dot');
-        const latencyEcho = document.getElementById('latency');
-        const ws = new WebSocket("ws://" + window.location.host + "/ws");
-        // On envoie un ping toutes les secondes
-        setInterval(() => {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ client_send_time: Date.now() }));
-            }
-        }, 1000);
-        ws.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            const now = Date.now();
-            
-            // Calcul du trajet Aller-Retour (RTT)
-            const rtt = now - data.client_send_time;
-            
-            // La latence (un aller simple théorique)
-            const latency = rtt / 2;
+                <script>
+                    const dot = document.getElementById('status-dot');
+                    const latencyEcho = document.getElementById('latency');
+                    const ws = new WebSocket("ws://" + window.location.host + "/ws");
+                    // On envoie un ping toutes les secondes
+                    setInterval(() => {
+                        if (ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({ client_send_time: Date.now() }));
+                        }
+                    }, 1000);
+                    ws.onmessage = function(event) {
+                        const data = JSON.parse(event.data);
+                        const now = Date.now();
+                        
+                        // Calcul du trajet Aller-Retour (RTT)
+                        const rtt = now - data.client_send_time;
+                        
+                        // La latence (un aller simple théorique)
+                        const latency = rtt / 2;
 
-            latencyEcho.innerText = latency.toFixed(1); // Affiche 1 décimale
-            
-            dot.classList.add('online');
-            setTimeout(() => dot.classList.remove('online'), 200);
-        };
-    </script>
+                        latencyEcho.innerText = latency.toFixed(1); // Affiche 1 décimale
+                        
+                        dot.classList.add('online');
+                        setTimeout(() => dot.classList.remove('online'), 200);
+                    };
+                </script>
+            </div>
+
+            <div class="case">
+                <h2> Heartbeat - Valhala</h2>
+                <div id="status-dot2"></div>
+                <p>Latence: <span id="latency2">0</span> ms</p>
+            </div>
+        </div>
+        <div class="case">
+            <h2 style="margin: 5px;"> Console-Log</h2>
+            <div class="console">   
+                <span id="console"></span>
+            </div>
+            <div class="log" onclick="document.getElementById('term-input').focus()">
+                <span>helics:~$</span>
+                <div class="input-wrapper">
+                    <input type="text" id="term-input" spellcheck="false" autofocus>
+                    <span id="cursor" class="custom-cursor">_</span>
+                </div>
+            </div>
+
+          
+            <script>
+                const input = document.getElementById('term-input');
+                const cursor = document.getElementById('cursor');
+                const divconsole = document.getElementById('console');
+
+                function updateCursor(event) {
+                    const keyName = event.key;
+                    if (keyName === "Enter") {
+                        divconsole.innerHTML += "helics:~$ " + input.value + "<br>";
+                        console.log(divconsole.textContent)
+                        input.value=""
+                    }
+                    const textBeforeCursor = input.value.substring(0, input.selectionStart);
+                    
+                    const tempSpan = document.createElement('span');
+                    tempSpan.style.font = window.getComputedStyle(input).font;
+                    tempSpan.style.visibility = 'hidden';
+                    tempSpan.style.whiteSpace = 'pre';
+                    tempSpan.innerText = textBeforeCursor;
+                    document.body.appendChild(tempSpan);
+                    
+                    const textWidth = tempSpan.getBoundingClientRect().width;
+                    cursor.style.transform = `translateX(${textWidth}px)`;
+                    
+                    document.body.removeChild(tempSpan);
+                }
+                input.addEventListener('input', updateCursor);
+                input.addEventListener('keyup', updateCursor);
+                input.addEventListener('click', updateCursor);
+                input.addEventListener('',)
+            </script>
+
+        </div>
+    </div>
+    <div class="row">
+        <div class="case">
+            <h2> Carte</h2>
+        </div>
+        <div class="case">
+            <h2> État de la mission</h2>
+        </div>
+    </div>
 </body>
 </html>
