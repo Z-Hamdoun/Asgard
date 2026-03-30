@@ -14,29 +14,32 @@
                 <p>Latence: <span id="latency">0</span> ms</p>
 
                 <script>
-                    const dot = document.getElementById('status-dot');
-                    const latencyEcho = document.getElementById('latency');
                     const ws = new WebSocket("ws://" + window.location.host + "/ws");
-                    // On envoie un ping toutes les secondes
                     setInterval(() => {
                         if (ws.readyState === WebSocket.OPEN) {
-                            ws.send(JSON.stringify({ client_send_time: Date.now() }));
+                            ws.send(JSON.stringify({ 
+                                type: "ping", 
+                                sent_at: Date.now() 
+                            }));
                         }
                     }, 1000);
+
                     ws.onmessage = function(event) {
                         const data = JSON.parse(event.data);
-                        const now = Date.now();
                         
-                        // Calcul du trajet Aller-Retour (RTT)
-                        const rtt = now - data.client_send_time;
-                        
-                        // La latence (un aller simple théorique)
-                        const latency = rtt / 2;
+                        // Si on reçoit un Pong de Valkyrie
+                        if (data.type === "pong" && data.source === "Valkyrie") {
+                            const now = Date.now();
+                            const rtt = now - data.sent_at; // Temps total aller-retour
+                            const latency = rtt / 2;        // Un aller simple théorique
 
-                        latencyEcho.innerText = latency.toFixed(1); // Affiche 1 décimale
-                        
-                        dot.classList.add('online');
-                        setTimeout(() => dot.classList.remove('online'), 200);
+                            document.getElementById('latency').innerText = latency.toFixed(1);
+                            
+                            // Animation du point
+                            const dot = document.getElementById('status-dot');
+                            dot.classList.add('online');
+                            setTimeout(() => dot.classList.remove('online'), 200);
+                        }
                     };
                 </script>
             </div>

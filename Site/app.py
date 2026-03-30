@@ -19,18 +19,32 @@ async def get_index(request: Request):
         request=request, 
         name="index.html"
     )
-connected_clients = set()
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        for connection in self.active_connections:
+            await connection.send_json(message)
+
+manager = ConnectionManager()
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    connected_clients.add(websocket)
+    await manager.connect(websocket)
     try:
         while True:
+            # On reçoit le "Pong" de la RPi ou du navigateur
             data = await websocket.receive_json()
-            # On renvoie l'info à TOUS les clients connectés
-            # Ainsi, la RPi envoie, et le Navigateur reçoit
-            for client in connected_clients:
-                await client.send_json(data)
+            # On renvoie l'info à tout le monde (pour que l'interface HTML voit le résultat)
+            await manager.broadcast(data)
     except:
-        connected_clients.remove(websocket)
+        manager.disconnect(websocket)
