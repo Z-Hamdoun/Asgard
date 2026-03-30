@@ -3,7 +3,7 @@ import numpy as np
 import math
 
 class PnPLandingSystem:
-    def __init__(self, marker_distance=0.40, net_depth=0.20):
+    def __init__(self, marker_distance=0.40, net_depth=0.20, laptop=False):
         """
         Args:
             marker_distance (float): Coté du carré formé par les coins (en mètres), il faut bien le mesurer!.
@@ -28,24 +28,23 @@ class PnPLandingSystem:
             [0, 0, 1]
         ], dtype=np.float32)
         
-        # Laptop
-        # self.camera_matrix = np.array([
-        #     [1000, 0, 640],
-        #     [0, 1000, 360],
-        #     [0, 0, 1]
-        # ], dtype=np.float32)
+        if laptop :
+            self.camera_matrix = np.array([
+                [1000, 0, 640],
+                [0, 1000, 360],
+                [0, 0, 1] ], dtype=np.float32)
+            
         self.dist_coeffs = np.zeros((4,1))
 
         # Seuils couleurs magenta (utilisez un site pour visualiser ou choisir la couleur)
-        self.lower_hsv1 = np.array([120, 30, 30])
-        self.upper_hsv1 = np.array([170, 255, 255])
-        self.lower_hsv2 = np.array([0, 0, 0])
-        self.upper_hsv2 = np.array([0, 0, 0])
+        self.lower_hsv1 = np.array([120, 50, 50])
+        self.upper_hsv1 = np.array([179, 255, 255])
+        self.lower_hsv2 = np.array([0, 70, 50])
+        self.upper_hsv2 = np.array([10, 255, 255])
         
         # Parametres de detection
         self.min_contour_area = 5
-        self.erode_iterations = 0 # facultatif pour eliminer le bruit
-        self.dilate_iterations = 1 # idem
+        self.iterations = 0 # facultatif pour eliminer le bruit
 
     def get_landing_vector(self, frame, verbose=False):
         """
@@ -65,13 +64,10 @@ class PnPLandingSystem:
         mask = cv2.inRange(hsv, self.lower_hsv1, self.upper_hsv1) + \
                cv2.inRange(hsv, self.lower_hsv2, self.upper_hsv2)
         
-        if self.erode_iterations > 0:
-            mask = cv2.erode(mask, None, iterations=self.erode_iterations)
+        opening = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3), np.uint8), iterations=self.iterations)
+        closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, np.ones((3,3), np.uint8), iterations=self.iterations)
         
-        if self.dilate_iterations > 0:
-            mask = cv2.dilate(mask, None, iterations=self.dilate_iterations)
-        
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(closing, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         valid_contours = []
         for c in contours:
