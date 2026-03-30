@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
 from pymavlink_code.class_MAVLinCS import MAVLinCS
 from Camera.class_Camera import Camera
 from pymavlink import mavutil

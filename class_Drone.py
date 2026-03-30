@@ -27,6 +27,27 @@ class Drone(MAVLinCS):
         self.current_state = None
         self.camera = None # Sera assigne dans le main
         self.target_system = target_system # On garde l'ID pour les logs, 1 pour drone maitre et 2 pour l'autre
+    
+    def precision_land(self):
+        ...
+        
+    def loiter_pnp(self, gz_camera):
+        while True:
+            frame = gz_camera.get_frame(affiche=True)
+            vector = pnp.get_landing_vector(frame, verbose=True)
+            if vector:
+                print("PNP DETECTE!!!!!!!!!!")
+                self.send_landing_target(-vector[0], vector[1], vector[2])
+            time.sleep(0.01)
+    
+    def loiter(self, gz_camera):
+        while True:
+            result = self.camera.analyse(affichage=False)
+            if result[-2] is not None:
+                print('[Aruco] Going to AruCo marker')
+                print(result[0], result[1], result[2])
+                self.send_landing_target(result[0], result[1], result[2])
+            time.sleep(0.01)
         
     def update(self):
         """Fait avancer la FSM d'un pas"""
