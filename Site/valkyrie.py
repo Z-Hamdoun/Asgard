@@ -25,9 +25,21 @@ async def responder(ip_ordi):
                         try:
                             # Exécute la commande et récupère le résultat
                             result = subprocess.check_output(["pull"]).decode("utf-8")
+                            response = {
+                                "type": "status",
+                                "command": "pull_check",
+                                "source": "Valkyrie",
+                                "output": result 
+                            }
                             print(result)
+                            await websocket.send(json.dumps(response))
                         except Exception as e:
-                            print(f"Erreur git : {e}")
+                            await websocket.send(json.dumps({
+                                "type": "status",
+                                "command": "pull_fail",
+                                "source": "Valkyrie",
+                                "output": str(e)
+                            }))
 
         except Exception as e:
             print(f"Déconnecté. Nouvelle tentative dans 1s... ({e}) ctrl + C pour exit")
