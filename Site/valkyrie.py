@@ -2,30 +2,39 @@ import asyncio
 import websockets
 import json
 import sys
+import subprocess # Pour exécuter git pull
 
 async def responder(ip_ordi):
     uri = f"ws://{ip_ordi}:8000/ws"
-    try:
-        async with websockets.connect(uri) as websocket:
-            print("Valkyrie prête et à l'écoute...")
-            while True:
-                # Attend le Ping du serveur ou d'un autre client
-                message = await websocket.recv()
-                data = json.loads(message)
-                
-                # Si c'est un ping qui nous est destiné
-                if data.get("type") == "ping":
-                    data["type"] = "pong"
-                    data["source"] = "Valkyrie"
-                    await websocket.send(json.dumps(data))
-    except Exception as e:
-        print(f"Erreur : Impossible de se connecter à {ip_ordi}. {e}")
+    
+    while True: # Boucle de reconnexion infinie
+        try:
+            async with websockets.connect(uri) as websocket:
+                print(f"Connecté à {ip_ordi}")
+                while True:
+                    message = await websocket.recv()
+                    data = json.loads(message)
+                    
+                    # Logique du Ping-Pong
+                    if data.get("type") == "ping":
+                        data["type"] = "pong"
+                        data["source"] = "Valkyrie"
+                        await websocket.send(json.dumps(data))
+                    
+                    elif data.get("command") == "git_pull" and data.get("target") == "Valkyrie":
+                        try:
+                            # Exécute la commande et récupère le résultat
+                            result = subprocess.check_output(["pull"]).decode("utf-8")
+                            print(result)
+                        except Exception as e:
+                            print(f"Erreur git : {e}")
+
+        except Exception as e:
+            print(f"Déconnecté. Nouvelle tentative dans 1s... ({e}) ctrl + C pour exit")
+            await asyncio.sleep(1)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python Valkyrie.py <IP_DU_PC>")
         sys.exit(1)
-
-    target_ip = sys.argv[1]
-    
-    asyncio.run(responder(target_ip))
+    asyncio.run(responder(sys.argv[1]))

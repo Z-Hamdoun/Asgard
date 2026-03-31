@@ -81,13 +81,12 @@
 
                             ws.onmessage = function(event) {
                                 const data = JSON.parse(event.data);
-                                
+                                const now = Date.now();
                                 // Si on reçoit un Pong de Valkyrie
                                 if (data.type === "pong" && data.source === "Valkyrie") {
-                                    const now = Date.now();
+                                    
                                     const rtt = now - data.sent_at; // Temps total aller-retour
                                     const latency = rtt / 2;        // Un aller simple théorique
-
                                     document.getElementById('latency').innerText = latency.toFixed(1);
                                     
                                     // Animation du point
@@ -96,10 +95,9 @@
                                     setTimeout(() => dot.classList.remove('online'), 200);
                                 }
                                 if (data.type === "pong" && data.source === "Valhalla") {
-                                    const now = Date.now();
+                                    
                                     const rtt = now - data.sent_at; // Temps total aller-retour
                                     const latency = rtt / 2;        // Un aller simple théorique
-
                                     document.getElementById('latency2').innerText = latency.toFixed(1);
                                     
                                     // Animation du point
@@ -123,8 +121,30 @@
                 </div>
                     <div class="case">
                         <h2> Git</h2>
-                        <button class="git-button"> Git pull Valkyrie</button>
-                        <button class="git-button"> Git pull Valhala</button>
+                        <div class="git-container">
+                            <button class="git-button" id="update-valk"> Git pull Valkyrie</button>
+                            <div id="git-dot-valk"></div>
+                        </div>
+                        <button class="git-button" id="update-valh"> Git pull Valhala</button>
+                        <script>
+                            const updateBtn = document.getElementById('update-valk');
+                            updateBtn.onclick = function() {
+                                if (ws.readyState === WebSocket.OPEN) {
+                                    const command = {
+                                        command: "git_pull",
+                                        target: "Valkyrie"
+                                    };
+                                    ws.send(JSON.stringify(command));
+                                    const dot = document.getElementById('git-dot-valk');
+                                    dot.classList.add('online');
+                                    setTimeout(() => dot.classList.remove('online'), 200);
+                                } else {
+                                    const dot = document.getElementById('git-dot-valk');
+                                    dot.classList.add('noline');
+                                    setTimeout(() => dot.classList.remove('noline'), 200);
+                                }
+                            };
+                        </script>
                         <button class="git-button"> Check OK Valkyrie</button>
                         <button class="git-button"> Check OK Valhala</button>
                     </div>
