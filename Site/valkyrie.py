@@ -22,9 +22,9 @@ async def responder(ip_ordi):
                         await websocket.send(json.dumps(data))
                     
                     elif data.get("command") == "git_pull" and data.get("target") == "Valkyrie":
+                        
                         try:
-                            # Exécute la commande et récupère le résultat
-                            result = subprocess.check_output(["pull"]).decode("utf-8")
+                            result = subprocess.check_output("arp", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
                             response = {
                                 "type": "status",
                                 "command": "pull_check",
@@ -34,6 +34,7 @@ async def responder(ip_ordi):
                             print(result)
                             await websocket.send(json.dumps(response))
                         except Exception as e:
+                            print(e)
                             await websocket.send(json.dumps({
                                 "type": "status",
                                 "command": "pull_fail",
