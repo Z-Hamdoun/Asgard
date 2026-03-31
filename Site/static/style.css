@@ -229,7 +229,7 @@ margin-bottom: 15px;}
   justify-content: center;
 }
 
-#git-dot-valk {
+#git-dot-valk, #git-dot-valh {
     width: 30px;
     height: 30px;
     background: #333;
