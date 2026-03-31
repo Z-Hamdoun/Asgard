@@ -2,10 +2,6 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
-from pymavlink_code.class_MAVLinCS import MAVLinCS
-from Camera.class_Camera import Camera
-from pymavlink import mavutil
-from divers.class_Logger import Logger
 from pnp.algo import PnPLandingSystem
 from class_Drone import Drone
 
@@ -23,10 +19,8 @@ try:
         target_system=2,
         baud=57600,
         timeout_heartbeat=None,
+        camera_topic="/world/iris_runway/model/drone1/model/gimbal/link/pitch_link/sensor/camera/image"
     )
-
-    # Gazebo Camera
-    gz_camera = Camera(simulation='SITL', camera_topic="/world/iris_runway/model/drone1/model/gimbal/link/pitch_link/sensor/camera/image")
     
     # PNP
     pnp = PnPLandingSystem()
