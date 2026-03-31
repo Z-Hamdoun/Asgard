@@ -68,50 +68,6 @@
                         <div id="status-dot2"></div>
                         <p>Latence: <span id="latency2">0</span> ms</p>
                     </div>
-                    <script>
-                            const ws = new WebSocket("ws://" + window.location.host + "/ws");
-                            setInterval(() => {
-                                if (ws.readyState === WebSocket.OPEN) {
-                                    ws.send(JSON.stringify({ 
-                                        type: "ping", 
-                                        sent_at: Date.now() 
-                                    }));
-                                }
-                            }, 1000);
-
-                            ws.onmessage = function(event) {
-                                const data = JSON.parse(event.data);
-                                const now = Date.now();
-                                // Si on reçoit un Pong de Valkyrie
-                                if (data.type === "pong" && data.source === "Valkyrie") {
-                                    
-                                    const rtt = now - data.sent_at; // Temps total aller-retour
-                                    const latency = rtt / 2;        // Un aller simple théorique
-                                    document.getElementById('latency').innerText = latency.toFixed(1);
-                                    
-                                    // Animation du point
-                                    const dot = document.getElementById('status-dot');
-                                    dot.classList.add('online');
-                                    setTimeout(() => dot.classList.remove('online'), 200);
-                                }
-                                if (data.type === "pong" && data.source === "Valhalla") {
-                                    
-                                    const rtt = now - data.sent_at; // Temps total aller-retour
-                                    const latency = rtt / 2;        // Un aller simple théorique
-                                    document.getElementById('latency2').innerText = latency.toFixed(1);
-                                    
-                                    // Animation du point
-                                    const dot = document.getElementById('status-dot2');
-                                    dot.classList.add('online');
-                                    setTimeout(() => dot.classList.remove('online'), 200);
-                                }
-                                if (data.command === "pull_check" && data.source === "Valkyrie") {
-                                   const dot = document.getElementById('git-dot-valk');
-                                    dot.classList.add('online');
-                                    setTimeout(() => dot.classList.remove('online'), 200);
-                                }
-                            };
-                        </script>
                 </div>
                 <div class="col">
                     <div class="case">
@@ -151,6 +107,57 @@
                             };
                         </script>
 
+                    <script>
+                            const ws = new WebSocket("ws://" + window.location.host + "/ws");
+                            setInterval(() => {
+                                if (ws.readyState === WebSocket.OPEN) {
+                                    ws.send(JSON.stringify({ 
+                                        type: "ping", 
+                                        sent_at: Date.now() 
+                                    }));
+                                }
+                            }, 1000);
+
+                            ws.onmessage = function(event) {
+                                const data = JSON.parse(event.data);
+                                const now = Date.now();
+                                // Si on reçoit un Pong de Valkyrie
+                                if (data.type === "pong" && data.source === "Valkyrie") {
+                                    
+                                    const rtt = now - data.sent_at; // Temps total aller-retour
+                                    const latency = rtt / 2;        // Un aller simple théorique
+                                    document.getElementById('latency').innerText = latency.toFixed(1);
+                                    
+                                    // Animation du point
+                                    const dot = document.getElementById('status-dot');
+                                    dot.classList.add('online');
+                                    setTimeout(() => dot.classList.remove('online'), 200);
+                                }
+                                if (data.type === "pong" && data.source === "Valhalla") {
+                                    
+                                    const rtt = now - data.sent_at; // Temps total aller-retour
+                                    const latency = rtt / 2;        // Un aller simple théorique
+                                    document.getElementById('latency2').innerText = latency.toFixed(1);
+                                    
+                                    // Animation du point
+                                    const dot = document.getElementById('status-dot2');
+                                    dot.classList.add('online');
+                                    setTimeout(() => dot.classList.remove('online'), 200);
+                                }
+                                if (data.command === "pull_check" && data.source === "Valkyrie") {
+                                   const dot = document.getElementById('git-dot-valk');
+                                    dot.classList.remove('waitline');
+                                    dot.classList.add('online');
+                                    setTimeout(() => dot.classList.remove('online'), 200);
+                                }
+                                if (data.command === "pull_fail" && data.source === "Valkyrie") {
+                                   const dot = document.getElementById('git-dot-valk');
+                                    dot.classList.remove('waitline');
+                                    dot.classList.add('noline');
+                                    setTimeout(() => dot.classList.remove('noline'), 200);
+                                }
+                            };
+                        </script>
                         <button class="git-button"> Check OK Valkyrie</button>
                         <button class="git-button"> Check OK Valhala</button>
                     </div>

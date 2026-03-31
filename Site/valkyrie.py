@@ -9,6 +9,7 @@ async def responder(ip_ordi):
     
     while True: # Boucle de reconnexion infinie
         try:
+            
             async with websockets.connect(uri) as websocket:
                 print(f"Connecté à {ip_ordi}")
                 while True:
@@ -24,13 +25,20 @@ async def responder(ip_ordi):
                     elif data.get("command") == "git_pull" and data.get("target") == "Valkyrie":
                         
                         try:
-                            result = subprocess.check_output("arp", shell=True, stderr=subprocess.STDOUT).decode("utf-8")
+                            
+                            repo_path = "~/Desktop/dassault-helics-2026"
+                            result = subprocess.check_output(
+                                ["git", "pull"], 
+                                cwd=repo_path, 
+                                stderr=subprocess.STDOUT
+                            ).decode("utf-8")
                             response = {
                                 "type": "status",
                                 "command": "pull_check",
                                 "source": "Valkyrie",
                                 "output": result 
                             }
+
                             print(result)
                             await websocket.send(json.dumps(response))
                         except Exception as e:
