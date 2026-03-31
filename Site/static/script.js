@@ -19,8 +19,8 @@ function changelog() {
     }
 }
 
-const updateBtn = document.getElementById('update-valk');
-updateBtn.onclick = function() {
+const updateBtnValk = document.getElementById('update-valk');
+updateBtnValk.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
         const command = {
             command: "git_pull",
@@ -32,6 +32,24 @@ updateBtn.onclick = function() {
         setTimeout(() => dot.classList.remove('waitline'), 5000);
     } else {
         const dot = document.getElementById('git-dot-valk');
+        dot.classList.add('noline');
+        setTimeout(() => dot.classList.remove('noline'), 200);
+    }
+};
+
+const updateBtnValh = document.getElementById('update-valh');
+updateBtnValh.onclick = function() {
+    if (ws.readyState === WebSocket.OPEN) {
+        const command = {
+            command: "git_pull",
+            target: "Valhalla"
+        };
+        ws.send(JSON.stringify(command));
+        const dot = document.getElementById('git-dot-valh');
+        dot.classList.add('waitline');
+        setTimeout(() => dot.classList.remove('waitline'), 5000);
+    } else {
+        const dot = document.getElementById('git-dot-valh');
         dot.classList.add('noline');
         setTimeout(() => dot.classList.remove('noline'), 200);
     }
