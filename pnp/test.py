@@ -5,9 +5,8 @@ import os
 import time
 
 # --- IMPORT DE TON CODE ---
-# Ajoute le dossier parent au path pour pouvoir importer 'vision'
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-from pnp.algo import PnPLandingSystem
+# Le fichier est déjà dans le dossier pnp, donc import direct
+from algo import PnPLandingSystem
 
 # --- FONCTION UTILITAIRE POUR LES SLIDERS ---
 def nothing(x):
@@ -25,6 +24,7 @@ def main():
     pnp = PnPLandingSystem(marker_distance=cote_carre)
     
     cap = cv2.VideoCapture(0) # Ta webcam
+    print("Capture : ",cap)
 
     # 2. FENÊTRE DE RÉGLAGE (Trackbars)
     cv2.namedWindow("Calibrage Couleur")
@@ -38,6 +38,8 @@ def main():
     # h1_min_def, h1_max_def = 145, 170
     # h2_min_def, h2_max_def = 145, 170 
 
+    circularity = 0.8
+
     # Plage 1
     cv2.createTrackbar("H1 Min", "Calibrage Couleur", h1_min_def, 179, nothing)
     cv2.createTrackbar("H1 Max", "Calibrage Couleur", h1_max_def, 179, nothing)
@@ -47,6 +49,7 @@ def main():
     # Saturation / Valeur (Commun aux deux)
     cv2.createTrackbar("S Min", "Calibrage Couleur", 100, 255, nothing) 
     cv2.createTrackbar("V Min", "Calibrage Couleur", 50, 255, nothing)
+    cv2.createTrackbar("Circularity", "Calibrage Couleur", int(circularity*100), 100, nothing)
 
     while True:
         ret, frame = cap.read()
@@ -59,6 +62,7 @@ def main():
         h2_max = cv2.getTrackbarPos("H2 Max", "Calibrage Couleur")
         s_min = cv2.getTrackbarPos("S Min", "Calibrage Couleur")
         v_min = cv2.getTrackbarPos("V Min", "Calibrage Couleur")
+        circularity = cv2.getTrackbarPos("Circularity", "Calibrage Couleur") / 100.0
 
         # Injection directe dans l'instance
         pnp.lower_hsv1 = np.array([h1_min, s_min, v_min])

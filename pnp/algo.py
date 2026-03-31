@@ -22,18 +22,27 @@ class PnPLandingSystem:
         ], dtype=np.float32)
 
         # Calibration : A changer selon PI Camera ou Gazebo
-        self.camera_matrix = np.array([
-            [600, 0, 320],
-            [0, 600, 240],
-            [0, 0, 1]
-        ], dtype=np.float32)
+
+        #Gazebo
+        #self.camera_matrix = np.array([
+        #    [600, 0, 320],
+        #    [0, 600, 240],
+        #    [0, 0, 1]
+        #], dtype=np.float32)
         
-        # Laptop
+        # RPI x Picam
         # self.camera_matrix = np.array([
         #     [1000, 0, 640],
         #     [0, 1000, 360],
         #     [0, 0, 1]
         # ], dtype=np.float32)
+
+        #Caméra de PC (dixit Gemini)
+        self.camera_matrix = np.array([
+             [1000, 0, 640],
+             [0, 1000, 360],
+             [0, 0, 1]
+         ], dtype=np.float32)
         self.dist_coeffs = np.zeros((4,1))
 
         # Seuils couleurs magenta (utilisez un site pour visualiser ou choisir la couleur)
@@ -44,22 +53,10 @@ class PnPLandingSystem:
         
         # Parametres de detection
         self.min_contour_area = 10
-        self.min_circularity_ratio = 0.98
+        self.max_uncircularity_ratio = 0.15
         self.iterations = 0 # facultatif pour eliminer le bruit
 
-    def get_landing_vector(self, frame, verbose=False):
-        """
-        Retourne (dx, dy, dz) en mètres dans le repère du drone (Body Frame).
-        dx : + = Cible est devant
-        dy : + = Cible est a droite
-        dz : + = Cible est en bas (altitude relative)
-        attention cela depend de l'orientation du drone et de la camera donc c'est possible qu'il faut ajouter des signes -
-        """
-        if frame is None:
-            if verbose: print("[PnP] Erreur: Image vide (None)")
-            return None
-
-        # Traitement Image
+    def get_contours(self, frame, verbose):
         blurred = cv2.GaussianBlur(frame, (5, 5), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, self.lower_hsv1, self.upper_hsv1) + \
@@ -73,7 +70,9 @@ class PnPLandingSystem:
         
         valid_contours = []
         for c in contours:
-            if cv2.contourArea(c) > self.min_contour_area:
+            x, y, w, h = cv2.boundingRect(c)
+            R = w/h if h > 0 else 0
+            if cv2.contourArea(c) > self.min_contour_area and abs(1-R) < self.max_uncircularity_ratio:
                 valid_contours.append(c)
         
         if verbose:
@@ -83,7 +82,25 @@ class PnPLandingSystem:
             if verbose: print(f"[PnP] ECHEC : Seulement {len(valid_contours)} points potentiels sur 5 requis.")
             return None 
 
-        valid_contours = sorted(valid_contours, key=cv2.contourArea, reverse=True)[:5]
+        return sorted(valid_contours, key=cv2.contourArea, reverse=True)[:5]
+        
+
+    def get_landing_vector(self, frame, verbose=False):
+        """
+        Retourne (dx, dy, dz) en mètres dans le repère du drone (Body Frame).
+        dx : + = Cible est devant
+        dy : + = Cible est a droite
+        dz : + = Cible est en bas (altitude relative)
+        attention cela depend de l'orientation du drone et de la camera donc c'est possible qu'il faut ajouter des signes -
+        """
+        if frame is None:
+            if verbose: print("[PnP] Erreur: Image vide (None)")
+            return None
+
+        valid_contours = self.get_contours(frame, verbose)
+
+        if valid_contours is None:
+            return None
 
         points_2d = []
         for c in valid_contours:
