@@ -19,24 +19,47 @@ function changelog() {
     }
 }
 
+function changeconsole() {
+    let choix = document.getElementById("console-select").value;
+    const container = document.getElementById("console-container");
+    const log = document.getElementById("input-log");
+    container.classList.remove('null');  
+    log.classList.remove('null');
+    if (choix === "terminal") {
+        console.log("terminal")
+    } else if (choix === "param") {
+        container.classList.add('null');
+        log.classList.add('null');
+        
+    }
+}
+
 const updateBtnValk = document.getElementById('update-valk');
+// Variable globale ou accessible par les deux fonctions
+let valkTimer; 
+let valhTimer; 
+
 updateBtnValk.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
-        const command = {
-            command: "git_pull",
-            target: "Valkyrie"
-        };
+        const command = { command: "git_pull", target: "Valkyrie" };
         ws.send(JSON.stringify(command));
+        
         const dot = document.getElementById('git-dot-valk');
         dot.classList.add('waitline');
-        setTimeout(() => dot.classList.remove('waitline'), 5000);
+        
+        clearTimeout(valkTimer);
+        valkTimer = setTimeout(() => {
+            dot.classList.remove('waitline');
+            dot.classList.add('noline');
+            setTimeout(() => dot.classList.remove('noline'), 200);
+        }, 5000);
+
     } else {
         const dot = document.getElementById('git-dot-valk');
         dot.classList.add('noline');
         setTimeout(() => dot.classList.remove('noline'), 200);
     }
 };
-
 const updateBtnValh = document.getElementById('update-valh');
 updateBtnValh.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
@@ -47,7 +70,13 @@ updateBtnValh.onclick = function() {
         ws.send(JSON.stringify(command));
         const dot = document.getElementById('git-dot-valh');
         dot.classList.add('waitline');
-        setTimeout(() => dot.classList.remove('waitline'), 5000);
+        clearTimeout(valhTimer);
+        valhTimer = setTimeout(() => {
+            dot.classList.remove('waitline');
+            dot.classList.add('noline');
+            setTimeout(() => dot.classList.remove('noline'), 200);
+        }, 5000);
+
     } else {
         const dot = document.getElementById('git-dot-valh');
         dot.classList.add('noline');
@@ -95,12 +124,16 @@ ws.onmessage = function(event) {
     }
     if (data.command === "pull_check" && data.source === "Valkyrie") {
         const dot = document.getElementById('git-dot-valk');
+        clearTimeout(valkTimer); 
+        dot.classList.remove('noline');
         dot.classList.remove('waitline');
         dot.classList.add('online');
         setTimeout(() => dot.classList.remove('online'), 200);
     }
     if (data.command === "pull_fail" && data.source === "Valkyrie") {
         const dot = document.getElementById('git-dot-valk');
+        clearTimeout(valkTimer); 
+        dot.classList.remove('noline');
         dot.classList.remove('waitline');
         dot.classList.add('noline');
         setTimeout(() => dot.classList.remove('noline'), 200);
@@ -108,12 +141,16 @@ ws.onmessage = function(event) {
     if (data.command === "pull_check" && data.source === "Valhalla") {
         const dot = document.getElementById('git-dot-valh');
         dot.classList.remove('waitline');
+        clearTimeout(valhTimer); 
+        dot.classList.remove('noline');
         dot.classList.add('online');
         setTimeout(() => dot.classList.remove('online'), 200);
     }
     if (data.command === "pull_fail" && data.source === "Valhalla") {
         const dot = document.getElementById('git-dot-valh');
         dot.classList.remove('waitline');
+        clearTimeout(valhTimer); 
+        dot.classList.remove('noline');
         dot.classList.add('noline');
         setTimeout(() => dot.classList.remove('noline'), 200);
     }
@@ -150,4 +187,3 @@ function updateCursor(event) {
 input.addEventListener('input', updateCursor);
 input.addEventListener('keyup', updateCursor);
 input.addEventListener('click', updateCursor);
-input.addEventListener('',)

@@ -1,0 +1,30 @@
+body {
+    background-color: #0e0c3d;
+    color: white;
+    font-family: sans-serif;
+    text-align: center;
+}
+
+.row {display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 35px;
+    margin:35px 0px;
+}
+.col {display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 35px;
+}
+
+.case {display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+border: 3px solid #fff;
+background: #2f3b93;
+border-radius: 40px;
+padding: 20px 20px;
+color: #fff;
+}

@@ -2,10 +2,14 @@
 <html>
 <head>
     <title>Asgard Mission Control</title>
-    <link rel="stylesheet" href="/static/style.css">
-    
-                <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.min.js"></script>
-            <script>mermaid.initialize({ startOnLoad: true });</script>
+    <link rel="stylesheet" href="/static/main-style.css">
+    <link rel="stylesheet" href="/static/heartbeat-style.css">
+    <link rel="stylesheet" href="/static/git-style.css">
+    <link rel="stylesheet" href="/static/log-style.css">
+    <link rel="stylesheet" href="/static/param-style.css">
+    <link rel="stylesheet" href="/static/state-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.min.js"></script>
+    <script>mermaid.initialize({ startOnLoad: true });</script>
 
 </head>
 <body>
@@ -75,14 +79,14 @@
                     </div>
             </div>
                     <div class="case">
-                        <select id="console" class="log-select">
-                            <option value="">Console </option>
-                            <option value="c">paramètre mission</option>
+                        <select id="console-select" class="log-select" onchange="changeconsole()">
+                            <option value="terminal">Console </option>
+                            <option value="param">paramètre mission</option>
                         </select>
-                        <div class="console">   
+                        <div id="console-container" class="console">   
                             <span id="console"></span>
                         </div>
-                        <div class="log" onclick="document.getElementById('term-input').focus()">
+                        <div id="input-log" class="log" onclick="document.getElementById('term-input').focus()">
                             <span>helics:~$</span>
                             <div class="input-wrapper">
                                 <input type="text" id="term-input" spellcheck="false" autofocus>

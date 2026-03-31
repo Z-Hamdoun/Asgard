@@ -1,0 +1,20 @@
+.state-diagram{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #fff;
+  border: 2px solid #000;
+  border-radius: 20px;
+  padding: 0px 25px;
+}
+
+  .mermaid svg {
+    /* Empêche Mermaid de réduire le diagramme s'il est trop large */
+    
+    height: 1000px !important;
+  }
+  
+  /* Cible le texte à l'intérieur du SVG généré */
+  g.state text, g.label text {
+    font-size: 16px !important;
+  }
