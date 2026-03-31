@@ -60,7 +60,15 @@
                         <div id="status-dot"></div>
                         <p>Latence: <span id="latency">0</span> ms</p>
 
-                        <script>
+                        
+                    </div>
+
+                    <div class="case">
+                        <h2> Heartbeat - Valhala</h2>
+                        <div id="status-dot2"></div>
+                        <p>Latence: <span id="latency2">0</span> ms</p>
+                    </div>
+                    <script>
                             const ws = new WebSocket("ws://" + window.location.host + "/ws");
                             setInterval(() => {
                                 if (ws.readyState === WebSocket.OPEN) {
@@ -87,15 +95,20 @@
                                     dot.classList.add('online');
                                     setTimeout(() => dot.classList.remove('online'), 200);
                                 }
+                                if (data.type === "pong" && data.source === "Valhalla") {
+                                    const now = Date.now();
+                                    const rtt = now - data.sent_at; // Temps total aller-retour
+                                    const latency = rtt / 2;        // Un aller simple théorique
+
+                                    document.getElementById('latency2').innerText = latency.toFixed(1);
+                                    
+                                    // Animation du point
+                                    const dot = document.getElementById('status-dot2');
+                                    dot.classList.add('online');
+                                    setTimeout(() => dot.classList.remove('online'), 200);
+                                }
                             };
                         </script>
-                    </div>
-
-                    <div class="case">
-                        <h2> Heartbeat - Valhala</h2>
-                        <div id="status-dot2"></div>
-                        <p>Latence: <span id="latency2">0</span> ms</p>
-                    </div>
                 </div>
                 <div class="col">
                     <div class="case">
