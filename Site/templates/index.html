@@ -9,6 +9,7 @@
 </head>
 <body>
     <h1>Mission Asgard - Tableau de controle</h1>
+
     <p></p>
     <div class="row">
                     <div class="case">
@@ -116,7 +117,10 @@
                     </div>
             </div>
                     <div class="case">
-                        <h2 style="margin: 5px;"> Console</h2>
+                        <select id="console" class="log-select">
+                            <option value="">Console </option>
+                            <option value="c">paramètre mission</option>
+                        </select>
                         <div class="console">   
                             <span id="console"></span>
                         </div>
@@ -211,5 +215,8 @@
             </div>
         </div>
     </div>
+    <p>
+    Station au Sol IP: {{ local_ip }}
+</p>
 </body>
 </html>

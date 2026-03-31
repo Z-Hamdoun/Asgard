@@ -4,6 +4,22 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import asyncio
 import time
+import socket
+
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # On n'a pas besoin de se connecter réellement, 
+        # l'OS nous donne l'IP qui sortirait vers cette adresse
+        s.connect(('8.8.8.8', 1))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = '127.0.0.1'
+    finally:
+        s.close()
+    return ip
+
+
 
 app = FastAPI()
 
@@ -15,10 +31,14 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
+    local_ip = get_local_ip()
     return templates.TemplateResponse(
         request=request, 
-        name="index.html"
+        name="index.html",
+        context={"local_ip": local_ip}
     )
+
+
 
 class ConnectionManager:
     def __init__(self):

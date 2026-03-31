@@ -19,16 +19,18 @@ body {
 }
 
 .log-select{
-  color: #000;
-  background: #fff;
+  color: #ffffff;
+  border: 2px solid #fff;
+  background: #2f3b93;
   font-size: 1.2rem;
   padding: 10px 50px;
   font-weight: 500;
   border-radius: 15px;
+  margin-bottom: 20px;
 }
 
 .log-select:hover{
-  background: #d6ddde;
+  background: #3b49af;
 }
 
 .drone-log-container{
@@ -40,7 +42,7 @@ body {
   background: #000;
   border-radius: 20px;
   border: 2px solid #fff;
-  margin-top: 20px;
+  margin-bottom: 20px;
 }
 
 .drone-log-container.null{
