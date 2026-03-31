@@ -61,7 +61,7 @@ def draw_detected_points(frame, pnp_system):
 
 def main():
     # Initialise le système PnP (laptop=True pour utiliser les paramètres de la webcam PC)
-    pnp_system = PnPLandingSystem(marker_distance=0.40, net_depth=0.20, laptop=True)
+    pnp_system = PnPLandingSystem(marker_distance=0.40, net_depth=0.20)
     
     # Ouvre la webcam (0 = caméra par défaut)
     cap = cv2.VideoCapture(0)

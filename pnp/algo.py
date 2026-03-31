@@ -3,7 +3,7 @@ import numpy as np
 import math
 
 class PnPLandingSystem:
-    def __init__(self, marker_distance=0.40, net_depth=0.20, laptop=False):
+    def __init__(self, marker_distance=0.40, net_depth=0.20):
         """
         Args:
             marker_distance (float): Coté du carré formé par les coins (en mètres), il faut bien le mesurer!.
@@ -28,19 +28,19 @@ class PnPLandingSystem:
             [0, 0, 1]
         ], dtype=np.float32)
         
-        if laptop :
-            self.camera_matrix = np.array([
-                [1000, 0, 640],
-                [0, 1000, 360],
-                [0, 0, 1] ], dtype=np.float32)
-            
+        # Laptop
+        # self.camera_matrix = np.array([
+        #     [1000, 0, 640],
+        #     [0, 1000, 360],
+        #     [0, 0, 1]
+        # ], dtype=np.float32)
         self.dist_coeffs = np.zeros((4,1))
 
         # Seuils couleurs magenta (utilisez un site pour visualiser ou choisir la couleur)
-        self.lower_hsv1 = np.array([120, 50, 50])
-        self.upper_hsv1 = np.array([179, 255, 255])
-        self.lower_hsv2 = np.array([0, 70, 50])
-        self.upper_hsv2 = np.array([10, 255, 255])
+        self.lower_hsv1 = np.array([120, 30, 30])
+        self.upper_hsv1 = np.array([170, 255, 255])
+        self.lower_hsv2 = np.array([0, 0, 0])
+        self.upper_hsv2 = np.array([0, 0, 0])
         
         # Parametres de detection
         self.min_contour_area = 10
@@ -73,9 +73,7 @@ class PnPLandingSystem:
         
         valid_contours = []
         for c in contours:
-            x, y, w, h = cv2.boundingRect(c)
-            ratio = w/h
-            if cv2.contourArea(c) > self.min_contour_area and ratio > self.min_circularity_ratio:
+            if cv2.contourArea(c) > self.min_contour_area:
                 valid_contours.append(c)
         
         if verbose:

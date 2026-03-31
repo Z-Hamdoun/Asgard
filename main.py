@@ -128,7 +128,7 @@ try:
     gz_camera = Camera(simulation='SITL', camera_topic="/world/iris_runway/model/drone1/model/gimbal/link/pitch_link/sensor/camera/image")
     
     # PNP
-    pnp = PnPLandingSystem(laptop=True)
+    pnp = PnPLandingSystem()
 
     # Armement des deux drones
     armed_drone0 = drone0.arm()
