@@ -159,6 +159,11 @@ color: #fff;
     box-shadow: 0 0 15px #00ff00;
 }
 
+.waitline {
+    background: #ffff00 !important;
+    box-shadow: 0 0 15px #ffff00;
+}
+
 .noline {
     background: #ff0000 !important;
     box-shadow: 0 0 15px #ff0000;

@@ -105,6 +105,11 @@
                                     dot.classList.add('online');
                                     setTimeout(() => dot.classList.remove('online'), 200);
                                 }
+                                if (data.command === "pull_check" && data.source === "Valkyrie") {
+                                   const dot = document.getElementById('git-dot-valk');
+                                    dot.classList.add('online');
+                                    setTimeout(() => dot.classList.remove('online'), 200);
+                                }
                             };
                         </script>
                 </div>
@@ -136,8 +141,8 @@
                                     };
                                     ws.send(JSON.stringify(command));
                                     const dot = document.getElementById('git-dot-valk');
-                                    dot.classList.add('online');
-                                    setTimeout(() => dot.classList.remove('online'), 200);
+                                    dot.classList.add('waitline');
+                                    setTimeout(() => dot.classList.remove('waitline'), 1000);
                                 } else {
                                     const dot = document.getElementById('git-dot-valk');
                                     dot.classList.add('noline');
@@ -145,6 +150,7 @@
                                 }
                             };
                         </script>
+
                         <button class="git-button"> Check OK Valkyrie</button>
                         <button class="git-button"> Check OK Valhala</button>
                     </div>
