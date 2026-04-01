@@ -26,7 +26,7 @@ async def responder(ip_ordi):
                         
                         try:
                             
-                            repo_path = "/home/helics/Desktop/mission/dassault-helics-2026"
+                            repo_path = "/home/asgard/Desktop/dassault-helics-2026"
                             result = subprocess.check_output(
                                 ["git", "pull"], 
                                 cwd=repo_path, 
