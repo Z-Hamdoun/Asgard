@@ -1,11 +1,11 @@
 .git-button {
-  padding: 12px 28px;
+  padding: 12px 20px;
   margin-bottom: 10px;
   border-radius: 12px;
   border: 1px solid #000000;
   background: #ffffff;
   color: #000000;
-  font-size: 1rem;
+  font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
   position: relative;
@@ -48,8 +48,8 @@
 }
 
 #git-dot-valk, #git-dot-valh {
-    width: 30px;
-    height: 30px;
+    width: 25px;
+    height: 25px;
     background: #333;
     border: 2px solid #000;
     border-radius: 50%;

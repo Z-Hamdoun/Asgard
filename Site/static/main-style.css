@@ -3,28 +3,39 @@ body {
     color: white;
     font-family: sans-serif;
     text-align: center;
+    padding: 0px 20px;
+}
+
+
+body h1{
+    margin-bottom:0px ;
 }
 
 .row {display: flex;
     justify-content: center;
     align-items: center;
-    gap: 35px;
-    margin:35px 0px;
+    gap: 30px;
+    margin-top:30px;
 }
 .col {display: flex;
     justify-content: center;
     align-items: center;
     flex-direction: column;
-    gap: 35px;
+    gap: 30px;
 }
 
 .case {display: flex;
 flex-direction: column;
 justify-content: center;
 align-items: center;
-border: 3px solid #fff;
+border: 2px solid #fff;
 background: #2f3b93;
-border-radius: 40px;
-padding: 20px 20px;
+border-radius: 35px;
+padding: 20px 15px;
 color: #fff;
+}
+.case h2{
+  margin-bottom: 5px;
+  margin-top: 0px;
+  font-size: 1.3rem;
 }

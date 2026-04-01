@@ -21,7 +21,21 @@ async def responder(ip_ordi):
                         data["type"] = "pong"
                         data["source"] = "Valkyrie"
                         await websocket.send(json.dumps(data))
-                    
+                    elif data.get("command") == "main_mission":
+                        
+                        result = subprocess.check_output(
+                            ["source ~/.bashrc", "venv", "main"], 
+                            stderr=subprocess.STDOUT
+                        ).decode("utf-8")
+                        response = {
+                            "type": "status",
+                            "command": "main_ack",
+                            "source": "Valkyrie",
+                            "output": result 
+                        }
+
+                        print(result)
+                        await websocket.send(json.dumps(response))
                     elif data.get("command") == "git_pull" and data.get("target") == "Valkyrie":
                         
                         try:

@@ -1,7 +1,8 @@
+
+const valk = document.getElementById("valk-log");
+const valh = document.getElementById("valh-log");
 function changelog() {
     let choix = document.getElementById("choix").value;
-    const valk = document.getElementById("valk-log");
-    const valh = document.getElementById("valh-log");
     valk.classList.remove('full', 'null','demi');  
     valh.classList.remove('full', 'null','demi');
     if (choix === "a") {
@@ -16,21 +17,6 @@ function changelog() {
     } else {
         valh.classList.add('null');
         valk.classList.add('null');
-    }
-}
-
-function changeconsole() {
-    let choix = document.getElementById("console-select").value;
-    const container = document.getElementById("console-container");
-    const log = document.getElementById("input-log");
-    container.classList.remove('null');  
-    log.classList.remove('null');
-    if (choix === "terminal") {
-        console.log("terminal")
-    } else if (choix === "param") {
-        container.classList.add('null');
-        log.classList.add('null');
-        
     }
 }
 
@@ -84,6 +70,8 @@ updateBtnValh.onclick = function() {
     }
 };
 
+
+
 const ws = new WebSocket("ws://" + window.location.host + "/ws");
 setInterval(() => {
     if (ws.readyState === WebSocket.OPEN) {
@@ -105,19 +93,15 @@ ws.onmessage = function(event) {
         const rtt = now - data.sent_at; // Temps total aller-retour
         const latency = rtt / 2;        // Un aller simple théorique
         document.getElementById('latency').innerText = latency.toFixed(1);
-        
-        // Animation du point
         const dot = document.getElementById('status-dot');
         dot.classList.add('online');
         setTimeout(() => dot.classList.remove('online'), 200);
     }
-    // Si on reçoit un Pong de Valhalla
     if (data.type === "pong" && data.source === "Valhalla") {
         const rtt = now - data.sent_at; // Temps total aller-retour
         const latency = rtt / 2;        // Un aller simple théorique
         document.getElementById('latency2').innerText = latency.toFixed(1);
-        
-        // Animation du point
+
         const dot = document.getElementById('status-dot2');
         dot.classList.add('online');
         setTimeout(() => dot.classList.remove('online'), 200);
@@ -158,6 +142,21 @@ ws.onmessage = function(event) {
 
 // CONSOLE
 
+function changeconsole() {
+    let choix = document.getElementById("console-select").value;
+    const container = document.getElementById("console-container");
+    const log = document.getElementById("input-log");
+    container.classList.remove('null');  
+    log.classList.remove('null');
+    if (choix === "terminal") {
+        console.log("terminal")
+    } else if (choix === "param") {
+        container.classList.add('null');
+        log.classList.add('null');
+        
+    }
+}
+
 const input = document.getElementById('term-input');
 const cursor = document.getElementById('cursor');
 const divconsole = document.getElementById('console');
@@ -166,7 +165,7 @@ function updateCursor(event) {
     const keyName = event.key;
     if (keyName === "Enter") {
         const nouvelleLigne = document.createElement("div");
-        nouvelleLigne.textContent = "helics:~$" + input.value;
+        nouvelleLigne.textContent = "helics:~ $" + input.value;
         divconsole.appendChild(nouvelleLigne);
         input.value = "";
     }
@@ -187,3 +186,22 @@ function updateCursor(event) {
 input.addEventListener('input', updateCursor);
 input.addEventListener('keyup', updateCursor);
 input.addEventListener('click', updateCursor);
+
+const missionBtn =document.getElementById('green-button');
+
+missionBtn.onclick = function(){
+    if (ws.readyState ===WebSocket.OPEN){
+        const nouvelleLigne = document.createElement("div");
+        nouvelleLigne.textContent = "en attente du lancement de la mission";
+        valk.appendChild(nouvelleLigne);
+        const command = {
+            command: "main_mission",
+            target: "Valkyrie"
+        };
+        ws.send(JSON.stringify(command));
+    } else {
+        const nouvelleLigne = document.createElement("div");
+        nouvelleLigne.textContent = "échec: server down";
+        valk.appendChild(nouvelleLigne);
+    }
+}

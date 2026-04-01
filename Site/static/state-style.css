@@ -5,13 +5,14 @@
   background: #fff;
   border: 2px solid #000;
   border-radius: 20px;
-  padding: 0px 25px;
+  padding: 0px 20px;
+  width: 450px;
 }
 
   .mermaid svg {
     /* Empêche Mermaid de réduire le diagramme s'il est trop large */
     
-    height: 1000px !important;
+    height: 800px !important;
   }
   
   /* Cible le texte à l'intérieur du SVG généré */
