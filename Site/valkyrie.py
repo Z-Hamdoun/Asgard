@@ -22,28 +22,46 @@ async def responder(ip_ordi):
                         data["source"] = "Valkyrie"
                         await websocket.send(json.dumps(data))
                     elif data.get("command") == "main_mission":
+                        
+                        
                         command = (
                         "source /rootgit/venv/bin/activate && "
                         "cd ~/Desktop/mission/dassault-helics-2026 && "
                         "python main.py"
                         )
-                        try:
-                            result = subprocess.check_output(
-                                cmd,
-                                shell=True,
-                                executable="/bin/bash", 
-                                stderr=subprocess.STDOUT,
-                                text=True 
-                            )
-                            response = {
-                                "type": "status",
-                                "command": "main_ack",
-                                "source": "Valkyrie",
-                                "output": result 
-                            }
 
-                            print(result)
-                            await websocket.send(json.dumps(response))
+
+                        try:
+                            process = subprocess.Popen(
+                                command,
+                                shell=True,
+                                executable="/bin/bash",
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, 
+                                text=True,
+                                bufsize=1 
+                            )
+
+                            print("--- Début de l'exécution en direct ---")
+                            for line in process.stdout:
+                                print(line, end="") 
+                                sys.stdout.flush()  
+                                
+                            return_code = process.wait()
+
+                            if return_code != 0:
+                                print(f"\n--- Le processus s'est terminé avec l'erreur {return_code} ---")
+                            else:
+                                print("\n--- Exécution terminée avec succès ---")
+                            # response = {
+                            #     "type": "status",
+                            #     "command": "main_ack",
+                            #     "source": "Valkyrie",
+                            #     "output": result 
+                            # }
+
+                            # print(result)
+                            # await websocket.send(json.dumps(response))
                         except subprocess.CalledProcessError as e:
                             print(f"Erreur : {e.output}")
                     elif data.get("command") == "git_pull" and data.get("target") == "Valkyrie":
