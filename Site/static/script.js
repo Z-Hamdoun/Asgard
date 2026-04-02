@@ -192,3 +192,20 @@ function updateCursor(event) {
 input.addEventListener('input', updateCursor);
 input.addEventListener('keyup', updateCursor);
 input.addEventListener('click', updateCursor);
+
+
+const mainBtn = document.getElementById('green-button');
+mainBtn.onclick = function() {
+    if (ws.readyState === WebSocket.OPEN) {
+        const command = {
+            command: "main_mission",
+            target: "Valkyrie"
+        };
+        console.log("tentative")
+        ws.send(JSON.stringify(command));
+        
+
+    } else {
+        console.log("echec")
+    }
+};

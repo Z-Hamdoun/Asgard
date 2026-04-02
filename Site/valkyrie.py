@@ -22,20 +22,27 @@ async def responder(ip_ordi):
                         data["source"] = "Valkyrie"
                         await websocket.send(json.dumps(data))
                     elif data.get("command") == "main_mission":
-                        
-                        result = subprocess.check_output(
-                            ["source ~/.bashrc", "venv", "main"], 
-                            stderr=subprocess.STDOUT
-                        ).decode("utf-8")
-                        response = {
-                            "type": "status",
-                            "command": "main_ack",
-                            "source": "Valkyrie",
-                            "output": result 
-                        }
+                        cmd = "source ~/.bashrc && venv && main"
 
-                        print(result)
-                        await websocket.send(json.dumps(response))
+                        try:
+                            result = subprocess.check_output(
+                                cmd,
+                                shell=True,
+                                executable="/bin/bash", 
+                                stderr=subprocess.STDOUT,
+                                text=True 
+                            )
+                            response = {
+                                "type": "status",
+                                "command": "main_ack",
+                                "source": "Valkyrie",
+                                "output": result 
+                            }
+
+                            print(result)
+                            await websocket.send(json.dumps(response))
+                        except subprocess.CalledProcessError as e:
+                            print(f"Erreur : {e.output}")
                     elif data.get("command") == "git_pull" and data.get("target") == "Valkyrie":
                         
                         try:
