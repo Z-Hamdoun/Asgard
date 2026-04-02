@@ -22,8 +22,11 @@ async def responder(ip_ordi):
                         data["source"] = "Valkyrie"
                         await websocket.send(json.dumps(data))
                     elif data.get("command") == "main_mission":
-                        cmd = "source ~/.bashrc && venv && main"
-
+                        command = (
+                        "source /rootgit/venv/bin/activate && "
+                        "cd ~/Desktop/mission/dassault-helics-2026 && "
+                        "python main.py"
+                        )
                         try:
                             result = subprocess.check_output(
                                 cmd,
