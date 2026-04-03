@@ -34,7 +34,7 @@ async def responder(ip_ordi):
                             ).decode("utf-8")
                             response = {
                                 "type": "status",
-                                "command": "pull_check",
+                                "command": "pull_ack",
                                 "source": "Valhalla",
                                 "output": result 
                             }

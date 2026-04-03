@@ -4,32 +4,56 @@ import json
 import sys
 import subprocess # Pour exécuter git pull
 
+
+def sendfail(socket,failure,e):
+    response = {
+        "type": "status",
+        "command": failure,
+        "source": "Valkyrie",
+        "output": e 
+    }
+    return socket.send(json.dumps(response))
+
+def sendack(socket,ack):
+    response = {
+        "type": "status",
+        "command": ack,
+        "source": "Valkyrie"
+    }
+    return socket.send(json.dumps(response))
+
+def sendlog(socket,command,result):
+    response = {
+        "type": "log",
+        "command": command,
+        "source": "Valkyrie",
+        "output": result 
+    }
+    return socket.send(json.dumps(response))
+
+
+
 async def responder(ip_ordi):
     uri = f"ws://{ip_ordi}:8000/ws"
     
     while True: # Boucle de reconnexion infinie
         try:
-            
             async with websockets.connect(uri) as websocket:
                 print(f"Connecté à {ip_ordi}")
                 while True:
                     message = await websocket.recv()
                     data = json.loads(message)
-                    
-                    # Logique du Ping-Pong
+
                     if data.get("type") == "ping":
                         data["type"] = "pong"
                         data["source"] = "Valkyrie"
                         await websocket.send(json.dumps(data))
                     elif data.get("command") == "main_mission":
-                        
-                        
                         command = (
                         "source /rootgit/venv/bin/activate && "
                         "cd ~/Desktop/mission/dassault-helics-2026 && "
-                        "python main.py"
+                        "python -u main.py"
                         )
-
 
                         try:
                             process = subprocess.Popen(
@@ -41,27 +65,21 @@ async def responder(ip_ordi):
                                 text=True,
                                 bufsize=1 
                             )
-
-                            print("--- Début de l'exécution en direct ---")
+                            print(f"--- execution de main ---")
+                            
+                            await sendack(websocket,"start_main_ack")
                             for line in process.stdout:
-                                print(line, end="") 
-                                sys.stdout.flush()  
-                                
-                            return_code = process.wait()
+                                clean_line = line.strip()
+                                if clean_line: 
+                                    await sendlog(websocket, "main_log", clean_line)
+                                print(clean_line)
+
+                            return_code =process.wait()
 
                             if return_code != 0:
-                                print(f"\n--- Le processus s'est terminé avec l'erreur {return_code} ---")
-                            else:
-                                print("\n--- Exécution terminée avec succès ---")
-                            # response = {
-                            #     "type": "status",
-                            #     "command": "main_ack",
-                            #     "source": "Valkyrie",
-                            #     "output": result 
-                            # }
-
-                            # print(result)
-                            # await websocket.send(json.dumps(response))
+                                await sendfail(websocket,"main_fail",return_code)
+                                print(f"--- Le processus s'est terminé avec l'erreur {return_code} ---")
+                            
                         except subprocess.CalledProcessError as e:
                             print(f"Erreur : {e.output}")
                     elif data.get("command") == "git_pull" and data.get("target") == "Valkyrie":
@@ -74,23 +92,12 @@ async def responder(ip_ordi):
                                 cwd=repo_path, 
                                 stderr=subprocess.STDOUT
                             ).decode("utf-8")
-                            response = {
-                                "type": "status",
-                                "command": "pull_check",
-                                "source": "Valkyrie",
-                                "output": result 
-                            }
-
+                            await sendlog(websocket,"pull_ack",result)
                             print(result)
-                            await websocket.send(json.dumps(response))
                         except Exception as e:
                             print(e)
-                            await websocket.send(json.dumps({
-                                "type": "status",
-                                "command": "pull_fail",
-                                "source": "Valkyrie",
-                                "output": str(e)
-                            }))
+                            await sendfail(websocket,"pull_fail",str(e))
+                            
 
         except Exception as e:
             print(f"Déconnecté. Nouvelle tentative dans 1s... ({e}) ctrl + C pour exit")

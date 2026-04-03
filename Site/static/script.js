@@ -89,60 +89,67 @@ setInterval(() => {
 ws.onmessage = function(event) {
     const data = JSON.parse(event.data);
     const now = Date.now();
-    // Si on reçoit un Pong de Valkyrie
-    if (data.type === "pong" && data.source === "Valkyrie") {
-        
-        const rtt = now - data.sent_at; // Temps total aller-retour
-        const latency = rtt / 2;        // Un aller simple théorique
-        document.getElementById('latency').innerText = latency.toFixed(1);
-        
-        // Animation du point
-        const dot = document.getElementById('status-dot');
-        dot.classList.add('online');
-        setTimeout(() => dot.classList.remove('online'), 200);
+
+    // 1. Fonctions utilitaires pour éviter la répétition
+    const updateStatusDot = (id, className, duration = 200) => {
+        const dot = document.getElementById(id);
+        if (!dot) return;
+        dot.classList.remove('online', 'noline', 'waitline');
+        dot.classList.add(className);
+        setTimeout(() => dot.classList.remove(className), duration);
+    };
+
+    const addLog = (containerId, text) => {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const line = document.createElement("div");
+        line.textContent = text;
+        container.appendChild(line);
+    };
+
+    const updateLatency = (id, sentAt) => {
+        const element = document.getElementById(id);
+        if (element) {
+            const latency = (now - sentAt) / 2;
+            element.innerText = latency.toFixed(1);
+        }
+    };
+
+    // 2. Mapping des actions par "command" ou "type"
+    // On gère d'abord le cas particulier du PONG
+    if (data.type === "pong") {
+        const suffix = data.source === "Valkyrie" ? "" : "2";
+        updateLatency(`latency${suffix}`, data.sent_at);
+        updateStatusDot(`status-dot${suffix}`, 'online');
+        return; // On s'arrête ici pour les pongs
     }
-    // Si on reçoit un Pong de Valhalla
-    if (data.type === "pong" && data.source === "Valhalla") {
-        const rtt = now - data.sent_at; // Temps total aller-retour
-        const latency = rtt / 2;        // Un aller simple théorique
-        document.getElementById('latency2').innerText = latency.toFixed(1);
-        
-        // Animation du point
-        const dot = document.getElementById('status-dot2');
-        dot.classList.add('online');
-        setTimeout(() => dot.classList.remove('online'), 200);
-    }
-    if (data.command === "pull_check" && data.source === "Valkyrie") {
-        const dot = document.getElementById('git-dot-valk');
-        clearTimeout(valkTimer); 
-        dot.classList.remove('noline');
-        dot.classList.remove('waitline');
-        dot.classList.add('online');
-        setTimeout(() => dot.classList.remove('online'), 200);
-    }
-    if (data.command === "pull_fail" && data.source === "Valkyrie") {
-        const dot = document.getElementById('git-dot-valk');
-        clearTimeout(valkTimer); 
-        dot.classList.remove('noline');
-        dot.classList.remove('waitline');
-        dot.classList.add('noline');
-        setTimeout(() => dot.classList.remove('noline'), 200);
-    }
-    if (data.command === "pull_check" && data.source === "Valhalla") {
-        const dot = document.getElementById('git-dot-valh');
-        dot.classList.remove('waitline');
-        clearTimeout(valhTimer); 
-        dot.classList.remove('noline');
-        dot.classList.add('online');
-        setTimeout(() => dot.classList.remove('online'), 200);
-    }
-    if (data.command === "pull_fail" && data.source === "Valhalla") {
-        const dot = document.getElementById('git-dot-valh');
-        dot.classList.remove('waitline');
-        clearTimeout(valhTimer); 
-        dot.classList.remove('noline');
-        dot.classList.add('noline');
-        setTimeout(() => dot.classList.remove('noline'), 200);
+
+    // 3. Gestionnaire de commandes (Dispatcher)
+    const sourceSuffix = data.source === "Valkyrie" ? "valk" : "valh";
+    const timer = data.source === "Valkyrie" ? valkTimer : valhTimer;
+
+    switch (data.command) {
+        case "pull_ack":
+            clearTimeout(timer);
+            updateStatusDot(`git-dot-${sourceSuffix}`, 'online');
+            break;
+
+        case "pull_fail":
+            clearTimeout(timer);
+            updateStatusDot(`git-dot-${sourceSuffix}`, 'noline');
+            break;
+
+        case "start_main_ack":
+            addLog("valk-log", "--- execution de main ---");
+            break;
+
+        case "main_log":
+            addLog("valk-log", data.output);
+            break;
+
+        case "main_fail":
+            addLog("valk-log", `--- Le processus s'est terminé avec l'erreur ${data.output} ---`);
+            break;
     }
 };
 
@@ -152,11 +159,18 @@ function changeconsole() {
     let choix = document.getElementById("console-select").value;
     const container = document.getElementById("console-container");
     const log = document.getElementById("input-log");
+    const param = document.getElementById("param-container")
+    const mission = document.getElementById("mission-container")
+    param.classList.remove('null');
     container.classList.remove('null');  
+    mission.classList.remove('null')
     log.classList.remove('null');
     if (choix === "terminal") {
-        console.log("terminal")
+        param.classList.add("null")
+        mission.classList.add("null")
+
     } else if (choix === "param") {
+
         container.classList.add('null');
         log.classList.add('null');
         
@@ -201,7 +215,50 @@ mainBtn.onclick = function() {
             command: "main_mission",
             target: "Valkyrie"
         };
-        console.log("tentative")
+
+        const container = document.getElementById("valk-log");
+        const line = document.createElement("div");
+        line.textContent = "requête d'execution envoyé";
+        container.appendChild(line);
+
+        ws.send(JSON.stringify(command));
+        
+
+    } else {
+        console.log("echec")
+    }
+};
+
+const landBtn = document.getElementById('orange-button');
+landBtn.onclick = function() {
+    if (ws.readyState === WebSocket.OPEN) {
+        const command = {
+            command: "urgency_landing",
+            target: "Valkyrie"
+        };
+        const container = document.getElementById("valk-log");
+        const line = document.createElement("div");
+        line.textContent = "requête d'atterissage envoyé";
+        container.appendChild(line);
+        ws.send(JSON.stringify(command));
+        
+
+    } else {
+        console.log("echec")
+    }
+};
+
+const stopBtn = document.getElementById('red-button');
+stopBtn.onclick = function() {
+    if (ws.readyState === WebSocket.OPEN) {
+        const command = {
+            command: "urgency_stop",
+            target: "Valkyrie"
+        };
+        const container = document.getElementById("valk-log");
+        const line = document.createElement("div");
+        line.textContent = "requête d'arrêt d'urgence envoyé";
+        container.appendChild(line);
         ws.send(JSON.stringify(command));
         
 
