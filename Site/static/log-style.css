@@ -24,6 +24,19 @@
   border-radius: 20px;
   border: 2px solid #fff;
   margin-bottom: 20px;
+  
+  overflow-y: auto; 
+  overflow-x: hidden; 
+  word-wrap: break-word; 
+}
+
+
+.drone-log-container::-webkit-scrollbar {
+  width: 8px;
+}
+.drone-log-container::-webkit-scrollbar-thumb {
+  background: #fff;
+  border-radius: 10px;
 }
 
 .drone-log-container.null{
@@ -40,18 +53,31 @@
   height: 330px;
 }
 
-.console{
-  display:flex;
-  justify-content: start;
-  align-items:start;
+.console {
+  display: flex;
+  flex-direction: column; /* Aligne les messages verticalement */
+  justify-content: flex-start; /* Garde le contenu en haut */
+  align-items: flex-start;
   text-align: start;
-  padding: 10px 10px;
+  padding: 10px 15px;
   background: #000;
   border-radius: 20px;
   border: 2px solid #fff;
   margin-bottom: 10px;
   height: 250px;
   width: 650px;
+  
+  overflow-y: auto; 
+  overflow-x: hidden; 
+  word-wrap: break-word; 
+}
+
+.console::-webkit-scrollbar {
+  width: 8px;
+}
+.console::-webkit-scrollbar-thumb {
+  background: #fff;
+  border-radius: 10px;
 }
 
 .console.null{

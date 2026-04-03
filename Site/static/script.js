@@ -102,9 +102,11 @@ ws.onmessage = function(event) {
     const addLog = (containerId, text) => {
         const container = document.getElementById(containerId);
         if (!container) return;
+
         const line = document.createElement("div");
         line.textContent = text;
         container.appendChild(line);
+        container.scrollTop = container.scrollHeight;
     };
 
     const updateLatency = (id, sentAt) => {
@@ -193,11 +195,23 @@ const divconsole = document.getElementById('console');
 function updateCursor(event) {
     const keyName = event.key;
     if (keyName === "Enter") {
-        const nouvelleLigne = document.createElement("div");
-        nouvelleLigne.textContent = "helics:~$" + input.value;
-        divconsole.appendChild(nouvelleLigne);
-        input.value = "";
-    }
+    const nouvelleLigne = document.createElement("div");
+    nouvelleLigne.textContent = "helics:~$" + input.value;
+    divconsole.appendChild(nouvelleLigne);
+    divconsole.scrollTop = container.scrollHeight;
+    const command = {
+            type:"log",
+            command: "terminal_log",
+            target: "Valkyrie",
+            output: input.value
+
+        };
+    ws.send(JSON.stringify(command))
+    
+    const container = document.getElementById("console-container");
+    
+    input.value = "";
+}
     const textBeforeCursor = input.value.substring(0, input.selectionStart);
 
     const tempSpan = document.createElement('span');
@@ -229,7 +243,7 @@ mainBtn.onclick = function() {
         const line = document.createElement("div");
         line.textContent = "requête d'execution envoyé";
         container.appendChild(line);
-
+        container.scrollTop = container.scrollHeight;
         ws.send(JSON.stringify(command));
         
 
@@ -249,6 +263,7 @@ landBtn.onclick = function() {
         const line = document.createElement("div");
         line.textContent = "requête d'atterissage envoyé";
         container.appendChild(line);
+        container.scrollTop = container.scrollHeight;
         ws.send(JSON.stringify(command));
         
 
@@ -268,6 +283,7 @@ stopBtn.onclick = function() {
         const line = document.createElement("div");
         line.textContent = "requête d'arrêt d'urgence envoyé";
         container.appendChild(line);
+        container.scrollTop = container.scrollHeight;
         ws.send(JSON.stringify(command));
         
 

@@ -74,6 +74,8 @@ async def responder(ip_ordi):
                             "source": "Valkyrie", 
                             "sent_at": sent_at
                         }))
+                    elif data.get("command") == "terminal_log":
+                        print(data.output)
                     # 2. Lancement de la MISSION
                     elif data.get("command") == "main_mission":
                         if websocket.current_process is not None:
