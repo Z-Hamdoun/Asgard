@@ -68,14 +68,18 @@ async def responder(ip_ordi):
 
                     # 1. Gestion du PING
                     if data.get("type") == "ping":
-                        await websocket.send(json.dumps({"type": "pong", "source": "Valkyrie"}))
-
+                        sent_at = data.get("sent_at") 
+                        await websocket.send(json.dumps({
+                            "type": "pong", 
+                            "source": "Valkyrie", 
+                            "sent_at": sent_at
+                        }))
                     # 2. Lancement de la MISSION
                     elif data.get("command") == "main_mission":
                         if websocket.current_process is not None:
                             print("Mission déjà en cours.")
                             await sendack(websocket, "already_mission")
-                            
+                        print(websocket.current_process)
                         cmd = (
                             "source /rootgit/venv/bin/activate && "
                             "cd ~/Desktop/mission/dassault-helics-2026 && "
