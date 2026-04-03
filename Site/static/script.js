@@ -150,6 +150,15 @@ ws.onmessage = function(event) {
         case "main_fail":
             addLog("valk-log", `--- Le processus s'est terminé avec l'erreur ${data.output} ---`);
             break;
+        case "stop_ack":
+            addLog("valk-log", `Processus stoppé proprement.`);
+            break;
+        case "no_process":
+            addLog("valk-log", `Aucun processus en cours.`);
+            break;
+        case "already_mission":
+            addLog("valk-log", `Mission déjà en cours.`);
+            break;
     }
 };
 

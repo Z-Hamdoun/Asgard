@@ -73,8 +73,8 @@ async def responder(ip_ordi):
                     # 2. Lancement de la MISSION
                     elif data.get("command") == "main_mission":
                         if websocket.current_process is not None:
-                            print("Mission déjà en cours")
-                            continue
+                            print("Mission déjà en cours.")
+                            await sendack(websocket, "already_mission")
                             
                         cmd = (
                             "source /rootgit/venv/bin/activate && "
@@ -86,13 +86,13 @@ async def responder(ip_ordi):
 
                     # 3. Commande URGENCY_STOP (Ta demande)
                     elif data.get("command") == "urgency_stop":
-                        print("STOP") 
                         if websocket.current_process:
-                            websocket.current_process.terminate() # Tue le processus
+                            websocket.current_process.terminate() 
                             print("Processus stoppé proprement.")
-                            await sendack(websocket, "stop_ok")
+                            await sendack(websocket, "stop_ack")
                         else:
                             print("Aucun processus en cours.")
+                            await sendack(websocket, "no_process")
 
                     # 4. GIT PULL
                     elif data.get("command") == "git_pull" and data.get("target") == "Valkyrie":
