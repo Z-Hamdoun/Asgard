@@ -2,109 +2,113 @@ import asyncio
 import websockets
 import json
 import sys
-import subprocess # Pour exécuter git pull
+import subprocess
 
-
-def sendfail(socket,failure,e):
-    response = {
-        "type": "status",
-        "command": failure,
-        "source": "Valkyrie",
-        "output": e 
-    }
+# --- Fonctions utilitaires inchangées ---
+def sendfail(socket, failure, e):
+    response = {"type": "status", "command": failure, "source": "Valkyrie", "output": e}
     return socket.send(json.dumps(response))
 
-def sendack(socket,ack):
-    response = {
-        "type": "status",
-        "command": ack,
-        "source": "Valkyrie"
-    }
+def sendack(socket, ack):
+    response = {"type": "status", "command": ack, "source": "Valkyrie"}
     return socket.send(json.dumps(response))
 
-def sendlog(socket,command,result):
-    response = {
-        "type": "log",
-        "command": command,
-        "source": "Valkyrie",
-        "output": result 
-    }
+def sendlog(socket, command, result):
+    response = {"type": "log", "command": command, "source": "Valkyrie", "output": result}
     return socket.send(json.dumps(response))
 
+# --- Nouvelle fonction pour gérer l'exécution en parallèle ---
+async def run_mission(websocket, command_str):
+    """Exécute la mission sans bloquer la lecture du WebSocket."""
+    try:
+        process = await asyncio.create_subprocess_shell(
+            command_str,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            executable="/bin/bash"
+        )
+        
+        # On stocke le process dans l'objet websocket pour y accéder ailleurs
+        websocket.current_process = process
+        print(f"--- exécution de main (PID: {process.pid}) ---")
+        await sendack(websocket, "start_main_ack")
 
+        # Lecture asynchrone des lignes
+        while True:
+            line = await process.stdout.readline()
+            if not line:
+                break
+            clean_line = line.decode().strip()
+            if clean_line:
+                await sendlog(websocket, "main_log", clean_line)
+                print(clean_line)
+
+        return_code = await process.wait()
+        if return_code != 0:
+            await sendfail(websocket, "main_fail", return_code)
+            print(f"--- Terminé avec erreur {return_code} ---")
+            
+    except Exception as e:
+        print(f"Erreur mission: {e}")
+    finally:
+        websocket.current_process = None
 
 async def responder(ip_ordi):
     uri = f"ws://{ip_ordi}:8000/ws"
     
-    while True: # Boucle de reconnexion infinie
+    while True:
         try:
             async with websockets.connect(uri) as websocket:
                 print(f"Connecté à {ip_ordi}")
+                websocket.current_process = None # Initialisation
+
                 while True:
                     message = await websocket.recv()
                     data = json.loads(message)
 
+                    # 1. Gestion du PING
                     if data.get("type") == "ping":
-                        data["type"] = "pong"
-                        data["source"] = "Valkyrie"
-                        await websocket.send(json.dumps(data))
+                        await websocket.send(json.dumps({"type": "pong", "source": "Valkyrie"}))
+
+                    # 2. Lancement de la MISSION
                     elif data.get("command") == "main_mission":
-                        command = (
-                        "source /rootgit/venv/bin/activate && "
-                        "cd ~/Desktop/mission/dassault-helics-2026 && "
-                        "python -u main.py"
+                        if websocket.current_process is not None:
+                            print("Mission déjà en cours")
+                            continue
+                            
+                        cmd = (
+                            "source /rootgit/venv/bin/activate && "
+                            "cd ~/Desktop/mission/dassault-helics-2026 && "
+                            "python -u main.py"
                         )
+                        # On lance la mission en tâche de fond (non-bloquant)
+                        asyncio.create_task(run_mission(websocket, cmd))
 
-                        try:
-                            process = subprocess.Popen(
-                                command,
-                                shell=True,
-                                executable="/bin/bash",
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, 
-                                text=True,
-                                bufsize=1 
-                            )
-                            print(f"--- execution de main ---")
-                            
-                            await sendack(websocket,"start_main_ack")
-                            for line in process.stdout:
-                                clean_line = line.strip()
-                                if clean_line: 
-                                    await sendlog(websocket, "main_log", clean_line)
-                                print(clean_line)
+                    # 3. Commande URGENCY_STOP (Ta demande)
+                    elif data.get("command") == "urgency_stop":
+                        print("STOP") 
+                        if websocket.current_process:
+                            websocket.current_process.terminate() # Tue le processus
+                            print("Processus stoppé proprement.")
+                            await sendack(websocket, "stop_ok")
+                        else:
+                            print("Aucun processus en cours.")
 
-                            return_code =process.wait()
-
-                            if return_code != 0:
-                                await sendfail(websocket,"main_fail",return_code)
-                                print(f"--- Le processus s'est terminé avec l'erreur {return_code} ---")
-                            
-                        except subprocess.CalledProcessError as e:
-                            print(f"Erreur : {e.output}")
+                    # 4. GIT PULL
                     elif data.get("command") == "git_pull" and data.get("target") == "Valkyrie":
-                        
+                        # (Ton code git pull peut rester ici ou passer en asynchrone aussi)
                         try:
-                            
                             repo_path = "/home/helics/Desktop/mission/dassault-helics-2026"
-                            result = subprocess.check_output(
-                                ["git", "pull"], 
-                                cwd=repo_path, 
-                                stderr=subprocess.STDOUT
-                            ).decode("utf-8")
-                            await sendlog(websocket,"pull_ack",result)
-                            print(result)
+                            result = subprocess.check_output(["git", "pull"], cwd=repo_path).decode("utf-8")
+                            await sendlog(websocket, "pull_ack", result)
                         except Exception as e:
-                            print(e)
-                            await sendfail(websocket,"pull_fail",str(e))
-                            
+                            await sendfail(websocket, "pull_fail", str(e))
 
         except Exception as e:
-            print(f"Déconnecté. Nouvelle tentative dans 1s... ({e}) ctrl + C pour exit")
+            print(f"Déconnecté. Nouvelle tentative dans 1s... ({e})")
             await asyncio.sleep(1)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python Valkyrie.py <IP_DU_PC>")
         sys.exit(1)
     asyncio.run(responder(sys.argv[1]))
