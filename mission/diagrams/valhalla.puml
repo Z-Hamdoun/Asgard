@@ -1,0 +1,20 @@
+@startuml
+
+state INIT #cyan {
+
+}
+
+state FAILSAFE #red {
+    
+}
+
+
+
+
+
+
+
+
+[*] --> INIT
+
+@enduml

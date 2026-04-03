@@ -1,9 +1,9 @@
 @startuml
-[*] --> MONITORING
+[*] --> FAILSAFE #red
 
-MONITORING --> COMM_LOST : no_heartbeat
-MONITORING --> LOW_BATTERY : battery_low
-MONITORING --> GPS_LOST : gps_error
+FAILSAFE --> COMM_LOST : no_heartbeat
+FAILSAFE --> LOW_BATTERY : battery_low
+FAILSAFE --> GPS_LOST : gps_error
 
 COMM_LOST --> RTL
 LOW_BATTERY --> RTL
