@@ -203,7 +203,6 @@ function updateCursor(event) {
             type:"log",
             command: "terminal_log",
             target: "Valkyrie",
-            output: input.value
 
         };
     ws.send(JSON.stringify(command))
