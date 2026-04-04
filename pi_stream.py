@@ -1,7 +1,7 @@
 from picamera2 import Picamera2
 import subprocess
 
-UDP_IP = "192.168.1.100"
+UDP_IP = "138.195.198.235"
 UDP_PORT = 5000
 
 # Start ffmpeg process
