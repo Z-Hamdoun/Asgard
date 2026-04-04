@@ -60,16 +60,21 @@ try:
             success = drone.change_mode("STABILIZE")
         
         elif inpt == "arm":
-            drone.master.mav.command_long_send(
-            drone.master.target_system, # target_system
-            mavutil.mavlink.MAV_COMP_ID_AUTOPILOT1, # target_component
-            mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, # command
-            1, # confirmation
-            1, # param1 (Arm)
-            0, # param2 (Force)
-            0,0,0,0,0 # param3-7 (unused)
-        )
+            success = drone.arm()
+            print(success)
+        
+        elif inpt == "takeoff":
+            alt = float(input("Altitude: "))
+            success = drone.takeoff(altitude=alt)
+            print(success)
 
+        elif inpt == "hold":
+            success = drone.change_mode("FLOWHOLD")
+            print(success)
+        
+        elif inpt == "land":
+            success = drone.change_mode("LAND")
+            print(success)
         
         else:
             print("Bad command")
