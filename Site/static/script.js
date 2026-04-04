@@ -198,12 +198,11 @@ function updateCursor(event) {
     const nouvelleLigne = document.createElement("div");
     nouvelleLigne.textContent = "helics:~$" + input.value;
     divconsole.appendChild(nouvelleLigne);
-    divconsole.scrollTop = container.scrollHeight;
+    divconsole.scrollTop = divconsole.scrollHeight;
     const command = {
-            type:"log",
             command: "terminal_log",
             target: "Valkyrie",
-
+            output:input.value
         };
     ws.send(JSON.stringify(command))
     
