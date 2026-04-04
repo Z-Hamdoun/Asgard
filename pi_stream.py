@@ -4,7 +4,6 @@ import subprocess
 UDP_IP = "138.195.198.235"
 UDP_PORT = 5000
 
-# Start ffmpeg process
 ffmpeg = subprocess.Popen([
     "ffmpeg",
     "-f", "rawvideo",
@@ -13,6 +12,7 @@ ffmpeg = subprocess.Popen([
     "-r", "30",
     "-i", "-",
     "-f", "mpegts",
+    "-codec:v", "mpeg1video",   # IMPORTANT (more stable)
     f"udp://{UDP_IP}:{UDP_PORT}"
 ], stdin=subprocess.PIPE)
 
@@ -24,4 +24,9 @@ picam2.start()
 
 while True:
     frame = picam2.capture_array()
+
+    # FIXES
+    frame = frame[:, :, :3]
+    frame = np.ascontiguousarray(frame)
+
     ffmpeg.stdin.write(frame.tobytes())
