@@ -3,7 +3,7 @@ Configuration wifi des deux RPI
 
 **WiFi SSID:** `Asgard`
 
-**WiFi pwd:** `Dassault2025`
+**WiFi pwd:** `wifisupelec`
 
 ## Valhalla
 
