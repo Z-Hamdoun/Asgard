@@ -18,7 +18,6 @@ ssh asgard@valhalla.local
 **password**: `opensesame`
 
 
-
 ## Valkyrie
 
 Raspberry Pi OS Lite (64-bit)

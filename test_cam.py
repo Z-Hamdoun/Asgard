@@ -30,7 +30,7 @@ class TestCameraPC:
         
         # --- PARAMÈTRES ARUCO ---
         # On passe sur le dictionnaire 6x6 (qui contient 250 marqueurs possibles)
-        self._aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_6X6_250)
+        self._aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_250)
         self._aruco_params = aruco.DetectorParameters()
         self.aruco_id = aruco_id
         self.aruco_size = aruco_size_m
