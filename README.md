@@ -5,7 +5,7 @@ Configuration wifi des deux RPI
 
 **WiFi pwd:** `Dassault2025`
 
-## VALKYRIE (uav-companion)
+## Valhalla
 
 ```sh
 ssh asgard@valhalla.local
@@ -19,7 +19,7 @@ ssh asgard@valhalla.local
 
 
 
-## RPI 2 (carte 64Gb)
+## Valkyrie
 
 Raspberry Pi OS Lite (64-bit)
 
