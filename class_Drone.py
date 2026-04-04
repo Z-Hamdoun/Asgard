@@ -44,7 +44,7 @@ class Drone(MAVLinCS):
     
     def loiter(self):
         while True:
-            result = self.camera.analyse(affichage=False)
+            result = self.camera.analyse(affichage=True)
             if result[-2] is not None:
                 print('[Aruco] Going to AruCo marker')
                 print(result[0], result[1], result[2])
