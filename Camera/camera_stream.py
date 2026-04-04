@@ -1,9 +1,16 @@
 from picamera2 import Picamera2
 import subprocess
 import numpy as np
+import argparse
 
-UDP_IP = "138.195.198.235"
-UDP_PORT = 5000
+parser = argparse.ArgumentParser()
+parser.add_argument("--ip", required=True, help="PC IP address")
+parser.add_argument("--port", type=int, default=5000, help="UDP port")
+
+args = parser.parse_args()
+
+UDP_IP = args.ip
+UDP_PORT = args.port
 
 ffmpeg = subprocess.Popen([
     "ffmpeg",
@@ -13,7 +20,7 @@ ffmpeg = subprocess.Popen([
     "-r", "30",
     "-i", "-",
     "-f", "mpegts",
-    "-codec:v", "mpeg1video",   # IMPORTANT (more stable)
+    "-codec:v", "mpeg1video",
     f"udp://{UDP_IP}:{UDP_PORT}"
 ], stdin=subprocess.PIPE)
 
@@ -26,7 +33,6 @@ picam2.start()
 while True:
     frame = picam2.capture_array()
 
-    # FIXES
     frame = frame[:, :, :3]
     frame = np.ascontiguousarray(frame)
 
