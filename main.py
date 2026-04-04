@@ -50,24 +50,18 @@ try:
 
     camera = Camera(simulation=None, logger=Logger("log.txt"))
 
-    # Armement des deux drones
-    armed_drone = False
-    while not armed_drone:
-        armed_drone = drone.arm()
-        time.sleep(10)
-
-    if armed_drone:
-        # Takeoff simple
-        drone.logger.log("Drone armé")
-        took_off = drone.takeoff(4)
-        while not took_off:
-            time.sleep(10)
-            took_off = drone.takeoff(4)
-        time.sleep(10)
-        drone.loiter(camera)
-        fin = drone.return_to_launch()
-        if fin:
-            drone.close()
+    while True:
+        inpt = input(">> ")
+        if inpt == "guided":
+            success = drone.change_mode("GUIDED")
+            print(success)
+        
+        elif inpt == "arm":
+            success = drone.arm()
+            print(success)
+        
+        else:
+            print("Bad command")
         
 except Exception as e:
     print("Erreur innatendue")
