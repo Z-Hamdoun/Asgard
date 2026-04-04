@@ -56,6 +56,9 @@ try:
             success = drone.change_mode("GUIDED")
             print(success)
         
+        if inpt == "stab":
+            success = drone.change_mode("STABILIZE")
+        
         elif inpt == "arm":
             success = drone.arm()
             print(success)
