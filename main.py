@@ -48,7 +48,7 @@ try:
     )
 
 
-    camera = Camera(simulation=None, logger=Logger("log.txt"))
+    # camera = Camera(simulation=None, logger=Logger("log.txt"))
 
     while True:
         inpt = input(">> ")
