@@ -1,5 +1,6 @@
 from picamera2 import Picamera2
 import subprocess
+import numpy as np
 
 UDP_IP = "138.195.198.235"
 UDP_PORT = 5000
