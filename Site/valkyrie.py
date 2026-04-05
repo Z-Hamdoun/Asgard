@@ -81,14 +81,14 @@ async def responder(ip_ordi):
                         if websocket.current_process is not None:
                             print("Mission déjà en cours.")
                             await sendack(websocket, "already_mission")
-                        print(websocket.current_process)
-                        cmd = (
-                            "source /rootgit/venv/bin/activate && "
-                            "cd ~/Desktop/mission/dassault-helics-2026 && "
-                            "python -u main.py"
-                        )
-                        # On lance la mission en tâche de fond (non-bloquant)
-                        asyncio.create_task(run_mission(websocket, cmd))
+                        else:
+                            cmd = (
+                                "source /rootgit/venv/bin/activate && "
+                                "cd ~/Desktop/mission/dassault-helics-2026 && "
+                                "python -u main.py"
+                            )
+                            # On lance la mission en tâche de fond (non-bloquant)
+                            asyncio.create_task(run_mission(websocket, cmd))
 
                     # 3. Commande URGENCY_STOP (Ta demande)
                     elif data.get("command") == "urgency_stop":

@@ -20,12 +20,15 @@
                         <h2 >Log</h2>
                         <div style="width: 400px; height: 800px">
                             
-                        <select id="choix" class="log-select" onchange="changelog()">
-                            <option value="">-- No Log --</option>
-                            <option value="a">Log Valkyrie</option>
-                            <option value="b">Log Valhalla</option>
-                            <option value="c">Double Log</option>
-                        </select>
+                        <div>
+                            <select id="choix" class="log-select" onchange="changelog()">
+                                <option value="">-- No Log --</option>
+                                <option value="a">Log Valkyrie</option>
+                                <option value="b">Log Valhalla</option>
+                                <option value="c">Double Log</option>
+                            </select>
+                            <button class="print_log">print log</button>
+                        </div>
                         <div class="drone-log-container" id="valk-log"></div>
                         <div class="drone-log-container" id="valh-log"></div>
 

@@ -142,24 +142,24 @@ ws.onmessage = function(event) {
             break;
 
         case "start_main_ack":
-            addLog("valk-log", "--- execution de main ---");
+            addLog("console", "--- execution de main ---");
             break;
 
         case "main_log":
-            addLog("valk-log", data.output);
+            addLog("console", data.output);
             break;
 
         case "main_fail":
-            addLog("valk-log", `--- Le processus s'est terminé avec l'erreur ${data.output} ---`);
+            addLog("console", `--- Le processus s'est terminé avec l'erreur ${data.output} ---`);
             break;
         case "stop_ack":
-            addLog("valk-log", `Processus stoppé proprement.`);
+            addLog("console", `Processus stoppé proprement.`);
             break;
         case "no_process":
-            addLog("valk-log", `Aucun processus en cours.`);
+            addLog("console", `Aucun processus en cours.`);
             break;
         case "already_mission":
-            addLog("valk-log", `Mission déjà en cours.`);
+            addLog("console", `Mission déjà en cours.`);
             break;
     }
 };
@@ -237,11 +237,11 @@ mainBtn.onclick = function() {
             target: "Valkyrie"
         };
 
-        const container = document.getElementById("valk-log");
+        
         const line = document.createElement("div");
         line.textContent = "requête d'execution envoyé";
-        container.appendChild(line);
-        container.scrollTop = container.scrollHeight;
+        divconsole.appendChild(line);
+        divconsole.scrollTop = divconsole.scrollHeight;
         ws.send(JSON.stringify(command));
         
 
@@ -257,11 +257,11 @@ landBtn.onclick = function() {
             command: "urgency_landing",
             target: "Valkyrie"
         };
-        const container = document.getElementById("valk-log");
+        
         const line = document.createElement("div");
         line.textContent = "requête d'atterissage envoyé";
-        container.appendChild(line);
-        container.scrollTop = container.scrollHeight;
+        divconsole.appendChild(line);
+        divconsole.scrollTop = divconsole.scrollHeight;
         ws.send(JSON.stringify(command));
         
 
@@ -277,11 +277,10 @@ stopBtn.onclick = function() {
             command: "urgency_stop",
             target: "Valkyrie"
         };
-        const container = document.getElementById("valk-log");
         const line = document.createElement("div");
         line.textContent = "requête d'arrêt d'urgence envoyé";
-        container.appendChild(line);
-        container.scrollTop = container.scrollHeight;
+        divconsole.appendChild(line);
+        divconsole.scrollTop = divconsole.scrollHeight;
         ws.send(JSON.stringify(command));
         
 
