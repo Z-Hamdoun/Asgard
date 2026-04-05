@@ -103,7 +103,11 @@ ws.onmessage = function(event) {
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        const line = document.createElement("div");
+        
+        const line = document.createElement("pre"); // Ajoute ces styles pour forcer le retour à la ligne
+        line.style.whiteSpace = "pre-wrap";       // Préserve les sauts de ligne ET wrap
+        line.style.wordBreak = "break-all";      // Casse les mots trop longs (ex: logs d'erreurs sans espaces)
+        line.style.margin = "0";                 // Retire l'espacement par défaut
         line.textContent = text;
         container.appendChild(line);
         container.scrollTop = container.scrollHeight;
@@ -149,6 +153,7 @@ ws.onmessage = function(event) {
             addLog("console", data.output);
             break;
         case "log_ack":
+            addLog("console", `Log de ${sourceSuffix} reçu`);
             addLog(`${sourceSuffix}-log`, data.output);
             break;
 
@@ -242,6 +247,7 @@ mainBtn.onclick = function() {
 
         
         const line = document.createElement("div");
+        line.style.color = "#5cb85c"
         line.textContent = "requête d'execution envoyé";
         divconsole.appendChild(line);
         divconsole.scrollTop = divconsole.scrollHeight;
@@ -251,6 +257,7 @@ mainBtn.onclick = function() {
     } else {
         const line = document.createElement("div");
         line.textContent = "site offline";
+        line.style.color = "#5cb85c"
         divconsole.appendChild(line);
         divconsole.scrollTop = divconsole.scrollHeight;
     }
@@ -265,6 +272,7 @@ landBtn.onclick = function() {
         };
         
         const line = document.createElement("div");
+        line.style.color = "#5cb85c"
         line.textContent = "requête d'atterissage envoyé";
         divconsole.appendChild(line);
         divconsole.scrollTop = divconsole.scrollHeight;
@@ -273,6 +281,7 @@ landBtn.onclick = function() {
 
     } else {
         const line = document.createElement("div");
+        line.style.color = "#5cb85c"
         line.textContent = "site offline";
         divconsole.appendChild(line);
         divconsole.scrollTop = divconsole.scrollHeight;
@@ -287,6 +296,7 @@ stopBtn.onclick = function() {
             target: "Valkyrie"
         };
         const line = document.createElement("div");
+        line.style.color = "#5cb85c"
         line.textContent = "requête d'arrêt d'urgence envoyé";
         divconsole.appendChild(line);
         divconsole.scrollTop = divconsole.scrollHeight;
@@ -295,6 +305,8 @@ stopBtn.onclick = function() {
 
     } else {
         const line = document.createElement("div");
+
+        line.style.color = "#5cb85c"
         line.textContent = "site offline";
         divconsole.appendChild(line);
         divconsole.scrollTop = divconsole.scrollHeight;
@@ -312,6 +324,7 @@ printBtn.onclick = function() {
             target: "Valhalla"
         };
         const line = document.createElement("div");
+        line.style.color = "#5cb85c"
         line.textContent = "requête de log envoyé";
         divconsole.appendChild(line);
         divconsole.scrollTop = divconsole.scrollHeight;
@@ -321,6 +334,7 @@ printBtn.onclick = function() {
 
     } else {
         const line = document.createElement("div");
+        line.style.color = "#5cb85c"
         line.textContent = "site offline";
         divconsole.appendChild(line);
         divconsole.scrollTop = divconsole.scrollHeight;
