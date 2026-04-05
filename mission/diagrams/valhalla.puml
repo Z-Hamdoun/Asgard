@@ -1,20 +1,52 @@
 @startuml
+hide empty description
 
-state INIT #cyan {
+''' BASE STATES '''
+state STABILIZE #b3ffff
+state LAND #ffb3b3
+state RTL #ffb3b3
 
+''' MISSION '''
+state STABILIZE {
+    state "WAIT" as stabilize_WAIT
+    STABILIZE --> stabilize_WAIT
 }
 
-state FAILSAFE #red {
+stabilize_WAIT --> GUIDED : change mode
+
+state GUIDED {
+    state "WAIT" as guided_WAIT
+    state "DISARMED" as guided_DISARMED
+    state "ARMED" as guided_ARMED
+    
+
+    GUIDED --> guided_WAIT
+    guided_WAIT -down[#green]-> guided_DISARMED : <color:#green>gps_ok</color>
+    guided_WAIT -up[#red]-> guided_WAIT : <color:#red>gps_fail</color>
+    guided_DISARMED -down[#green]-> guided_ARMED : <color:#green>arm</color>
+    guided_DISARMED -up[#red]-> guided_WAIT : <color:#red>delay</color>
+    guided_ARMED -down[#green]-> guided_FLYING : <color:#green>takeoff</color>
+    guided_ARMED -up[#red]-> guided_DISARMED : <color:#red>disarm</color>
+
+    state "FLYING" as guided_FLYING #white {
+        guided_FLYING -down-> TAKEOFF
+        TAKEOFF -down-> IN_VICINITY : go_to
+        IN_VICINITY : send "closeby" to Valkyrie
+        IN_VICINITY -down-> ON_TARGET
+        ON_TARGET -down-> [*]
+    }
+
+    guided_FLYING -[#red]-> LAND: <color:#red>no_gps</color>
+    
+    
     
 }
 
 
+state start <<start>>
+note right of start : Valhalla
+start --> STABILIZE
 
 
-
-
-
-
-[*] --> INIT
 
 @enduml

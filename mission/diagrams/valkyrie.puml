@@ -1,11 +1,24 @@
 @startuml
 
 state INIT #cyan {
+    state init_WAIT {
+    }
 
+    INIT --> init_WAIT
 }
 
 state FAILSAFE #red {
-    
+
+    state NO_COMM {
+    }
+    state LOW_BATTERY {
+    }
+    state NO_GPS {
+    }
+
+    FAILSAFE --> NO_COMM : no_heartbeat
+    FAILSAFE --> LOW_BATTERY : battery_low
+    FAILSAFE --> NO_GPS : gps_error
 }
 
 
@@ -16,5 +29,7 @@ state FAILSAFE #red {
 
 
 [*] --> INIT
+init_WAIT --> FAILSAFE
+
 
 @enduml
