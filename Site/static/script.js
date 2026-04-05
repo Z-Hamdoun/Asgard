@@ -148,6 +148,9 @@ ws.onmessage = function(event) {
         case "main_log":
             addLog("console", data.output);
             break;
+        case "log_ack":
+            addLog(`${sourceSuffix}-log`, data.output);
+            break;
 
         case "main_fail":
             addLog("console", `--- Le processus s'est terminé avec l'erreur ${data.output} ---`);
