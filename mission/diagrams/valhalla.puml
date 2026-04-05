@@ -5,47 +5,57 @@ hide empty description
 state LAND #ffb3b3
 state RTL #ffb3b3
 
+state start <<start>>
+note right of start : Valhalla
+
 ''' MISSION '''
 state STABILIZE {
     state "WAIT" as stabilize_WAIT
-    STABILIZE --> stabilize_WAIT
+    start -down-> stabilize_WAIT
 }
 
-stabilize_WAIT --> GUIDED : change mode
+
 
 state GUIDED {
-    state "WAIT" as guided_WAIT
+    ' state "WAIT" as guided_WAIT
     state "DISARMED" as guided_DISARMED
     state "ARMED" as guided_ARMED
     
-
-    GUIDED --> guided_WAIT
-    guided_WAIT -down[#green]-> guided_DISARMED : <color:#green>gps_ok</color>
-    guided_WAIT -up[#red]-> guided_WAIT : <color:#red>gps_fail</color>
-    guided_DISARMED -down[#green]-> guided_ARMED : <color:#green>arm</color>
-    guided_DISARMED -up[#red]-> guided_WAIT : <color:#red>delay</color>
-    guided_ARMED -down[#green]-> guided_FLYING : <color:#green>takeoff</color>
+    stabilize_WAIT -down[#green]-> guided_DISARMED : mode_change_ok
+    guided_DISARMED -down[#green]-> guided_ARMED : <color:#green>arm + gps_ok</color>
+    guided_DISARMED -down[#red]-> guided_DISARMED : <color:#red>arm + gps_fail</color>
+    guided_ARMED -down[#red]-> guided_ARMED : <color:#red>takeoff_fail</color>
     guided_ARMED -up[#red]-> guided_DISARMED : <color:#red>disarm</color>
 
-    state "FLYING" as guided_FLYING #white {
-        guided_FLYING -down-> TAKEOFF
-        TAKEOFF -down-> IN_VICINITY : go_to
-        IN_VICINITY : send "closeby" to Valkyrie
-        IN_VICINITY -down-> ON_TARGET
-        ON_TARGET -down-> [*]
+    state "FLYING" as guided_FLYING {
+        state "STANDBY" as flying_STANDBY : wait for ... time units
+        guided_ARMED -down[#green]-> flying_STANDBY : <color:#green>takeoff_ok</color>
+        flying_STANDBY -down[#green]-> MOVING : <color:#green>goto_ok</color>
+        flying_STANDBY -[#red]-> flying_STANDBY : <color:#red>goto_fail</color>
+        MOVING : - manual takeover if infinite
+        MOVING : - tell Valkyrie when closeby
+        
+        state ON_TARGET {
+            state "FLYING" as on_target_AIR
+            state "GROUNDED" as on_target_GROUND : waiting for Valkyrie
+            MOVING -down[#green]-> on_target_AIR
+            on_target_AIR -left-> on_target_GROUND : standby
+            on_target_GROUND -right-> on_target_AIR : valkyrie_finished
+        }
+        
     }
 
-    guided_FLYING -[#red]-> LAND: <color:#red>no_gps</color>
+    guided_FLYING x-[#red]-> LAND: <color:#red>no_gps</color>
     
-    
+    on_target_AIR -down-> RTL
     
 }
 
 
-state start <<start>>
-note right of start : Valhalla
-start --> STABILIZE
 
 
+RTL --> [*]
+
+LAND -up[dashed]-> start
 
 @enduml
