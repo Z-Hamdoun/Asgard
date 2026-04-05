@@ -4,6 +4,8 @@ from pymavlink import mavutil
 from divers.class_Logger import Logger
 import time
 
+from threading import Thread
+
 
 class Drone(MAVLinCS):
     def __init__(self,
@@ -38,6 +40,16 @@ class Drone(MAVLinCS):
                 
             time.sleep(0.01)
 
+def send_rc(drone):
+    for i in range(30):
+        drone.master.mav.rc_channels_override_send(
+                drone.master.target_system,
+                drone.master.target_component,
+                0, 0, 1500, 0,
+                0, 0, 0, 0
+            )
+        time.sleep(0.1)
+
 
 try:
     drone = Drone(
@@ -46,6 +58,7 @@ try:
         target_system=1,
         baud=921600,
     )
+    rc_thread = Thread(target=send_rc, args=(drone, ))
 
 
     # camera = Camera(simulation=None, logger=Logger("log.txt"))
@@ -78,8 +91,10 @@ try:
             print(success)
 
         elif inpt == "hold":
+            rc_thread.start()
             success = drone.change_mode("FLOWHOLD")
             print(success)
+            rc_thread.join()
         
         elif inpt == "land":
             success = drone.change_mode("LAND")
