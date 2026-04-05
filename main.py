@@ -95,6 +95,7 @@ try:
             success = drone.change_mode("FLOWHOLD")
             print(success)
             rc_thread.join()
+            drone.change_mode("LAND")
         
         elif inpt == "land":
             success = drone.change_mode("LAND")
