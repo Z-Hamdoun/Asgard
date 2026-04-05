@@ -162,7 +162,9 @@ ws.onmessage = function(event) {
             addLog("console", data.output);
             break;
         case "log_ack":
-            addLog("console", `Log de ${sourceSuffix} reçu`);
+            intern_log(`Log de ${sourceSuffix} reçu`);
+            const container = document.getElementById(`${sourceSuffix}-log`);
+            container.innerHTML=""
             addLog(`${sourceSuffix}-log`, data.output);
             break;
 
@@ -335,7 +337,7 @@ printBtn.onclick = function() {
 const defaultBtn = document.getElementById("defaultBtn")
 defaultBtn.onclick = function() {
     const valeursParDefaut = {
-        "vrai_largage": "True", 
+        "vrai_largage": "true", 
         "taille_quadrillage": 10, 
         "pas_quadrillage": 2,
         "radius_acceptance": 1,

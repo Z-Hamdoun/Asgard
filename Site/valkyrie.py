@@ -129,6 +129,7 @@ async def responder(ip_ordi):
                         try:
                             repo_path = "/home/helics/Desktop/mission/dassault-helics-2026"
                             result = subprocess.check_output(["git", "pull"], cwd=repo_path).decode("utf-8")
+                            print(result)
                             await sendlog(websocket, "pull_ack", result)
                         except Exception as e:
                             await sendfail(websocket, "pull_fail", str(e))
