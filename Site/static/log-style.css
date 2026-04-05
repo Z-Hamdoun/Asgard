@@ -1,3 +1,33 @@
+.print-button {
+  padding: 12px 20px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  border: 1px solid #000000;
+  background: #ffffff;
+  color: #000000;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 
+              0 1px 3px rgba(0, 0, 0, 0.02);
+  outline: none;
+}
+
+.print-button:hover {
+  transform: translateY(-3px);
+  background: #d6ddde;
+  
+  box-shadow: 0 12px 24px rgba(59, 130, 246, 0.12), 
+              0 4px 8px rgba(0, 0, 0, 0.04);
+}
+
+.print-button:active {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.1s;
+}
 
 .log-select{
   color: #ffffff;

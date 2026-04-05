@@ -100,6 +100,12 @@ async def responder(ip_ordi):
                             print("Aucun processus en cours.")
                             await sendack(websocket, "no_process")
 
+                    elif data.get("command") == "print_log" and data.get("target") == "Valkyrie":
+                        print("envoi des logs")
+                        f=open("log_test_valk.txt")
+                        print(f.read())
+                        f.close()
+                        await sendlog(websocket, "log_ack","")
                     # 4. GIT PULL
                     elif data.get("command") == "git_pull" and data.get("target") == "Valkyrie":
                         # (Ton code git pull peut rester ici ou passer en asynchrone aussi)

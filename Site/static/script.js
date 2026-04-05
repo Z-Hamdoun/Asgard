@@ -246,7 +246,10 @@ mainBtn.onclick = function() {
         
 
     } else {
-        console.log("echec")
+        const line = document.createElement("div");
+        line.textContent = "site offline";
+        divconsole.appendChild(line);
+        divconsole.scrollTop = divconsole.scrollHeight;
     }
 };
 
@@ -266,7 +269,10 @@ landBtn.onclick = function() {
         
 
     } else {
-        console.log("echec")
+        const line = document.createElement("div");
+        line.textContent = "site offline";
+        divconsole.appendChild(line);
+        divconsole.scrollTop = divconsole.scrollHeight;
     }
 };
 
@@ -285,6 +291,35 @@ stopBtn.onclick = function() {
         
 
     } else {
-        console.log("echec")
+        const line = document.createElement("div");
+        line.textContent = "site offline";
+        divconsole.appendChild(line);
+        divconsole.scrollTop = divconsole.scrollHeight;
+    }
+};
+const printBtn = document.getElementById("print-log")
+printBtn.onclick = function() {
+    if (ws.readyState === WebSocket.OPEN) {
+        const commandvalk = {
+            command: "print_log",
+            target: "Valkyrie"
+        };
+        const commandvalh = {
+            command: "print_log",
+            target: "Valhalla"
+        };
+        const line = document.createElement("div");
+        line.textContent = "requête de log envoyé";
+        divconsole.appendChild(line);
+        divconsole.scrollTop = divconsole.scrollHeight;
+        ws.send(JSON.stringify(commandvalk));
+        ws.send(JSON.stringify(commandvalh));
+        
+
+    } else {
+        const line = document.createElement("div");
+        line.textContent = "site offline";
+        divconsole.appendChild(line);
+        divconsole.scrollTop = divconsole.scrollHeight;
     }
 };
