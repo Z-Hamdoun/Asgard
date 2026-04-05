@@ -3,6 +3,7 @@ import websockets
 import json
 import sys
 import subprocess
+import json_config
 
 # --- Fonctions utilitaires inchangées ---
 def sendfail(socket, failure, e):
@@ -11,6 +12,10 @@ def sendfail(socket, failure, e):
 
 def sendack(socket, ack):
     response = {"type": "status", "command": ack, "source": "Valkyrie"}
+    return socket.send(json.dumps(response))
+
+def senddata(socket, command,data):
+    response = {"type": "log", "command": command, "source": "Valkyrie", "data": data}
     return socket.send(json.dumps(response))
 
 def sendlog(socket, command, result):
@@ -107,6 +112,18 @@ async def responder(ip_ordi):
                         f.close()
                         await sendlog(websocket, "log_ack",log_txt)
                     # 4. GIT PULL
+                    elif data.get("command") == "update_config":
+                        print("Nouvelle configuration reçue depuis l'interface web.")
+                        nouveaux_parametres = data.get("data")
+                        if nouveaux_parametres:
+                            json_config.sauvegarder_config(nouveaux_parametres)
+                            await sendack(websocket, "param_ack")
+                    elif data.get("command") == "ask_config":
+                        print("Requette de configuration vers l'interface web.")
+                        parametres= json_config.charger_config()
+                        await senddata(websocket,"ask_ack",parametres)
+                        
+                    
                     elif data.get("command") == "git_pull" and data.get("target") == "Valkyrie":
                         # (Ton code git pull peut rester ici ou passer en asynchrone aussi)
                         try:

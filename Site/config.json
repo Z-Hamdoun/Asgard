@@ -1,0 +1,8 @@
+{
+    "vrai_largage": true,
+    "taille_quadrilllage": 10,
+    "pas_quadrillage": 2,
+    "radius_acceptance": 1,
+    "FOLLOW_MAX_SPEED": 1400,
+    "alt_quadrillage": 8
+}

@@ -19,6 +19,15 @@ function changelog() {
     }
 }
 
+function intern_log(log){
+
+        const line = document.createElement("div");
+        line.style.color = "#5cb85c"
+        line.textContent = log;
+        divconsole.appendChild(line);
+        divconsole.scrollTop = divconsole.scrollHeight;
+}
+
 const updateBtnValk = document.getElementById('update-valk');
 // Variable globale ou accessible par les deux fonctions
 
@@ -169,6 +178,21 @@ ws.onmessage = function(event) {
         case "already_mission":
             addLog("console", `Mission déjà en cours.`);
             break;
+        case "param_ack":
+            intern_log("Paramètres mis à jour avec succès.");
+            break;
+        case "ask_ack":
+            intern_log("Paramètres récupéré avec succès.");
+            const data_param = data.data
+            document.getElementById("vrai_largage").value = data_param["vrai_largage"];
+            document.getElementById("taille_quadrillage").value = data_param["taille_quadrillage"];
+            document.getElementById("pas_quadrillage").value = data_param["pas_quadrillage"];
+            document.getElementById("radius_acceptance").value = data_param["radius_acceptance"];
+            document.getElementById("FOLLOW_MAX_SPEED").value = data_param["FOLLOW_MAX_SPEED"];
+            document.getElementById("alt_quadrillage").value = data_param["alt_quadrillage"];
+
+            break
+
     }
 };
 
@@ -245,21 +269,12 @@ mainBtn.onclick = function() {
             target: "Valkyrie"
         };
 
-        
-        const line = document.createElement("div");
-        line.style.color = "#5cb85c"
-        line.textContent = "requête d'execution envoyé";
-        divconsole.appendChild(line);
-        divconsole.scrollTop = divconsole.scrollHeight;
+        intern_log("requête d'execution envoyé");
         ws.send(JSON.stringify(command));
         
 
     } else {
-        const line = document.createElement("div");
-        line.textContent = "site offline";
-        line.style.color = "#5cb85c"
-        divconsole.appendChild(line);
-        divconsole.scrollTop = divconsole.scrollHeight;
+        intern_log("site offline");
     }
 };
 
@@ -271,20 +286,12 @@ landBtn.onclick = function() {
             target: "Valkyrie"
         };
         
-        const line = document.createElement("div");
-        line.style.color = "#5cb85c"
-        line.textContent = "requête d'atterissage envoyé";
-        divconsole.appendChild(line);
-        divconsole.scrollTop = divconsole.scrollHeight;
+        intern_log("requête d'atterissage envoyé");
         ws.send(JSON.stringify(command));
         
 
     } else {
-        const line = document.createElement("div");
-        line.style.color = "#5cb85c"
-        line.textContent = "site offline";
-        divconsole.appendChild(line);
-        divconsole.scrollTop = divconsole.scrollHeight;
+        intern_log("site offline");
     }
 };
 
@@ -295,21 +302,12 @@ stopBtn.onclick = function() {
             command: "urgency_stop",
             target: "Valkyrie"
         };
-        const line = document.createElement("div");
-        line.style.color = "#5cb85c"
-        line.textContent = "requête d'arrêt d'urgence envoyé";
-        divconsole.appendChild(line);
-        divconsole.scrollTop = divconsole.scrollHeight;
+        intern_log("requête d'arrêt d'urgence envoyé");
         ws.send(JSON.stringify(command));
         
 
     } else {
-        const line = document.createElement("div");
-
-        line.style.color = "#5cb85c"
-        line.textContent = "site offline";
-        divconsole.appendChild(line);
-        divconsole.scrollTop = divconsole.scrollHeight;
+        intern_log("site offline");
     }
 };
 const printBtn = document.getElementById("print-log")
@@ -323,20 +321,89 @@ printBtn.onclick = function() {
             command: "print_log",
             target: "Valhalla"
         };
-        const line = document.createElement("div");
-        line.style.color = "#5cb85c"
-        line.textContent = "requête de log envoyé";
-        divconsole.appendChild(line);
-        divconsole.scrollTop = divconsole.scrollHeight;
+        intern_log("requête de log envoyé");
         ws.send(JSON.stringify(commandvalk));
         ws.send(JSON.stringify(commandvalh));
         
 
     } else {
-        const line = document.createElement("div");
-        line.style.color = "#5cb85c"
-        line.textContent = "site offline";
-        divconsole.appendChild(line);
-        divconsole.scrollTop = divconsole.scrollHeight;
+        intern_log("site offline");
     }
 };
+
+
+const defaultBtn = document.getElementById("defaultBtn")
+defaultBtn.onclick = function() {
+    const valeursParDefaut = {
+        "vrai_largage": "True", 
+        "taille_quadrillage": 10, 
+        "pas_quadrillage": 2,
+        "radius_acceptance": 1,
+        "FOLLOW_MAX_SPEED": 1400,
+        "alt_quadrillage": 8
+    };
+    document.getElementById("vrai_largage").value = valeursParDefaut["vrai_largage"];
+    document.getElementById("taille_quadrillage").value = valeursParDefaut["taille_quadrillage"];
+    document.getElementById("pas_quadrillage").value = valeursParDefaut["pas_quadrillage"];
+    document.getElementById("radius_acceptance").value = valeursParDefaut["radius_acceptance"];
+    document.getElementById("FOLLOW_MAX_SPEED").value = valeursParDefaut["FOLLOW_MAX_SPEED"];
+    document.getElementById("alt_quadrillage").value = valeursParDefaut["alt_quadrillage"];
+}
+
+const requestBtn = document.getElementById("requestBtn")
+requestBtn.onclick = function() {
+    const valeursWait = {
+        "vrai_largage": "...", 
+        "taille_quadrillage": "...", 
+        "pas_quadrillage": "...",
+        "radius_acceptance": "...",
+        "FOLLOW_MAX_SPEED": "...",
+        "alt_quadrillage": "..."
+    };
+    document.getElementById("vrai_largage").value = valeursWait["vrai_largage"];
+    document.getElementById("taille_quadrillage").value = valeursWait["taille_quadrillage"];
+    document.getElementById("pas_quadrillage").value = valeursWait["pas_quadrillage"];
+    document.getElementById("radius_acceptance").value = valeursWait["radius_acceptance"];
+    document.getElementById("FOLLOW_MAX_SPEED").value = valeursWait["FOLLOW_MAX_SPEED"];
+    document.getElementById("alt_quadrillage").value = valeursWait["alt_quadrillage"];
+    const message = {
+        "command": "ask_config",
+        "target": "Valkyrie",
+    };
+
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+        intern_log("Envoi de la requette de configuration");
+    } else {
+        intern_log("site offline");
+    }
+}
+
+const sendBtn = document.getElementById("sendBtn")
+sendBtn.onclick = function() {
+    const inputLargage = document.getElementById("vrai_largage").value;
+    const isLargageVrai = (inputLargage.toLowerCase() === "true"); // Convertit en Booléen
+
+    const configData = {
+        "vrai_largage": isLargageVrai,
+        "taille_quadrillage": parseInt(document.getElementById("taille_quadrillage").value, 10),
+        "pas_quadrillage": parseInt(document.getElementById("pas_quadrillage").value, 10),
+        "radius_acceptance": parseInt(document.getElementById("radius_acceptance").value, 10),
+        "FOLLOW_MAX_SPEED": parseInt(document.getElementById("FOLLOW_MAX_SPEED").value, 10),
+        "alt_quadrillage": parseInt(document.getElementById("alt_quadrillage").value, 10)
+    };
+
+    // 2. On prépare le message global pour le WebSocket
+    const message = {
+        "command": "update_config",
+        "target": "Valkyrie",
+        "data": configData // On intègre nos paramètres ici
+    };
+
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+        intern_log("Envoi de la nouvelle configuration");
+    } else {
+        intern_log("site offline");
+    }
+}

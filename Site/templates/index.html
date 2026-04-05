@@ -88,7 +88,7 @@
                         <div id="console-container" class="console">   
                             <span id="console"></span>
                         </div>
-                        <div id="input-log" class="log" onclick="document.getElementById('term-input').focus()">
+                        <div id="input-log" class="log" style="display: none;" onclick="document.getElementById('term-input').focus()">
                             <span>helics:~$</span>
                             <div class="input-wrapper">
                                 <input type="text" id="term-input" spellcheck="false" autofocus>
@@ -131,10 +131,9 @@
                         
                             <div id="param-container" class="null">
                                 <div class="parametre-button-group">
-                                        <button class="param-button">Appliquer</button>
-                                        <button class="param-button">Par défaut</button>
-                                        <button class="param-button">Annuler</button>
-                                        <button class="param-button">Récupérer</button>
+                                        <button id="sendBtn" class="git-button">Appliquer</button>
+                                        <button id="defaultBtn" class="git-button">Par défaut</button>
+                                        <button id="requestBtn" class="git-button">Récupérer</button>
                                 </div>
                                 <form>
                                     <div class="parametre-groupe">
@@ -142,8 +141,8 @@
                                         <input type="text" id="vrai_largage" value="True">
                                     </div>
                                     <div class="parametre-groupe">
-                                        <label for="taille_quadrilllage">taille_quadrilllage</label>
-                                        <input type="text" id="taille_quadrilllage" value="10">
+                                        <label for="taille_quadrillage">taille_quadrillage</label>
+                                        <input type="text" id="taille_quadrillage" value="10">
                                     </div>
                                     <div class="parametre-groupe">
                                         <label for="pas_quadrillage">pas_quadrillage</label>

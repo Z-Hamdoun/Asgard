@@ -45,7 +45,6 @@ async def responder(ip_ordi):
                         await sendlog(websocket, "log_ack",log_txt)
                     # 4. GIT PULL
                     elif data.get("command") == "git_pull" and data.get("target") == "Valhalla":
-                        # (Ton code git pull peut rester ici ou passer en asynchrone aussi)
                         try:
                             repo_path = "/home/asgard/Desktop/dassault-helics-2026"
                             result = subprocess.check_output(["git", "pull"], cwd=repo_path).decode("utf-8")
