@@ -41,7 +41,7 @@ class Drone(MAVLinCS):
             time.sleep(0.01)
 
 def send_rc(drone):
-    for i in range(30):
+    for i in range(100):
         drone.master.mav.rc_channels_override_send(
                 drone.master.target_system,
                 drone.master.target_component,
