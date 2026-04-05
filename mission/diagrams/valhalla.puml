@@ -2,7 +2,6 @@
 hide empty description
 
 ''' BASE STATES '''
-state STABILIZE #b3ffff
 state LAND #ffb3b3
 state RTL #ffb3b3
 
