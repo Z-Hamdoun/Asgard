@@ -365,7 +365,7 @@ class Camera:
         """
         dx, dy, dz = float(tvec[0]), float(tvec[1]), float(tvec[2])
         if not self._simulation:
-            return dy, -dx, dz # A vérifier
+            return -dy, dx, dz # A vérifier
         else:
             return dx, dy, dz # A vérifier
 
