@@ -1,0 +1,19 @@
+@startuml Mission
+hide empty description
+
+[*] --> INIT
+
+state INIT {
+    [*] --> CONNECT
+    CONNECT --> ARMING: connected
+    ARMING --> WAIT: not_armed
+    WAIT --> ARMING: 5s
+}
+ARMING --> TAKEOFF: armed
+TAKEOFF --> REACH_ALT: alt_reached
+REACH_ALT --> FIND_ARUCO: analyze
+FIND_ARUCO --> LAND: target_found
+LAND --> FIND_ARUCO: target_lost
+LAND --> [*]: success
+
+@enduml

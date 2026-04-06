@@ -1,0 +1,14 @@
+@startuml
+[*] --> FAILSAFE #red
+
+FAILSAFE --> COMM_LOST : no_heartbeat
+FAILSAFE --> LOW_BATTERY : battery_low
+FAILSAFE --> GPS_LOST : gps_error
+
+COMM_LOST --> RTL
+LOW_BATTERY --> RTL
+GPS_LOST --> LAND
+
+RTL --> [*]
+LAND --> [*]
+@enduml

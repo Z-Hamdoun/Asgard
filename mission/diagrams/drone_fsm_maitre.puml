@@ -1,0 +1,28 @@
+@startuml
+hide empty description
+
+[*] --> INIT
+
+state INIT {
+    [*] --> WAIT_FOR_GPS
+    WAIT_FOR_GPS --> ARMING : gps_ok
+}
+
+ARMING --> TAKEOFF : armed
+TAKEOFF --> REACH_DEST : altitude_reached
+
+REACH_DEST --> COMMUNICATE : dest_reached
+COMMUNICATE --> STABILIZE : peer_ready
+
+STABILIZE --> RTL: mission_done
+RTL --> [*]
+
+' Failsafe transitions
+state FAILSAFE #red
+INIT --> FAILSAFE : comm_lost
+ARMING --> FAILSAFE : error
+TAKEOFF --> FAILSAFE : timeout
+REACH_DEST --> FAILSAFE: low_battery
+REACH_DEST --> FAILSAFE: comm_lost
+STABILIZE --> FAILSAFE : peer_lost
+@enduml
