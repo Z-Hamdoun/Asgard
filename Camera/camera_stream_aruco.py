@@ -52,7 +52,20 @@ def main():
             dx, dy, dz, info, frame = camera.analyse(affichage=False)
 
             if frame is None:
-                continue
+                frame = camera.get_frame(affiche=False)
+                if frame is None:
+                    continue 
+                
+                if len(frame.shape) == 3:
+                    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+            if frame.shape[:2] != (RESOLUTION[1], RESOLUTION[0]):
+                frame = cv2.resize(frame, RESOLUTION, interpolation=cv2.INTER_LINEAR)
+
+            if len(frame.shape) == 2:
+                frame_bgr = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+            else:
+                frame_bgr = frame
 
             if frame.shape[:2] != (RESOLUTION[1], RESOLUTION[0]):
                 frame = cv2.resize(frame, RESOLUTION, interpolation=cv2.INTER_LINEAR)
