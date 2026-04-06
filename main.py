@@ -73,7 +73,6 @@ try:
         elif inpt == "precland":
             loit = Thread(target=drone.loiter, )
             loit.start()
-            loit.join()
         
         else:
             print("Bad command")
