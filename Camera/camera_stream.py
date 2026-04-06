@@ -30,7 +30,7 @@ picam2.configure(picam2.create_video_configuration(
     main={"size": (640, 480)}
 ))
 # picam2.start()
-camera = Camera()
+camera = Camera(simulation=None)
 
 while True:
     frame = camera.analyse()[-1]
