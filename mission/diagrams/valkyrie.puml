@@ -60,7 +60,7 @@ state GUIDED #ccccff;line:ccccff;line.bold {
         searching_LAND -right[#red]-> searching_TAKEOFF : <color:#red>landed_fail</color>
     }
 
-    guided_FLYING x-left[#red]-> LAND: <color:#red>no_gps</color>
+    guided_FLYING x-[#red]-> LAND: <color:#red>no_gps</color>
 
     state "grounded" as guided_GROUNDED2 #f5f5ff;line:e6e6ff;text:dbdbff {
         state GRASPING {
@@ -108,9 +108,10 @@ state GUIDED #ccccff;line:ccccff;line.bold {
             state "WAIT" as guided_WAIT
             guided_WAIT -[#red]-> guided_WAIT : <color:#red>change_mode_fail</color>
         }
+        
 
     }
-    
+    guided_LEAVING x-[#red]-> LAND: <color:#red>no_gps</color>
 }
 
 state FOLLOW #ffb3d9;line:ffb3d9;line.bold {
@@ -119,12 +120,13 @@ state FOLLOW #ffb3d9;line:ffb3d9;line.bold {
         state FOLLOWING
         guided_WAIT -down[#green]-> FOLLOWING : <color:#green>mode_change_ok</color>
     }
+    follow_FOLLOWING x-[#red]-> LAND: <color:#red>no_gps</color>
 }
 
 
 state "Valhalla" as Valhalla2 #ffffe6
 RETREATED -down[#green]-> guided_WAIT : <color:#green>retreated_True</color>
-FOLLOWING -left[dashed]-> Valhalla2 : mission_end
+FOLLOWING -[dashed]-> Valhalla2 : mission_end
 
 FOLLOWING --> [*]
 
