@@ -1,4 +1,5 @@
-from fastapi import FastAPI, WebSocket, Request
+# --- IMPORTS ---
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -6,6 +7,8 @@ import asyncio
 import time
 import socket
 
+
+# --- FONCTIONS UTILITAIRES ---
 def get_local_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
@@ -19,9 +22,37 @@ def get_local_ip():
         s.close()
     return ip
 
+# --- GESTIONNAIRE WEBSOCKET ---
 
+class ConnectionManager:
+    def __init__(self):
+        # On utilise un dictionnaire pour associer un ID à une connexion
+        self.active_connections: dict[str, WebSocket] = {}
 
+    async def connect(self, websocket: WebSocket, client_id: str):
+        await websocket.accept()
+        self.active_connections[client_id] = websocket
+        print(f"Connecté : {client_id}")
+
+    def disconnect(self, client_id: str):
+        if client_id in self.active_connections:
+            del self.active_connections[client_id]
+            print(f"Déconnecté : {client_id}")
+
+    async def send_to_target(self, message: dict, target_id: str):
+        """Envoie un message à un destinataire spécifique."""
+        websocket = self.active_connections.get(target_id)
+        if websocket:
+            await websocket.send_json(message)
+
+    async def broadcast(self, message: dict):
+        """Envoie à tout le monde (Utile pour les notifications globales)."""
+        for connection in self.active_connections.values():
+            await connection.send_json(message)
+
+# --- INITIALISATION DE L'APPLICATION ---
 app = FastAPI()
+manager = ConnectionManager()
 
 # 1. On "monte" le dossier static pour qu'il soit accessible via /static
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -29,6 +60,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # 2. On configure le moteur de templates
 templates = Jinja2Templates(directory="templates")
 
+# --- ROUTES ---
 @app.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
     local_ip = get_local_ip()
@@ -38,33 +70,24 @@ async def get_index(request: Request):
         context={"local_ip": local_ip}
     )
 
-
-
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: list[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-
-    async def broadcast(self, message: dict):
-        for connection in self.active_connections:
-            await connection.send_json(message)
-
-manager = ConnectionManager()
-
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+@app.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: str):
+    await manager.connect(websocket, client_id)
     try:
         while True:
-            # On reçoit le "Pong" de la RPi ou du navigateur
             data = await websocket.receive_json()
-            # On renvoie l'info à tout le monde (pour que l'interface HTML voit le résultat)
-            await manager.broadcast(data)
-    except:
-        manager.disconnect(websocket)
+            
+            target = data.get("target")
+            
+            # LOGIQUE DE ROUTAGE
+            if target and target in manager.active_connections:
+                # Si une cible est spécifiée (ex: Valkyrie), on lui envoie directement
+                await manager.send_to_target(data, target)
+            else:
+                # Si aucune cible ou cible inconnue, on envoie au Dashboard 
+                # (Pour que l'utilisateur voie les logs/réponses)
+                await manager.send_to_target(data, "dashboard")
+                
+    except WebSocketDisconnect:
+        manager.disconnect(client_id)
+

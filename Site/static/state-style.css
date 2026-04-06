@@ -1,21 +1,28 @@
 .state-diagram{
   display: flex;
   justify-content: center;
+  flex-direction: column;
   align-items: center;
   background: #fff;
   border: 2px solid #000;
   border-radius: 20px;
-  padding: 0px 20px;
+  padding: 5px;
   width: 450px;
+  margin: 5px;
 }
 
-  .mermaid svg {
-    /* Empêche Mermaid de réduire le diagramme s'il est trop large */
-    
-    height: 800px !important;
-  }
-  
-  /* Cible le texte à l'intérieur du SVG généré */
-  g.state text, g.label text {
-    font-size: 16px !important;
-  }
+#diagram-container-valh, #diagram-container-valk {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+
+#diagram-container-valh svg,#diagram-container-valk svg {
+  height: 350px;
+}
+
+/* Cible le texte à l'intérieur du SVG généré */
+g.state text, g.label text {
+  font-size: 16px !important;
+}

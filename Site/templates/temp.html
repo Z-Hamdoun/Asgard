@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagramme d'États Interactif</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js"></script>
+    
+    <style>
+        /* Style minimaliste */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #fafafa;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            color: #555;
+        }
+
+        /* Conteneur du diagramme */
+        #diagram-container {
+            background: white;
+            padding: 2rem 4rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            min-height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* Cibler spécifiquement le SVG généré par Mermaid */
+        #diagram-container svg {
+                  /* Le diagramme prendra toute la place disponible... */
+            width: 100px;  /* ... mais ne dépassera jamais 600 pixels de large */
+            height: auto;      /* La hauteur s'adapte automatiquement pour garder les proportions */
+        }
+
+        /* Style des boutons */
+        .controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 2px solid #e0e0e0;
+            background-color: transparent;
+            color: #666;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            border-color: #a0a0a0;
+            color: #333;
+        }
+
+        /* Style du bouton actif */
+        button.active {
+            border-color: #3b82f6;
+            background-color: #3b82f6;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Diagramme d'États Interactif</h1>
+
+    <div id="diagram-container">
+        </div>
+
+    <div class="controls">
+        <button id="btn-IDLE" onclick="setState('IDLE')">IDLE</button>
+        <button id="btn-LOADING" onclick="setState('LOADING')">LOADING</button>
+        <button id="btn-SUCCESS" onclick="setState('SUCCESS')">SUCCESS</button>
+        <button id="btn-ERROR" onclick="setState('ERROR')">ERROR</button>
+    </div>
+
+    <script>
+        // Initialisation de Mermaid
+        mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+
+        // Fonction pour mettre à jour l'état
+        function setState(activeState) {
+            // 1. Mise à jour visuelle des boutons
+            document.querySelectorAll('.controls button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`btn-${activeState}`).classList.add('active');
+
+            // 2. Définition dynamique du diagramme Mermaid
+            // On ajoute une classe 'highlight' uniquement sur l'état actif
+            const diagramDefinition = `
+stateDiagram-v2
+    classDef highlight fill:#3b82f6,color:white,stroke:#2563eb,stroke-width:2px
+    
+    IDLE --> LOADING : Démarrer
+    LOADING --> SUCCESS : Terminé
+    LOADING --> ERROR : Échec
+    SUCCESS --> IDLE : Réinitialiser
+    ERROR --> IDLE : Réessayer
+    
+    class ${activeState} highlight
+            `;
+
+            // 3. Rendu du diagramme
+            const container = document.getElementById('diagram-container');
+            // Suppression de l'attribut data-processed indispensable pour forcer Mermaid à redessiner
+            container.removeAttribute('data-processed'); 
+            container.innerHTML = diagramDefinition;
+            mermaid.init(undefined, container);
+        }
+
+        // Lancement initial sur l'état IDLE
+        window.onload = () => setState('IDLE');
+    </script>
+
+</body>
+</html>

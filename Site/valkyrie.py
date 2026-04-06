@@ -1,3 +1,4 @@
+# --- IMPORTS ---
 import asyncio
 import websockets
 import json
@@ -5,7 +6,7 @@ import sys
 import subprocess
 import json_config
 
-# --- Fonctions utilitaires inchangées ---
+# --- FONCTIONS UTILITAIRES WEBSOCKET ---
 def sendfail(socket, failure, e):
     response = {"type": "status", "command": failure, "source": "Valkyrie", "output": e}
     return socket.send(json.dumps(response))
@@ -22,7 +23,7 @@ def sendlog(socket, command, result):
     response = {"type": "log", "command": command, "source": "Valkyrie", "output": result}
     return socket.send(json.dumps(response))
 
-# --- Nouvelle fonction pour gérer l'exécution en parallèle ---
+# --- GESTION DE LA MISSION EN ARRIERE-PLAN ---
 async def run_mission(websocket, command_str):
     """Exécute la mission sans bloquer la lecture du WebSocket."""
     try:
@@ -58,8 +59,9 @@ async def run_mission(websocket, command_str):
     finally:
         websocket.current_process = None
 
+# --- BOUCLE PRINCIPALE DU CLIENT ---
 async def responder(ip_ordi):
-    uri = f"ws://{ip_ordi}:8000/ws"
+    uri = f"ws://{ip_ordi}:8000/ws/Valkyrie" 
     
     while True:
         try:
@@ -79,9 +81,12 @@ async def responder(ip_ordi):
                             "source": "Valkyrie", 
                             "sent_at": sent_at
                         }))
+                        
+                    # 2. Gestion des commandes de la console
                     elif data.get("command") == "terminal_log":
                         print(data.get("output"))
-                    # 2. Lancement de la MISSION
+                        
+                    # 3. Lancement de la MISSION
                     elif data.get("command") == "main_mission":
                         if websocket.current_process is not None:
                             print("Mission déjà en cours.")
@@ -95,7 +100,7 @@ async def responder(ip_ordi):
                             # On lance la mission en tâche de fond (non-bloquant)
                             asyncio.create_task(run_mission(websocket, cmd))
 
-                    # 3. Commande URGENCY_STOP (Ta demande)
+                    # 4. Commande d'arrêt d'urgence
                     elif data.get("command") == "urgency_stop":
                         if websocket.current_process:
                             websocket.current_process.terminate() 
@@ -105,13 +110,15 @@ async def responder(ip_ordi):
                             print("Aucun processus en cours.")
                             await sendack(websocket, "no_process")
 
+                    # 5. Gestion des Logs
                     elif data.get("command") == "print_log" and data.get("target") == "Valkyrie":
                         print("envoi des logs")
                         f=open("log_test_valk.txt")
                         log_txt=f.read()
                         f.close()
                         await sendlog(websocket, "log_ack",log_txt)
-                    # 4. GIT PULL
+                        
+                    # 6. Gestion des Configurations
                     elif data.get("command") == "update_config":
                         print("Nouvelle configuration reçue depuis l'interface web.")
                         nouveaux_parametres = data.get("data")
@@ -123,7 +130,7 @@ async def responder(ip_ordi):
                         parametres= json_config.charger_config()
                         await senddata(websocket,"ask_ack",parametres)
                         
-                    
+                    # 7. GIT PULL
                     elif data.get("command") == "git_pull" and data.get("target") == "Valkyrie":
                         # (Ton code git pull peut rester ici ou passer en asynchrone aussi)
                         try:
@@ -138,6 +145,7 @@ async def responder(ip_ordi):
             print(f"Déconnecté. Nouvelle tentative dans 1s... ({e})")
             await asyncio.sleep(1)
 
+# --- POINT D'ENTREE ---
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.exit(1)

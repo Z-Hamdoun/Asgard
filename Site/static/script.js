@@ -1,89 +1,36 @@
-function changelog() {
-    let choix = document.getElementById("choix").value;
-    const valk = document.getElementById("valk-log");
-    const valh = document.getElementById("valh-log");
-    valk.classList.remove('full', 'null','demi');  
-    valh.classList.remove('full', 'null','demi');
-    if (choix === "a") {
-        valh.classList.add('null');
-        valk.classList.add('full');
-    } else if (choix === "b") {
-        valh.classList.add('full');
-        valk.classList.add('null');
-    } else if (choix === "c") {
-        valh.classList.add('demi');
-        valk.classList.add('demi');
-    } else {
-        valh.classList.add('null');
-        valk.classList.add('null');
-    }
-}
-
-function intern_log(log){
-
-        const line = document.createElement("div");
-        line.style.color = "#5cb85c"
-        line.textContent = log;
-        divconsole.appendChild(line);
-        divconsole.scrollTop = divconsole.scrollHeight;
-}
-
-const updateBtnValk = document.getElementById('update-valk');
-// Variable globale ou accessible par les deux fonctions
-
-const missionBtn =document.getAnimations
-
+// ==========================================
+// VARIABLES GLOBALES ET ELEMENTS DU DOM
+// ==========================================
 let valkTimer; 
 let valhTimer; 
 
-updateBtnValk.onclick = function() {
-    if (ws.readyState === WebSocket.OPEN) {
-        const command = { command: "git_pull", target: "Valkyrie" };
-        ws.send(JSON.stringify(command));
-        
-        const dot = document.getElementById('git-dot-valk');
-        dot.classList.add('waitline');
-        
-        clearTimeout(valkTimer);
-        valkTimer = setTimeout(() => {
-            dot.classList.remove('waitline');
-            dot.classList.add('noline');
-            setTimeout(() => dot.classList.remove('noline'), 200);
-        }, 5000);
-
-    } else {
-        const dot = document.getElementById('git-dot-valk');
-        dot.classList.add('noline');
-        setTimeout(() => dot.classList.remove('noline'), 200);
-    }
-};
+const updateBtnValk = document.getElementById('update-valk');
 const updateBtnValh = document.getElementById('update-valh');
-updateBtnValh.onclick = function() {
-    if (ws.readyState === WebSocket.OPEN) {
-        const command = {
-            command: "git_pull",
-            target: "Valhalla"
-        };
-        ws.send(JSON.stringify(command));
-        const dot = document.getElementById('git-dot-valh');
-        dot.classList.add('waitline');
-        clearTimeout(valhTimer);
-        valhTimer = setTimeout(() => {
-            dot.classList.remove('waitline');
-            dot.classList.add('noline');
-            setTimeout(() => dot.classList.remove('noline'), 200);
-        }, 5000);
+const mainBtn = document.getElementById('green-button');
+const landBtn = document.getElementById('orange-button');
+const stopBtn = document.getElementById('red-button');
+const printBtn = document.getElementById("print-log")
+const defaultBtn = document.getElementById("defaultBtn")
+const requestBtn = document.getElementById("requestBtn")
+const sendBtn = document.getElementById("sendBtn")
 
-    } else {
-        const dot = document.getElementById('git-dot-valh');
-        dot.classList.add('noline');
-        setTimeout(() => dot.classList.remove('noline'), 200);
-    }
-};
+const input = document.getElementById('term-input');
+const cursor = document.getElementById('cursor');
+const divconsole = document.getElementById('console');
 
+// ==========================================
+// INITIALISATION
+// ==========================================
+// Initialisation de Mermaid
+mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
 
+// Lancement initial sur l'état IDLE
+window.onload = () => setState('INIT','LOADING');
 
-const ws = new WebSocket("ws://" + window.location.host + "/ws");
+// ==========================================
+// WEBSOCKET (CONNEXION & PING)
+// ==========================================
+const ws = new WebSocket("ws://" + window.location.host + "/ws/dashboard");
 setInterval(() => {
     if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ 
@@ -94,7 +41,6 @@ setInterval(() => {
 }, 1000);
 
 // COMMUNICATION AVEC VALK ET VALH
-
 ws.onmessage = function(event) {
     const data = JSON.parse(event.data);
     const now = Date.now();
@@ -112,7 +58,6 @@ ws.onmessage = function(event) {
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        
         const line = document.createElement("pre"); // Ajoute ces styles pour forcer le retour à la ligne
         line.style.whiteSpace = "pre-wrap";       // Préserve les sauts de ligne ET wrap
         line.style.wordBreak = "break-all";      // Casse les mots trop longs (ex: logs d'erreurs sans espaces)
@@ -192,14 +137,44 @@ ws.onmessage = function(event) {
             document.getElementById("radius_acceptance").value = data_param["radius_acceptance"];
             document.getElementById("FOLLOW_MAX_SPEED").value = data_param["FOLLOW_MAX_SPEED"];
             document.getElementById("alt_quadrillage").value = data_param["alt_quadrillage"];
-
             break
-
     }
 };
 
-// CONSOLE
+// ==========================================
+// FONCTIONS DE L'INTERFACE UI
+// ==========================================
 
+function changelog() {
+    let choix = document.getElementById("choix").value;
+    const valk = document.getElementById("valk-log");
+    const valh = document.getElementById("valh-log");
+    valk.classList.remove('full', 'null','demi');  
+    valh.classList.remove('full', 'null','demi');
+    if (choix === "a") {
+        valh.classList.add('null');
+        valk.classList.add('full');
+    } else if (choix === "b") {
+        valh.classList.add('full');
+        valk.classList.add('null');
+    } else if (choix === "c") {
+        valh.classList.add('demi');
+        valk.classList.add('demi');
+    } else {
+        valh.classList.add('null');
+        valk.classList.add('null');
+    }
+}
+
+function intern_log(log){
+        const line = document.createElement("div");
+        line.style.color = "#5cb85c"
+        line.textContent = log;
+        divconsole.appendChild(line);
+        divconsole.scrollTop = divconsole.scrollHeight;
+}
+
+// CONSOLE
 function changeconsole() {
     let choix = document.getElementById("console-select").value;
     const container = document.getElementById("console-container");
@@ -222,28 +197,24 @@ function changeconsole() {
     }
 }
 
-const input = document.getElementById('term-input');
-const cursor = document.getElementById('cursor');
-const divconsole = document.getElementById('console');
-
 function updateCursor(event) {
     const keyName = event.key;
     if (keyName === "Enter") {
-    const nouvelleLigne = document.createElement("div");
-    nouvelleLigne.textContent = "helics:~$" + input.value;
-    divconsole.appendChild(nouvelleLigne);
-    divconsole.scrollTop = divconsole.scrollHeight;
-    const command = {
-            command: "terminal_log",
-            target: "Valkyrie",
-            output:input.value
-        };
-    ws.send(JSON.stringify(command))
-    
-    const container = document.getElementById("console-container");
-    
-    input.value = "";
-}
+        const nouvelleLigne = document.createElement("div");
+        nouvelleLigne.textContent = "helics:~$" + input.value;
+        divconsole.appendChild(nouvelleLigne);
+        divconsole.scrollTop = divconsole.scrollHeight;
+        const command = {
+                command: "terminal_log",
+                target: "Valkyrie",
+                output:input.value
+            };
+        ws.send(JSON.stringify(command))
+        
+        const container = document.getElementById("console-container");
+        
+        input.value = "";
+    }
     const textBeforeCursor = input.value.substring(0, input.selectionStart);
 
     const tempSpan = document.createElement('span');
@@ -258,12 +229,97 @@ function updateCursor(event) {
     
     document.body.removeChild(tempSpan);
 }
+
+function setState(ValhState, ValkState) {
+    const diagramValhDefinition = `
+stateDiagram-v2
+classDef highlight fill:#3b82f6,color:white,stroke:#2563eb,stroke-width:2px
+
+INIT --> LOADING : Démarrer
+LOADING --> SUCCESS : Terminé
+LOADING --> ERROR : Échec
+SUCCESS --> IDLE : Réinitialiser
+ERROR --> IDLE : Réessayer
+
+class ${ValhState} highlight
+    `;
+    const diagramContainerValh = document.getElementById('diagram-container-valh');
+    // Suppression de l'attribut data-processed indispensable pour forcer Mermaid à redessiner
+    diagramContainerValh.removeAttribute('data-processed'); 
+    diagramContainerValh.innerHTML = diagramValhDefinition;
+    mermaid.init(undefined, diagramContainerValh);
+    const diagramValkDefinition = `
+stateDiagram-v2
+classDef highlight fill:#3b82f6,color:white,stroke:#2563eb,stroke-width:2px
+
+INIT --> LOADING : Démarrer
+LOADING --> SUCCESS : Terminé
+LOADING --> ERROR : Échec
+SUCCESS --> IDLE : Réinitialiser
+ERROR --> IDLE : Réessayer
+
+class ${ValkState} highlight
+    `;
+    const diagramContainerValk = document.getElementById('diagram-container-valk');
+    diagramContainerValk.removeAttribute('data-processed'); 
+    diagramContainerValk.innerHTML = diagramValkDefinition;
+    mermaid.init(undefined, diagramContainerValk);
+
+}
+
+// ==========================================
+// ECOUTEURS D'ÉVÉNEMENTS (EVENT LISTENERS)
+// ==========================================
+
 input.addEventListener('input', updateCursor);
 input.addEventListener('keyup', updateCursor);
 input.addEventListener('click', updateCursor);
 
+updateBtnValk.onclick = function() {
+    if (ws.readyState === WebSocket.OPEN) {
+        const command = { command: "git_pull", target: "Valkyrie" };
+        ws.send(JSON.stringify(command));
+        
+        const dot = document.getElementById('git-dot-valk');
+        dot.classList.add('waitline');
+        
+        clearTimeout(valkTimer);
+        valkTimer = setTimeout(() => {
+            dot.classList.remove('waitline');
+            dot.classList.add('noline');
+            setTimeout(() => dot.classList.remove('noline'), 200);
+        }, 5000);
 
-const mainBtn = document.getElementById('green-button');
+    } else {
+        const dot = document.getElementById('git-dot-valk');
+        dot.classList.add('noline');
+        setTimeout(() => dot.classList.remove('noline'), 200);
+    }
+};
+
+updateBtnValh.onclick = function() {
+    if (ws.readyState === WebSocket.OPEN) {
+        const command = {
+            command: "git_pull",
+            target: "Valhalla"
+        };
+        ws.send(JSON.stringify(command));
+        const dot = document.getElementById('git-dot-valh');
+        dot.classList.add('waitline');
+        clearTimeout(valhTimer);
+        valhTimer = setTimeout(() => {
+            dot.classList.remove('waitline');
+            dot.classList.add('noline');
+            setTimeout(() => dot.classList.remove('noline'), 200);
+        }, 5000);
+
+    } else {
+        const dot = document.getElementById('git-dot-valh');
+        dot.classList.add('noline');
+        setTimeout(() => dot.classList.remove('noline'), 200);
+    }
+};
+
 mainBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
         const command = {
@@ -280,7 +336,6 @@ mainBtn.onclick = function() {
     }
 };
 
-const landBtn = document.getElementById('orange-button');
 landBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
         const command = {
@@ -297,7 +352,6 @@ landBtn.onclick = function() {
     }
 };
 
-const stopBtn = document.getElementById('red-button');
 stopBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
         const command = {
@@ -312,7 +366,7 @@ stopBtn.onclick = function() {
         intern_log("site offline");
     }
 };
-const printBtn = document.getElementById("print-log")
+
 printBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
         const commandvalk = {
@@ -333,8 +387,6 @@ printBtn.onclick = function() {
     }
 };
 
-
-const defaultBtn = document.getElementById("defaultBtn")
 defaultBtn.onclick = function() {
     const valeursParDefaut = {
         "vrai_largage": "true", 
@@ -352,7 +404,6 @@ defaultBtn.onclick = function() {
     document.getElementById("alt_quadrillage").value = valeursParDefaut["alt_quadrillage"];
 }
 
-const requestBtn = document.getElementById("requestBtn")
 requestBtn.onclick = function() {
     const valeursWait = {
         "vrai_largage": "...", 
@@ -381,7 +432,6 @@ requestBtn.onclick = function() {
     }
 }
 
-const sendBtn = document.getElementById("sendBtn")
 sendBtn.onclick = function() {
     const inputLargage = document.getElementById("vrai_largage").value;
     const isLargageVrai = (inputLargage.toLowerCase() === "true"); // Convertit en Booléen

@@ -2,49 +2,44 @@
 <html>
 <head>
     <title>Asgard Mission Control</title>
+    
     <link rel="stylesheet" href="/static/main-style.css">
     <link rel="stylesheet" href="/static/heartbeat-style.css">
     <link rel="stylesheet" href="/static/git-style.css">
     <link rel="stylesheet" href="/static/log-style.css">
     <link rel="stylesheet" href="/static/param-style.css">
     <link rel="stylesheet" href="/static/state-style.css">
+    
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.min.js"></script>
-    <script>mermaid.initialize({ startOnLoad: true });</script>
-
 </head>
 <body>
     <h1>Mission Asgard - Tableau de controle</h1>
 
     <div class="row">
-                    <div class="case">
-                        <h2 >Log</h2>
-                        <div style="width: 400px; height: 800px">
-                            
-                        <div>
-                            <select id="choix" class="log-select" onchange="changelog()">
-                                <option value="">-- No Log --</option>
-                                <option value="a">Log Valkyrie</option>
-                                <option value="b">Log Valhalla</option>
-                                <option value="c">Double Log</option>
-                            </select>
-                            <button class="print-button" id="print-log">print log</button>
-                        </div>
-                        <div class="drone-log-container" id="valk-log"></div>
-                        <div class="drone-log-container" id="valh-log"></div>
+        <div class="case">
+            <h2>Log</h2>
+            <div style="width: 400px; height: 800px">
+                <div>
+                    <select id="choix" class="log-select" onchange="changelog()">
+                        <option value="">-- No Log --</option>
+                        <option value="a">Log Valkyrie</option>
+                        <option value="b">Log Valhalla</option>
+                        <option value="c">Double Log</option>
+                    </select>
+                    <button class="print-button" id="print-log">print log</button>
+                </div>
+                <div class="drone-log-container" id="valk-log"></div>
+                <div class="drone-log-container" id="valh-log"></div>
+            </div>
+        </div>
 
-                        </div>
-                    </div>
         <div class="col">
             <div class ="row">
                 <div class ="col">
-
-                
                     <div class="case">
                         <h2> Heartbeat - Valkyrie</h2>
                         <div id="status-dot"></div>
                         <p>Latence: <span id="latency">0</span> ms</p>
-
-                        
                     </div>
 
                     <div class="case">
@@ -53,6 +48,7 @@
                         <p>Latence: <span id="latency2">0</span> ms</p>
                     </div>
                 </div>
+
                 <div class="col">
                     <div class="case">
                         <h2 style="margin: 5px;">lancer la mission</h2>
@@ -64,157 +60,123 @@
                         <button id="red-button">arrêt d'extrême urgence</button>
                     </div>
                 </div>
-                    <div class="case">
-                        <h2> Git</h2>
-                        <div class="git-container">
-                            <button class="git-button" id="update-valk"> Git pull Valkyrie</button>
-                            <div id="git-dot-valk"></div>
-                        </div>
-                        <div class="git-container">
-                            <button class="git-button" id="update-valh"> Git pull Valhalla</button>
-                            <div id="git-dot-valh"></div>
-                        </div>
-                        
 
-                        <button class="git-button"> Check OK Valkyrie</button>
-                        <button class="git-button"> Check OK Valhalla</button>
+                <div class="case">
+                    <h2> Git</h2>
+                    <div class="git-container">
+                        <button class="git-button" id="update-valk"> Git pull Valkyrie</button>
+                        <div id="git-dot-valk"></div>
                     </div>
+                    <div class="git-container">
+                        <button class="git-button" id="update-valh"> Git pull Valhalla</button>
+                        <div id="git-dot-valh"></div>
+                    </div>
+                    <button class="git-button"> Check OK Valkyrie</button>
+                    <button class="git-button"> Check OK Valhalla</button>
+                </div>
             </div>
-                    <div class="case">
-                        <select id="console-select" class="log-select" onchange="changeconsole()">
-                            <option value="terminal">Console </option>
-                            <option value="param">paramètre mission</option>
-                        </select>
-                        <div id="console-container" class="console">   
-                            <span id="console"></span>
-                        </div>
-                        <div id="input-log" class="log" style="display: none;" onclick="document.getElementById('term-input').focus()">
-                            <span>helics:~$</span>
-                            <div class="input-wrapper">
-                                <input type="text" id="term-input" spellcheck="false" autofocus>
-                                <span id="cursor" class="custom-cursor">_</span>
-                            </div>
-                        </div>
 
-                        <div style="display: flex;">
-                            <div id="mission-container" class="null">
-                               
-                                <form>
-                                    <h2>Choix de la mission</h2>
-                                    
-                                    <div class="mission-group">
-                                        <input type="radio" id="mission1" name="mission" value="mission1" checked>
-                                        <label for="mission1">Mission 1</label>
-                                    </div>
-
-                                    <div class="mission-group">
-                                        <input type="radio" id="mission2" name="mission" value="mission2">
-                                        <label for="mission2">Mission 2</label>
-                                    </div>
-
-                                    <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
-
-                                    <div class="mission-group">
-                                        <input type="radio" id="premission1" name="mission" value="premission1">
-                                        <label for="premission1">Pré-mission 1</label>
-                                    </div>
-                                    <div class="mission-group">
-                                        <input type="radio" id="premission2" name="mission" value="premission2">
-                                        <label for="premission2">Pré-mission 2</label>
-                                    </div>
-                                    <div class="mission-group">
-                                        <input type="radio" id="premission3" name="mission" value="premission3">
-                                        <label for="premission3">Pré-mission 3</label>
-                                    </div>
-                                </form>
-                            </div>
-                        
-                            <div id="param-container" class="null">
-                                <div class="parametre-button-group">
-                                        <button id="sendBtn" class="git-button">Appliquer</button>
-                                        <button id="defaultBtn" class="git-button">Par défaut</button>
-                                        <button id="requestBtn" class="git-button">Récupérer</button>
-                                </div>
-                                <form>
-                                    <div class="parametre-groupe">
-                                        <label for="vrai_largage">vrai_largage</label>
-                                        <input type="text" id="vrai_largage" value="true">
-                                    </div>
-                                    <div class="parametre-groupe">
-                                        <label for="taille_quadrillage">taille_quadrillage</label>
-                                        <input type="text" id="taille_quadrillage" value="10">
-                                    </div>
-                                    <div class="parametre-groupe">
-                                        <label for="pas_quadrillage">pas_quadrillage</label>
-                                        <input type="text" id="pas_quadrillage" value="2">
-                                    </div>
-                                    <div class="parametre-groupe">
-                                        <label for="radius_acceptance">radius_acceptance</label>
-                                        <input type="text" id="radius_acceptance" value="1">
-                                    </div>
-                                    <div class="parametre-groupe">
-                                        <label for="FOLLOW_MAX_SPEED">FOLLOW_MAX_SPEED</label>
-                                        <input type="text" id="FOLLOW_MAX_SPEED" value="1400">
-                                    </div>
-                                    <div class="parametre-groupe">
-                                        <label for="alt_quadrillage">alt_quadrillage</label>
-                                        <input type="text" id="alt_quadrillage" value="8">
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
+            <div class="case">
+                <select id="console-select" class="log-select" onchange="changeconsole()">
+                    <option value="terminal">Console </option>
+                    <option value="param">paramètre mission</option>
+                </select>
+                
+                <div id="console-container" class="console">   
+                    <span id="console"></span>
+                </div>
+                <div id="input-log" class="log" style="display: none;" onclick="document.getElementById('term-input').focus()">
+                    <span>helics:~$</span>
+                    <div class="input-wrapper">
+                        <input type="text" id="term-input" spellcheck="false" autofocus>
+                        <span id="cursor" class="custom-cursor">_</span>
                     </div>
+                </div>
+
+                <div style="display: flex;">
+                    <div id="mission-container" class="null">
+                        <form>
+                            <h2>Choix de la mission</h2>
+                            <div class="mission-group">
+                                <input type="radio" id="mission1" name="mission" value="mission1" checked>
+                                <label for="mission1">Mission 1</label>
+                            </div>
+                            <div class="mission-group">
+                                <input type="radio" id="mission2" name="mission" value="mission2">
+                                <label for="mission2">Mission 2</label>
+                            </div>
+                            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+                            <div class="mission-group">
+                                <input type="radio" id="premission1" name="mission" value="premission1">
+                                <label for="premission1">Pré-mission 1</label>
+                            </div>
+                            <div class="mission-group">
+                                <input type="radio" id="premission2" name="mission" value="premission2">
+                                <label for="premission2">Pré-mission 2</label>
+                            </div>
+                            <div class="mission-group">
+                                <input type="radio" id="premission3" name="mission" value="premission3">
+                                <label for="premission3">Pré-mission 3</label>
+                            </div>
+                        </form>
+                    </div>
+                
+                    <div id="param-container" class="null">
+                        <div class="parametre-button-group">
+                                <button id="sendBtn" class="git-button">Appliquer</button>
+                                <button id="defaultBtn" class="git-button">Par défaut</button>
+                                <button id="requestBtn" class="git-button">Récupérer</button>
+                        </div>
+                        <form>
+                            <div class="parametre-groupe">
+                                <label for="vrai_largage">vrai_largage</label>
+                                <input type="text" id="vrai_largage" value="true">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="taille_quadrillage">taille_quadrillage</label>
+                                <input type="text" id="taille_quadrillage" value="10">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="pas_quadrillage">pas_quadrillage</label>
+                                <input type="text" id="pas_quadrillage" value="2">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="radius_acceptance">radius_acceptance</label>
+                                <input type="text" id="radius_acceptance" value="1">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="FOLLOW_MAX_SPEED">FOLLOW_MAX_SPEED</label>
+                                <input type="text" id="FOLLOW_MAX_SPEED" value="1400">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="alt_quadrillage">alt_quadrillage</label>
+                                <input type="text" id="alt_quadrillage" value="8">
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="case">
-            <h2> État de la mission</h2>
+            <h2 > État de la mission</h2>
             <div class="state-diagram">
-                <div class="mermaid">   
-                        stateDiagram-v2
-                    %% Définition des styles (classes)
-                    classDef actual fill:#ff0,stroke:#333,stroke-width:2px;
-
-
-                    [*] --> Wait_mission_start
-                    Wait_mission_start --> arming
-                    arming --> takeoff
-                    takeoff --> research
-                    research --> valk_stimulation
-                    valk_stimulation --> wait_droping
-                    wait_droping --> object_recept
-                    object_recept --> return_to_base
-                    return_to_base --> [*]
-                    %% Application de la classe à un état spécifique
-                    class Wait_mission_start actual
+                <h4 style="color: #000; margin: 0;">Valhalla</h2>
+                <div id="diagram-container-valh">
                 </div>
-                <div class="mermaid">   
-                        stateDiagram-v2
-                    %% Définition des styles (classes)
-                    classDef actual fill:#ff0,stroke:#333,stroke-width:2px;
-
-
-                    [*] --> wait_stimulation
-                    wait_stimulation --> arming
-                    arming --> takeoff
-                    takeoff--> reach_object
-                    takeoff--> reach_valh
-                    reach_object--> precision_landing
-                    reach_valh--> precision_loitering
-                    precision_landing --> take_object
-                    precision_loitering --> drop_object
-                    take_object --> takeoff
-                    drop_object --> return_to_base
-                    return_to_base --> landing
-                    landing --> [*]
-                    
-                    class wait_stimulation actual
+            </div>
+            <div class="state-diagram">
+                <h4 style="color: #000; margin: 0;">Valkyrie</h2>
+                <div id="diagram-container-valk">
                 </div>
             </div>
         </div>
     </div>
+    
     <p>
-    Station au Sol IP: {{ local_ip }}
-</p>
-<script src="/static/script.js"></script>
+        Station au Sol IP: {{ local_ip }}
+    </p>
+
+    <script src="/static/script.js"></script>
 </body>
 </html>
