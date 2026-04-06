@@ -189,8 +189,8 @@ class Camera:
 
             if simulation is None:
                 self._camera_matrix = np.array([
-                    [420.0,   0.0, 320.0],  # Fx ~420, Cx = 320 (Largeur/2)
-                    [  0.0, 420.0, 240.0],  # Fy ~420, Cy = 240 (Hauteur/2)
+                    [600.0,   0.0, 320.0],  # Fx ~420, Cx = 320 (Largeur/2)
+                    [  0.0, 600.0, 240.0],  # Fy ~420, Cy = 240 (Hauteur/2)
                     [  0.0,   0.0,   1.0]
                 ], dtype=np.float64)
                 self._dist_coeffs = np.array([0, 0, 0, 0, 0], dtype=np.float64) # Celle-là non plus

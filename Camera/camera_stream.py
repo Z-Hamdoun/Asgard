@@ -1,9 +1,7 @@
 from picamera2 import Picamera2
-import cv2
 import subprocess
 import numpy as np
 import argparse
-from class_Camera import Camera
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--ip", required=True, help="PC IP address")
@@ -26,22 +24,16 @@ ffmpeg = subprocess.Popen([
     f"udp://{UDP_IP}:{UDP_PORT}"
 ], stdin=subprocess.PIPE)
 
-# picam2 = Picamera2()
-# picam2.configure(picam2.create_video_configuration(
-#     main={"size": (640, 480)}
-# ))
-# picam2.start()
-camera = Camera(simulation=None)
+picam2 = Picamera2()
+picam2.configure(picam2.create_video_configuration(
+    main={"size": (640, 480)}
+))
+picam2.start()
 
 while True:
-    frame = camera.analyse()[-1]
+    frame = picam2.capture_array()
 
-    if frame is None:
-        continue
-    if frame.shape[:2] != (480, 640):
-        frame = cv2.resize(frame, (640, 480))
-    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-
+    frame = frame[:, :, :3]
     frame = np.ascontiguousarray(frame)
 
     ffmpeg.stdin.write(frame.tobytes())
