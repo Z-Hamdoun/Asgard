@@ -1,8 +1,8 @@
 from class_Camera import Camera
-
+import time
 camera = Camera(simulation=None)
 
 while True:
     result = camera.analyse()
-    if result[-2]:
-        print("ARUCOOOOOO")
+    print(result)
+    time.sleep(1)
