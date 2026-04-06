@@ -2,6 +2,7 @@ from picamera2 import Picamera2
 import subprocess
 import numpy as np
 import argparse
+from class_Camera import Camera
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--ip", required=True, help="PC IP address")
@@ -28,10 +29,11 @@ picam2 = Picamera2()
 picam2.configure(picam2.create_video_configuration(
     main={"size": (640, 480)}
 ))
-picam2.start()
+# picam2.start()
+camera = Camera()
 
 while True:
-    frame = picam2.capture_array()
+    frame = camera.analyse()[-1]
 
     frame = frame[:, :, :3]
     frame = np.ascontiguousarray(frame)

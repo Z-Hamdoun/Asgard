@@ -421,7 +421,7 @@ class Camera:
                     corner[:,:,0] += self._last_crop[1]
                     corner[:,:,1] += self._last_crop[0]
 
-                #cv2.aruco.drawDetectedMarkers(frame, corners, ids)
+                cv2.aruco.drawDetectedMarkers(frame, corners, ids)
                 #self.save_image(image=frame)
 
                 _, tvec, _ = cv2.aruco.estimatePoseSingleMarkers([corner], self.aruco_size, self._camera_matrix, self._dist_coeffs)
