@@ -49,7 +49,7 @@ class Drone(MAVLinCS):
                 print('[Aruco] Going to AruCo marker')
                 print(result[0], result[1], result[2])
                 self.send_landing_target(result[0], result[1], result[2])
-            time.sleep(0.01)
+            time.sleep(0.1)
     
     
         

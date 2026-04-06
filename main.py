@@ -70,9 +70,14 @@ try:
             success = drone.change_mode("LAND")
             print(success)
         
+        elif inpt == "precland":
+            loit = Thread(target=drone.loiter, )
+            loit.start()
+            loit.join()
+        
         else:
             print("Bad command")
-        
+     
 except Exception as e:
     print("Erreur innatendue")
     print(e)
