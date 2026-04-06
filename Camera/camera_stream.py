@@ -1,4 +1,5 @@
 from picamera2 import Picamera2
+import cv2
 import subprocess
 import numpy as np
 import argparse
@@ -35,7 +36,12 @@ camera = Camera(simulation=None)
 while True:
     frame = camera.analyse()[-1]
 
-    frame = frame[:, :, :3]
-    frame = np.ascontiguousarray(frame)
+    if frame is None:
+        continue
+    if frame.shape[:2] != (480, 640):
+        frame = cv2.resize(frame, (640, 480))
+    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+
+    frame = np.ascontiguousarray(frame_bgr)
 
     ffmpeg.stdin.write(frame.tobytes())
