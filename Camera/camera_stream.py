@@ -41,7 +41,7 @@ while True:
     if frame.shape[:2] != (480, 640):
         frame = cv2.resize(frame, (640, 480))
     frame_bgr = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-    frame = frame_bgr[:, :, :3]
+
     frame = np.ascontiguousarray(frame)
 
     ffmpeg.stdin.write(frame.tobytes())
