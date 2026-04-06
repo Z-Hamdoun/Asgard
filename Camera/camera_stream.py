@@ -25,10 +25,10 @@ ffmpeg = subprocess.Popen([
     f"udp://{UDP_IP}:{UDP_PORT}"
 ], stdin=subprocess.PIPE)
 
-picam2 = Picamera2()
-picam2.configure(picam2.create_video_configuration(
-    main={"size": (640, 480)}
-))
+# picam2 = Picamera2()
+# picam2.configure(picam2.create_video_configuration(
+#     main={"size": (640, 480)}
+# ))
 # picam2.start()
 camera = Camera(simulation=None)
 
