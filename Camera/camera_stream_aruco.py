@@ -35,6 +35,8 @@ def main():
         "-c:v", "libx264",    # Encodage H264 (bien meilleur que mpeg1)
         "-preset", "ultrafast", # Pour la latence minimale
         "-tune", "zerolatency", # Optimisation temps réel
+        "-profile:v", "baseline", # Évite les B-frames complexes (meilleur pour UDP)
+        "-g", "30",           # Force un Keyframe toutes les 30 frames (corrige l'erreur PPS 0)
         "-f", "mpegts",       # Conteneur transport stream
         f"udp://{UDP_IP}:{UDP_PORT}?pkt_size=1316"
     ]
