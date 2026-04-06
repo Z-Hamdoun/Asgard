@@ -55,7 +55,7 @@ state GUIDED #ccccff;line:ccccff;line.bold {
         
     }
 
-    guided_FLYING x-right[#red]-> LAND: <color:#red>no_gps</color>
+    guided_FLYING x-left[#red]-> LAND: <color:#red>no_gps</color>
     
     on_target_AIR -down[#green]-> RTL : <color:#green>mission_finish</color>
     

@@ -60,7 +60,7 @@ state GUIDED #ccccff;line:ccccff;line.bold {
         searching_LAND -right[#red]-> searching_TAKEOFF : <color:#red>landed_fail</color>
     }
 
-    guided_FLYING x-right[#red]-> LAND: <color:#red>no_gps</color>
+    guided_FLYING x-left[#red]-> LAND: <color:#red>no_gps</color>
 
     state "grounded" as guided_GROUNDED2 #f5f5ff;line:e6e6ff;text:dbdbff {
         state GRASPING {
