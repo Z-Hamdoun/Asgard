@@ -209,7 +209,7 @@ class Camera:
                 self._dist_coeffs = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
             # Créer le dictionnaire ArUco et les paramètres de détection
-            self._aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_6X6_250)
+            self._aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_250)
             """Dictionnaire ArUco."""
 
             self._aruco_params = aruco.DetectorParameters()
