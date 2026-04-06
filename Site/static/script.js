@@ -35,6 +35,12 @@ setInterval(() => {
     if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ 
             type: "ping", 
+            target: "Valkyrie",
+            sent_at: Date.now() 
+        }));
+        ws.send(JSON.stringify({ 
+            type: "ping", 
+            target: "Valhalla",
             sent_at: Date.now() 
         }));
     }
