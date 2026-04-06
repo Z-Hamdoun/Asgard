@@ -1,0 +1,83 @@
+@startuml
+hide empty description
+
+
+state INIT #b3ffff {
+    state init_WAIT #ffffff;line.bold;line:yellow
+    init_WAIT : test
+
+    INIT --> init_WAIT
+}
+
+state FAILSAFE #ff8080 {
+
+    state NO_COMM
+    state LOW_BATTERY
+    state NO_GPS
+
+    FAILSAFE --> NO_COMM : no_heartbeat
+    
+    FAILSAFE --> LOW_BATTERY : battery_low
+    FAILSAFE --> NO_GPS : gps_error
+
+    
+}
+
+state STABILIZE {
+    state "DISARMED" as stabilize_DISARMED #ffe6e6
+    state "ARMED" as stabilize_ARMED #e6ffe6
+
+    STABILIZE -down-> stabilize_DISARMED
+    stabilize_DISARMED -down-> stabilize_ARMED
+    stabilize_ARMED -up-> stabilize_DISARMED
+}
+
+stabilize_ARMED -right-> guided_ARMED
+stabilize_ARMED -right-> loiter_ARMED
+stabilize_ARMED -right-> flowhold_ARMED
+
+state GUIDED {
+    state "DISARMED" as guided_DISARMED #ffe6e6
+    state "ARMED" as guided_ARMED #e6ffe6
+
+    GUIDED -down-> guided_DISARMED
+    guided_DISARMED -down-> guided_ARMED
+    guided_ARMED -up-> guided_DISARMED
+}
+
+guided_ARMED -right-> stabilize_ARMED
+guided_ARMED -right-> loiter_ARMED
+guided_ARMED -right-> flowhold_ARMED
+
+state LOITER {
+    state "DISARMED" as loiter_DISARMED #ffe6e6
+    state "ARMED" as loiter_ARMED #e6ffe6
+
+    LOITER -down-> loiter_DISARMED
+    loiter_DISARMED -down-> loiter_ARMED
+    loiter_ARMED -up-> loiter_DISARMED
+}
+
+loiter_ARMED -right-> stabilize_ARMED
+loiter_ARMED -right-> guided_ARMED
+loiter_ARMED -right-> flowhold_ARMED
+
+state FLOW_HOLD {
+    state "DISARMED" as flowhold_DISARMED #ffe6e6
+    state "ARMED" as flowhold_ARMED #e6ffe6
+
+    FLOW_HOLD -down-> flowhold_DISARMED
+    flowhold_DISARMED -down-> flowhold_ARMED
+    flowhold_ARMED -up-> flowhold_DISARMED
+}
+
+flowhold_ARMED -right-> stabilize_ARMED
+flowhold_ARMED -right-> guided_ARMED
+flowhold_ARMED -right-> loiter_ARMED
+
+
+[*] --> INIT
+init_WAIT --> STABILIZE
+
+
+@enduml

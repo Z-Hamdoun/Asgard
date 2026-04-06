@@ -1,0 +1,19 @@
+@startuml
+hide empty description
+
+''' BASE STATES '''
+state LAND #ffb3b3
+state RTL #ffb3b3
+
+''' MISSION '''
+state STABILIZE {
+    state "WAIT" as stabilize_WAIT
+    STABILIZE --> stabilize_WAIT
+}
+
+state start <<start>>
+note right of start : Valkyrie
+start --> STABILIZE
+
+
+@enduml
