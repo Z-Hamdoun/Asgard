@@ -1,5 +1,6 @@
 import cv2
 from picamera2 import Picamera2
+import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "pnp"))
@@ -24,6 +25,8 @@ def main():
 
             # Appel de l'algo modifié
             contours = pnp.get_contours(frame)
+            for c in contours:
+                print(cv2.contourArea(c))
             result, centers = pnp.get_landing_vector(frame)
 
             # 1. DESSIN DES CONTOURS (comme dans debug_mask)
