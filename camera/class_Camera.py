@@ -188,12 +188,20 @@ class Camera:
             """Matrice de distorsion de la caméra"""
 
             if simulation is None:
+                # self._camera_matrix = np.array([
+                #     [600.0,   0.0, 320.0],  # Fx ~420, Cx = 320 (Largeur/2)
+                #     [  0.0, 600.0, 240.0],  # Fy ~420, Cy = 240 (Hauteur/2)
+                #     [  0.0,   0.0,   1.0]
+                # ], dtype=np.float64)
+                # self._dist_coeffs = np.array([0, 0, 0, 0, 0], dtype=np.float64) # Celle-là non plus
+                
                 self._camera_matrix = np.array([
-                    [600.0,   0.0, 320.0],  # Fx ~420, Cx = 320 (Largeur/2)
-                    [  0.0, 600.0, 240.0],  # Fy ~420, Cy = 240 (Hauteur/2)
-                    [  0.0,   0.0,   1.0]
+                    [961.20937, 0.00000, 327.96329],
+                    [0.00000, 963.93177, 239.74834],
+                    [0.00000, 0.00000, 1.00000]
                 ], dtype=np.float64)
-                self._dist_coeffs = np.array([0, 0, 0, 0, 0], dtype=np.float64) # Celle-là non plus
+                
+                self._dist_coeffs = np.array([-0.02022, 1.12933, -0.00053, 0.00310, -5.27641], dtype=np.float64)
             else:
                 # Matrices de la caméra Gazebo (à vérifier)
                 # self._camera_matrix = np.array([
