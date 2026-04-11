@@ -2,106 +2,103 @@ import cv2
 import numpy as np
 import math
 
+
 class PnPLandingSystem:
+    """
+    Cette classe est le cerveau du système. Elle connaît la forme de la cible à chercher,
+    sait repérer la couleur rose, et calcule la distance en 3D.
+    """
+
     def __init__(self, marker_distance=0.40, net_depth=0.20):
-        """
-        Args:
-            marker_distance (float): Coté du carré formé par les coins (en mètres), il faut bien le mesurer!.
-            net_depth (float): Profondeur du filet (distance verticale entre cadre et centre) en mètres, en vrai c'est pas si important,
-            sauf pour un deplacement verticala.
-        """
-        # Modele 3D, Ordre : Centre, TL, TR, BR, BL
+        # 1. LA FORME DE LA CIBLE (Modèle 3D)
+        # On explique à l'ordinateur à quoi ressemble notre cible dans la vraie vie.
+        # marker_distance : La taille du carré (40 cm).
+        # net_depth : La profondeur du point central (20 cm plus bas).
         half = marker_distance / 2
-        
-        self.object_points = np.array([
-            [0, 0, net_depth],  # Centre (au fond du filet, donc le z est positif)
-            [-half, -half, 0],  # Top-Left z = 0
-            [half, -half, 0],   # Top-Right
-            [half, half, 0],    # Bottom-Right
-            [-half, half, 0]    # Bottom-Left
-        ], dtype=np.float32)
 
-        # Calibration : A changer selon PI Camera ou Gazebo
+        # On définit les 5 points dans l'espace (X, Y, Z) en mètres.
+        self.object_points = np.array(
+            [
+                [
+                    0,
+                    0,
+                    net_depth,
+                ],  # Point 1 : Le centre (enfoncé de 20cm, donc Z est positif)
+                [-half, -half, 0],  # Point 2 : Coin Haut-Gauche
+                [half, -half, 0],  # Point 3 : Coin Haut-Droit
+                [half, half, 0],  # Point 4 : Coin Bas-Droit
+                [-half, half, 0],  # Point 5 : Coin Bas-Gauche
+            ],
+            dtype=np.float32,
+        )
 
-        #Gazebo
-        #self.camera_matrix = np.array([
-        #    [600, 0, 320],
-        #    [0, 600, 240],
-        #    [0, 0, 1]
-        #], dtype=np.float32)
-        
-        # RPI x Picam
-        # self.camera_matrix = np.array([
-        #     [1000, 0, 640],
-        #     [0, 1000, 360],
-        #     [0, 0, 1]
-        # ], dtype=np.float32)
+        # 2. LES YEUX DE LA CAMÉRA (Matrice intrinsèque)
+        # C'est la "paire de lunettes" de la caméra. Cela décrit comment sa lentille
+        # déforme la réalité. Ici, on utilise des valeurs standards pour une webcam de PC.
+        self.camera_matrix = np.array(
+            [[1000, 0, 640], [0, 1000, 360], [0, 0, 1]], dtype=np.float32
+        )
+        self.dist_coeffs = np.zeros((4, 1))
+        self.min_contour_area = 100
+        self.max_contour_area = 600
+        # Le Blanc/Bleu clair en HSV a une saturation basse et une valeur (luminosité) très haute.
+        # (Cette deuxième plage est vide/inutile ici, mais gardée pour la structure de l'algo)
 
-        #Caméra de PC (dixit Gemini)
-        self.camera_matrix = np.array([
-             [1000, 0, 640],
-             [0, 1000, 360],
-             [0, 0, 1]
-         ], dtype=np.float32)
-        self.dist_coeffs = np.zeros((4,1))
+        # 4. CRITÈRES POUR RECONNAÎTRE UNE TACHE
+        self.max_uncircularity_ratio = (
+            0.15  # La tache doit être à peu près ronde ou carrée
+        )
 
-        # Seuils couleurs magenta (utilisez un site pour visualiser ou choisir la couleur)
-        self.lower_hsv1 = np.array([120, 30, 30])
-        self.upper_hsv1 = np.array([170, 255, 255])
-        self.lower_hsv2 = np.array([0, 0, 0])
-        self.upper_hsv2 = np.array([0, 0, 0])
-        
-        # Parametres de detection
-        self.min_contour_area = 10
-        self.max_uncircularity_ratio = 0.15
-        self.iterations = 0 # facultatif pour eliminer le bruit
+    def get_contours(self, frame):
+        # 1. On sépare les canaux : Bleu, Vert, Rouge
+        # Dans OpenCV, l'image est en BGR. L'index 0 est le Bleu.
+        b_channel = frame[:, :, 0]
 
-    def get_contours(self, frame, verbose):
-        blurred = cv2.GaussianBlur(frame, (5, 5), 0)
-        hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(hsv, self.lower_hsv1, self.upper_hsv1) + \
-               cv2.inRange(hsv, self.lower_hsv2, self.upper_hsv2)
-        
-        erosion = cv2.erode(mask, None, iterations=10)
-        #opening = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3), np.uint8), iterations=self.iterations)
-        #closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, np.ones((3,3), np.uint8), iterations=self.iterations)
-        
-        contours, _ = cv2.findContours(erosion, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
+        # 2. On floute pour lisser
+        blurred = cv2.GaussianBlur(b_channel, (5, 5), 0)
+
+        # 3. On cherche ce qui est TRES bleu (proche de 255 sur le canal bleu)
+        # On utilise un seuil haut pour ignorer le reste
+        _, mask = cv2.threshold(blurred, 200, 255, cv2.THRESH_BINARY)
+
+        # 4. Filtre de sécurité : on vérifie en HSV que c'est bien dans la zone "Bleu"
+        # car un point blanc pur est aussi très fort en bleu.
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        # Plage large pour le bleu (environ 100 à 130 en OpenCV)
+        lower_blue = np.array([100, 50, 50])
+        upper_blue = np.array([135, 255, 255])
+        blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
+
+        # On combine : il faut que ce soit fort en canal Bleu ET que la teinte soit bleue
+        final_mask = cv2.bitwise_and(mask, blue_mask)
+
+        # 5. Nettoyage
+        final_mask = cv2.erode(final_mask, None, iterations=2)
+        final_mask = cv2.dilate(final_mask, None, iterations=2)
+
+        # 6. Recherche des contours
+        contours, _ = cv2.findContours(
+            final_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+
         valid_contours = []
         for c in contours:
-            x, y, w, h = cv2.boundingRect(c)
-            R = w/h if h > 0 else 0
-            if cv2.contourArea(c) > self.min_contour_area and abs(1-R) < self.max_uncircularity_ratio:
+            if cv2.contourArea(c) > self.min_contour_area:
+                print(cv2.contourArea(c))
                 valid_contours.append(c)
-        
-        if verbose:
-            print(f"[PnP] Candidats (Rose) trouvés : {len(valid_contours)}")
-
-        if len(valid_contours) < 5:
-            if verbose: print(f"[PnP] ECHEC : Seulement {len(valid_contours)} points potentiels sur 5 requis.")
-            return None 
 
         return sorted(valid_contours, key=cv2.contourArea, reverse=True)[:5]
-        
 
     def get_landing_vector(self, frame, verbose=False):
         """
-        Retourne (dx, dy, dz) en mètres dans le repère du drone (Body Frame).
-        dx : + = Cible est devant
-        dy : + = Cible est a droite
-        dz : + = Cible est en bas (altitude relative)
-        attention cela depend de l'orientation du drone et de la camera donc c'est possible qu'il faut ajouter des signes -
+        C'est ici qu'on calcule la distance en mètres entre la caméra et la cible.
         """
-        if frame is None:
-            if verbose: print("[PnP] Erreur: Image vide (None)")
-            return None
-
-        valid_contours = self.get_contours(frame, verbose)
-
+        # Étape 1 : On récupère les 5 taches roses sur l'image
+        valid_contours = self.get_contours(frame)
         if valid_contours is None:
-            return None
+            return None, []
 
+        # Étape 2 : On cherche le centre exact (en pixels) de chaque tache
         points_2d = []
         for c in valid_contours:
             M = cv2.moments(c)
@@ -111,71 +108,64 @@ class PnPLandingSystem:
                 points_2d.append([cX, cY])
 
         if len(points_2d) != 5:
-            if verbose: print(f"[PnP] ECHEC : Seulement {len(points_2d)} points valides sur 5 requis.")
-            return None 
+            return None, points_2d
 
-        if verbose: print("[PnP] SUCCÈS : 5 points trouvés ! Calcul en cours...")
+        if verbose:
+            print("[PnP] SUCCÈS : 5 points trouvés ! Calcul en cours...")
 
-        # Tri et PnP
         try:
+            # Étape 3 : On devine quel point est le centre, et lesquels sont les coins
             ordered_points = self._order_points(np.array(points_2d, dtype=np.float32))
-            
-            flags = cv2.SOLVEPNP_SQPNP 
 
+            # Étape 4 : LE CALCUL MAGIQUE (PnP)
+            # L'ordinateur compare le modèle 3D parfait avec les points 2D déformés sur l'image.
+            # Il en déduit comment la caméra est positionnée pour voir cette déformation.
             success, rvec, tvec = cv2.solvePnP(
-                self.object_points, 
-                ordered_points, 
-                self.camera_matrix, 
+                self.object_points,
+                ordered_points,
+                self.camera_matrix,
                 self.dist_coeffs,
-                flags=flags
+                flags=cv2.SOLVEPNP_SQPNP,
             )
 
-            if not success: 
-                if verbose: print("[PnP] ECHEC : solvePnP a échoué.")
-                return None
+            if not success:
+                return None, points_2d
 
-            # tvec est dans le repère de la camera :
-            # x_cam = Droite/Gauche image
-            # y_cam = Haut/Bas image (Y vers le bas)
-            # z_cam = Profondeur
-            x_cam = tvec[0][0]
-            y_cam = tvec[1][0]
-            z_cam = tvec[2][0]
+            # tvec contient notre position par rapport à la caméra
+            x_cam = tvec[0][0]  # Décalage gauche/droite
+            y_cam = tvec[1][0]  # Décalage haut/bas
+            z_cam = tvec[2][0]  # Profondeur (distance)
 
-            # Conversion au repere du drone (Body Frame FRD)
-            # Hypothese : Camera pointe vers le bas, haut de l'image = Avant Drone
-            
-            # Axe X (Avant/Arriere)
-            # Si la cible est en haut de l'image (y_cam negatif), elle est devant le drone (dx positif).
-            # Donc dx = -y_cam
-            drone_dx = -x_cam # a changer si necessaire!!!!!
+            # Étape 5 : Traduction pour le Drone
+            # On réorganise les axes pour que ce soit logique pour le pilotage d'un drone
+            drone_dx = -x_cam  # Avant/Arrière
+            drone_dy = y_cam  # Gauche/Droite
+            drone_dz = z_cam  # Altitude relative
+            return (drone_dx, drone_dy, drone_dz), points_2d
 
-            # Axe Y (Gauche/Droite)
-            # Si la cible est à droite de l'image (x_cam positif), elle est à DROITE du drone (dy positif).
-            # Donc dy = x_cam
-            drone_dy = y_cam
-
-            # Axe Z (Altitude)
-            # z_cam est la distance devant la caméra, donc l'altitude relative.
-            drone_dz = z_cam
-            
-            return (drone_dx, drone_dy, drone_dz)
-            
         except Exception as e:
-            if verbose: print(f"[PnP] ERREUR CRITIQUE : {e}")
-            return None
+            if verbose:
+                print(f"[PnP] ERREUR : {e}")
+            return None, points_2d
 
     def _order_points(self, pts):
+        """
+        Trie les points pour savoir qui est qui (centre, haut-gauche, etc.).
+        """
+        # Le point le plus proche du milieu de tous les autres est forcément notre point Central
         mean = np.mean(pts, axis=0)
         dists = np.linalg.norm(pts - mean, axis=1)
         center_idx = np.argmin(dists)
         center = pts[center_idx]
 
+        # Les 4 autres sont les coins
         corners = np.delete(pts, center_idx, axis=0)
 
+        # On trie les coins en tournant autour du centre (comme les aiguilles d'une montre)
         def angle_sort(p):
             return math.atan2(p[1] - center[1], p[0] - center[0])
 
         corners = sorted(corners, key=angle_sort)
-        
+
+        # On renvoie la liste rangée : Centre en premier, suivi des 4 coins
         return np.array([center] + corners, dtype=np.float32)
