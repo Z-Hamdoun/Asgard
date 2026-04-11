@@ -8,7 +8,7 @@ from picamera2 import Picamera2
 # ==========================================================
 CHESSBOARD_SIZE = (9, 6) # Intersections intérieures (Colonnes, Lignes)
 SAVE_DIR = "images_calib"
-MAX_PHOTOS = 20          # Nombre de photos à prendre au total
+MAX_PHOTOS = 30        # Nombre de photos à prendre au total
 
 def main():
     # 1. Création du dossier s'il n'existe pas
