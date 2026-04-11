@@ -66,13 +66,13 @@ def main():
             success_count += 1
             
             # Affichage visuel (facultatif)
-            cv2.drawChessboardCorners(img, CHESSBOARD_SIZE, corners2, ret)
-            cv2.imshow('Damier detecte', img)
-            cv2.waitKey(100) # Montre l'image pendant 100ms
+            #cv2.drawChessboardCorners(img, CHESSBOARD_SIZE, corners2, ret)
+            #cv2.imshow('Damier detecte', img)
+            #cv2.waitKey(100) # Montre l'image pendant 100ms
         else:
             print(f"[ATTENTION] Damier non détecté sur l'image : {fname}")
 
-    cv2.destroyAllWindows()
+    #cv2.destroyAllWindows()
 
     if success_count < 10:
         print(f"\n[ERREUR CRITIQUE] Seulement {success_count} images valides.")
