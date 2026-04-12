@@ -18,6 +18,17 @@ def send_rc(drone):
         )
     time.sleep(0.1)
 
+def release_rc(drone):
+    """
+    Annule les Overrides et rend 100% du contrôle à la radiocommande physique.
+    """
+    drone.master.mav.rc_channels_override_send(
+            drone.master.target_system,
+            drone.master.target_component,
+            0, 0, 0, 0,  # 0 = Rend le contrôle de ces canaux à la radio
+            0, 0, 0, 0   
+        )
+
 def activate_prec(drone, val):
     drone.master.mav.rc_channels_override_send(
             drone.master.target_system,
@@ -102,6 +113,7 @@ except Exception as e:
 
 finally:
     try:
+        release_rc(drone)
         drone.close()
     except Exception:
         pass
