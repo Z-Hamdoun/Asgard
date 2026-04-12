@@ -91,14 +91,14 @@ class PnPLandingSystem:
                 area_large = cv2.contourArea(cnt)
 
                 # Filtrage par taille minimum pour éviter le bruit
-                if area_large > 50:
+                if area_large > 200:
                     # Vérification de la circularité de la grosse tache
                     perimeter = cv2.arcLength(cnt, True)
                     if perimeter == 0:
                         continue
                     circularity = 4 * np.pi * (area_large / (perimeter * perimeter))
 
-                    if 0.3 < circularity < 1.8:  # Proche de 1 = cercle
+                    if 0.1 < circularity < 2.5:  # Proche de 1 = cercle
 
                         # Vérifier si ce contour a un enfant (la tache claire interne)
                         child_idx = hierarchy[0][i][2]
