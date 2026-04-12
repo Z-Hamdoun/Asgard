@@ -9,13 +9,10 @@ def print_authorised():
     # Grosse tache : du noir au bleu "moyen"
     # Note : Le noir est inclus car la "Value" (luminosité) va de 0 à 150.
     # Un noir pur est [0, 0, 0], donc il passe le filtre Value < 150.
-    lower_dark = np.array([90, 50, 0])  # Bleu marine / Noir
-    upper_dark = np.array([130, 255, 150])  # Bleu moyen, luminosité plafonnée
-
-    # Petite tache : du bleu moyen au blanc (LED vive)
-    # Note : Le blanc est inclus car la Saturation va de 0 à 255 et la Value > 150.
-    lower_bright = np.array([60, 0, 150])  # Bleu clair / Désaturé
-    upper_bright = np.array([120, 255, 255])  # Blanc / Bleu très vif
+    lower_dark = np.array([140, 50, 0])  # Bleu marine / Noir
+    upper_dark = np.array([190, 255, 150])  # Bleu moyen, luminosité plafonnée
+    lower_bright = np.array([130, 0, 190])  # Bleu clair / Désaturé
+    upper_bright = np.array([180, 255, 255])  # Blanc / Bleu très vif
 
     # --- Préparation des images ---
     # Nous allons créer des images où l'axe X est la Saturation,

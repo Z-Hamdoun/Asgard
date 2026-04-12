@@ -49,32 +49,27 @@ class PnPLandingSystem:
             0.15  # La tache doit être à peu près ronde ou carrée
         )
 
-    def get_contours(self, frame):
+    def get_contours(frame):
         if frame is None:
             return []
 
-        # 1. Conversion en HSV pour mieux gérer les couleurs
+        # 1. Conversion en HSV
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-        # 2. Définition des plages de couleurs
-        # Grosse tache : du noir au bleu "moyen"
-        lower_dark = np.array([90, 50, 0])  # Bleu marine / Noir
-        upper_dark = np.array([130, 255, 150])  # Bleu moyen, luminosité plafonnée
-
-        # Petite tache : du bleu moyen au blanc (LED vive)
-        lower_bright = np.array([60, 0, 150])  # Bleu clair / Désaturé
-        upper_bright = np.array([120, 255, 255])  # Blanc / Bleu très vif
-
-        # Création des masques
+        # 2. Plages de couleurs
+        lower_dark = np.array([140, 50, 0])  # Bleu marine / Noir
+        upper_dark = np.array([190, 255, 150])  # Bleu moyen, luminosité plafonnée
+        lower_bright = np.array([130, 0, 190])  # Bleu clair / Désaturé
+        upper_bright = np.array([180, 255, 255])         upper_dark = np.array([130, 255, 150])  # Bleu moyen, luminosité plafonnée
+        
+        # Masques
         mask_dark = cv2.inRange(hsv, lower_dark, upper_dark)
         mask_bright = cv2.inRange(hsv, lower_bright, upper_bright)
 
-        # Combiner les deux pour l'analyse de structure
-        # On cherche le clair DANS le sombre
+        # Union pour l'analyse de hiérarchie
         combined_mask = cv2.bitwise_or(mask_dark, mask_bright)
 
-        # 3. Trouver les contours avec hiérarchie
-        # RETR_CCOMP donne 2 niveaux : externe et interne
+        # 3. Trouver les contours avec hiérarchie (CCOMP pour parents/enfants directs)
         contours, hierarchy = cv2.findContours(
             combined_mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
         )
@@ -85,35 +80,38 @@ class PnPLandingSystem:
             return results
 
         for i, cnt in enumerate(contours):
-            # On ne traite que les contours "parents" (ceux qui n'ont pas de parent au-dessus d'eux)
-            # hierarchy[0][i] = [Next, Previous, Child, Parent]
+            # On cherche un contour parent (la grosse tache)
             if hierarchy[0][i][3] == -1:
                 area_large = cv2.contourArea(cnt)
 
-                # Filtrage par taille minimum pour éviter le bruit
-                if area_large > 200:
-                    # Vérification de la circularité de la grosse tache
+                if area_large > 50:
+                    # Vérification circularité
                     perimeter = cv2.arcLength(cnt, True)
                     if perimeter == 0:
                         continue
                     circularity = 4 * np.pi * (area_large / (perimeter * perimeter))
 
-                    if 0.1 < circularity < 2.5:  # Proche de 1 = cercle
-
-                        # Vérifier si ce contour a un enfant (la tache claire interne)
+                    if 0.5 < circularity < 1.5:
+                        # Chercher l'enfant direct (la petite tache interne)
                         child_idx = hierarchy[0][i][2]
+
                         if child_idx != -1:
                             child_cnt = contours[child_idx]
                             area_small = cv2.contourArea(child_cnt)
 
-                            # Si la tache interne est bien plus petite
+                            # On valide que l'enfant est bien plus petit
                             if 0 < area_small < area_large:
-                                # Calcul du centre via les moments
+                                # Calcul du centre
                                 M = cv2.moments(cnt)
                                 if M["m00"] != 0:
                                     cx = int(M["m10"] / M["m00"])
                                     cy = int(M["m01"] / M["m00"])
-                                    results.append(((cx, cy), area_large))
+
+                                    # On renvoie le tuple complet
+                                    # ( (x, y), Aire, Contour_Gros, Contour_Petit )
+                                    results.append(
+                                        ((cx, cy), area_large, cnt, child_cnt)
+                                    )
 
         return results
 
