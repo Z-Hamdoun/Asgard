@@ -112,7 +112,7 @@ class PnPLandingSystem:
                                         ((cx, cy), area_large, cnt, child_cnt)
                                     )
 
-        return results
+        return results, mask_dark, mask_bright
 
     def get_landing_vector(self, frame, verbose=False):
         """

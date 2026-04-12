@@ -20,45 +20,43 @@ def main():
     print("Lancement du mode Mixte (Contours + Points)...")
 
     try:
-        # Dans la boucle principale de ton script de debug
         while True:
             frame_raw = picam2.capture_array()
-
-            # INVERSION ICI : On passe de RGB à BGR pour que OpenCV soit content
             frame = cv2.cvtColor(frame_raw, cv2.COLOR_RGB2BGR)
 
-            # Appel de l'algo modifié
-            contours = pnp.get_contours(frame)
-            for coords, area, cnt_small, cnt_large in contours:
-                print(area)
+            # On récupère les résultats + les deux masques
+            contours, m_dark, m_bright = pnp.get_contours(frame)
+
+            for coords, area, cnt_large, cnt_small in contours:
+                # Dessins sur la frame principale
+                cv2.drawContours(frame, [cnt_large], -1, (0, 0, 255), 2)
+                cv2.drawContours(frame, [cnt_small], -1, (0, 255, 0), 2)
+                cv2.circle(frame, coords, 5, (255, 0, 0), -1)
                 cv2.putText(
                     frame,
-                    str(area),
+                    str(int(area)),
                     (coords[0] + 10, coords[1] - 10),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.5,
                     (255, 0, 0),
                     2,
                 )
-                # Dessiner le contour de la grosse tache en rouge
-                cv2.drawContours(frame, [cnt_large], -1, (0, 0, 255), 2)
 
-                # Dessiner le contour de la petite tache en vert
-                cv2.drawContours(frame, [cnt_small], -1, (0, 255, 0), 2)
-                cv2.circle(frame, (coords[0], coords[1]), 5, (255, 0, 0), -1)
-            cv2.putText(
-                frame, f"Points: {len(contours)}/5", (20, 50), 0, 1, (0, 0, 255), 2
-            )
-            # # 3. AFFICHAGE DES INFOS PNP
-            # if result:
-            #     dx, dy, dz = result
-            #     cv2.putText(frame, f"Z: {dz:.2f}m", (20, 50), 0, 1, (0, 255, 0), 2)
-            # else:
-            #     cv2.putText(
-            #         frame, f"Points: {len(centers)}/5", (20, 50), 0, 1, (0, 0, 255), 2
-            #     )
-
+            # 1. Fenêtre principale
             cv2.imshow("RPi - Detection Mixte", frame)
+            cv2.namedWindow("RPi - Detection Mixte")
+            cv2.moveWindow("RPi - Detection Mixte", 0, 0)
+
+            # 2. Fenêtre Masque Sombre (Grosse tache)
+            cv2.imshow("Masque 1 - Sombre", m_dark)
+            cv2.namedWindow("Masque 1 - Sombre")
+            cv2.moveWindow("Masque 1 - Sombre", 650, 0)  # Décale à droite
+
+            # 3. Fenêtre Masque Clair (Petite tache / LED)
+            cv2.imshow("Masque 2 - Clair", m_bright)
+            cv2.namedWindow("Masque 2 - Clair")
+
+            cv2.moveWindow("Masque 2 - Clair", 650, 400)  # Décale en bas à droite
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
     finally:
