@@ -60,8 +60,7 @@ class PnPLandingSystem:
         lower_dark = np.array([140, 50, 0])  # Bleu marine / Noir
         upper_dark = np.array([190, 255, 150])  # Bleu moyen, luminosité plafonnée
         lower_bright = np.array([130, 0, 190])  # Bleu clair / Désaturé
-        upper_bright = np.array([180, 255, 255])         upper_dark = np.array([130, 255, 150])  # Bleu moyen, luminosité plafonnée
-        
+        upper_bright = np.array([180, 255, 255])
         # Masques
         mask_dark = cv2.inRange(hsv, lower_dark, upper_dark)
         mask_bright = cv2.inRange(hsv, lower_bright, upper_bright)

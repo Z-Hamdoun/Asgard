@@ -29,7 +29,7 @@ def main():
 
             # Appel de l'algo modifié
             contours = pnp.get_contours(frame)
-            for coords, area in contours:
+            for coords, area, cnt_small, cnt_large in contours:
                 print(area)
                 cv2.putText(
                     frame,
@@ -40,6 +40,11 @@ def main():
                     (255, 0, 0),
                     2,
                 )
+                # Dessiner le contour de la grosse tache en rouge
+                cv2.drawContours(frame, [cnt_large], -1, (0, 0, 255), 2)
+
+                # Dessiner le contour de la petite tache en vert
+                cv2.drawContours(frame, [cnt_small], -1, (0, 255, 0), 2)
                 cv2.circle(frame, (coords[0], coords[1]), 5, (255, 0, 0), -1)
             cv2.putText(
                 frame, f"Points: {len(contours)}/5", (20, 50), 0, 1, (0, 0, 255), 2
