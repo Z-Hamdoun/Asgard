@@ -76,7 +76,7 @@ class PnPLandingSystem:
         results = []
 
         if hierarchy is None:
-            return results
+            return results, None, None
 
         for i, cnt in enumerate(contours):
             # On cherche un contour parent (la grosse tache)

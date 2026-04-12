@@ -45,20 +45,21 @@ def main():
             # 1. Fenêtre principale
             cv2.imshow("RPi - Detection Mixte", frame)
             cv2.namedWindow("RPi - Detection Mixte")
+            cv2.resizeWindow("RPi - Detection Mixte", 240, 135)
             cv2.moveWindow("RPi - Detection Mixte", 0, 0)
-            cv2.resizeWindow("RPi - Detection Mixte", 640, 360)
+            cv2.resizeWindow("RPi - Detection Mixte", 240, 135)
             if m_dark is not None:
                 # 2. Fenêtre Masque Sombre (Grosse tache)
                 cv2.imshow("Masque 1 - Sombre", m_dark)
                 cv2.namedWindow("Masque 1 - Sombre")
                 cv2.moveWindow("Masque 1 - Sombre", 650, 0)  # Décale à droite
-                cv2.resizeWindow("Masque 1 - Sombre", 480, 270)
+                cv2.resizeWindow("Masque 1 - Sombre", 240, 135)
 
                 # 3. Fenêtre Masque Clair (Petite tache / LED)
                 cv2.imshow("Masque 2 - Clair", m_bright)
                 cv2.namedWindow("Masque 2 - Clair")
 
-                cv2.resizeWindow("Masque 2 - Clair", 480, 270)
+                cv2.resizeWindow("Masque 2 - Clair", 240, 135)
                 cv2.moveWindow("Masque 2 - Clair", 650, 400)  # Décale en bas à droite
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
