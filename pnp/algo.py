@@ -49,7 +49,7 @@ class PnPLandingSystem:
             0.15  # La tache doit être à peu près ronde ou carrée
         )
 
-    def get_contours(frame):
+    def get_contours(self, frame):
         if frame is None:
             return []
 
