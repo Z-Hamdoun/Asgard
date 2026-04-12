@@ -373,7 +373,7 @@ class Camera:
         """
         dx, dy, dz = float(tvec[0]), float(tvec[1]), float(tvec[2])
         if not self._simulation:
-            return dy, dx, dz # A vérifier   # combinaisons testees: - + / + + /
+            return -dy, dx, dz # A vérifier   # combinaisons testees: - + / + + /
         else:
             return dx, dy, dz # A vérifier
 
