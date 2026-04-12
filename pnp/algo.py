@@ -91,7 +91,7 @@ class PnPLandingSystem:
                 area_large = cv2.contourArea(cnt)
 
                 # Filtrage par taille minimum pour éviter le bruit
-                if area_large > 30:
+                if area_large > 50:
                     # Vérification de la circularité de la grosse tache
                     perimeter = cv2.arcLength(cnt, True)
                     if perimeter == 0:
