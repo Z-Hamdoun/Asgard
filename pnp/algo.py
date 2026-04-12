@@ -39,8 +39,8 @@ class PnPLandingSystem:
             [[1000, 0, 640], [0, 1000, 360], [0, 0, 1]], dtype=np.float32
         )
         self.dist_coeffs = np.zeros((4, 1))
-        self.min_contour_area = 100
-        self.max_contour_area = 600
+        self.min_contour_area = 50
+        self.max_contour_area = 1600
         # Le Blanc/Bleu clair en HSV a une saturation basse et une valeur (luminosité) très haute.
         # (Cette deuxième plage est vide/inutile ici, mais gardée pour la structure de l'algo)
 

@@ -31,6 +31,20 @@ def main():
             contours = pnp.get_contours(frame)
             for c in contours:
                 print(cv2.contourArea(c))
+
+                M = cv2.moments(c)
+                if M["m00"] != 0:
+                    cX = int(M["m10"] / M["m00"])
+                    cY = int(M["m01"] / M["m00"])
+                    cv2.putText(
+                        frame,
+                        str(cv2.contourArea(c)),
+                        (cX + 10, cY - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        (255, 0, 0),
+                        2,
+                    )
             result, centers = pnp.get_landing_vector(frame)
 
             # 1. DESSIN DES CONTOURS (comme dans debug_mask)
