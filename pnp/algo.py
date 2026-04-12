@@ -51,7 +51,7 @@ class PnPLandingSystem:
 
     def get_contours(self, frame):
         if frame is None:
-            return []
+            return [], None, None
 
         # 1. Conversion en HSV
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
