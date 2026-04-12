@@ -41,7 +41,9 @@ def main():
                     2,
                 )
                 cv2.circle(frame, (coords[0], coords[1]), 5, (255, 0, 0), -1)
-
+            cv2.putText(
+                frame, f"Points: {len(contours)}/5", (20, 50), 0, 1, (0, 0, 255), 2
+            )
             # # 3. AFFICHAGE DES INFOS PNP
             # if result:
             #     dx, dy, dz = result
