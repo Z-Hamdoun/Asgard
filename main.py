@@ -18,13 +18,18 @@ def send_rc(drone):
         )
     time.sleep(0.1)
 
-def activate_prec(drone):
+def activate_prec(drone, val):
     drone.master.mav.rc_channels_override_send(
             drone.master.target_system,
             drone.master.target_component,
             65535, 65535, 65535, 65535,
-            65535, 65535, 65535, 1000
+            65535, 65535, 65535, val
         )
+    msg = drone.master.recv_match(type='RC_CHANNELS', blocking=True, timeout=1.0)
+    
+    if msg:
+        rc8_value = msg.chan8_raw
+        print(f"Valeur RC: {rc8_value}")
     time.sleep(0.05)
 
 
@@ -35,7 +40,7 @@ try:
         target_system=1,
         baud=921600,
     )
-    rc_thread = Thread(target=send_rc, args=(drone, ))
+    rc_thread = Thread(target=send_rc, args=(drone, ), daemon=True)
 
 
     # camera = Camera(simulation=None, logger=Logger("log.txt"))
@@ -83,7 +88,8 @@ try:
             loit.start()
         
         elif inpt == "onprec":
-            acti = Thread(target=activate_prec, args=(drone, ))
+            val = int(input("Valeur RC: "))
+            acti = Thread(target=activate_prec, args=(drone, val))
             acti.start()
         
         else:
