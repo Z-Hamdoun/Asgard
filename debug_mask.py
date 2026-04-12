@@ -20,8 +20,12 @@ def main():
     print("Lancement du mode Mixte (Contours + Points)...")
 
     try:
+        # Dans la boucle principale de ton script de debug
         while True:
-            frame = picam2.capture_array()
+            frame_raw = picam2.capture_array()
+
+            # INVERSION ICI : On passe de RGB à BGR pour que OpenCV soit content
+            frame = cv2.cvtColor(frame_raw, cv2.COLOR_RGB2BGR)
 
             # Appel de l'algo modifié
             contours = pnp.get_contours(frame)
