@@ -50,44 +50,72 @@ class PnPLandingSystem:
         )
 
     def get_contours(self, frame):
-        # 1. On sépare les canaux : Bleu, Vert, Rouge
-        # Dans OpenCV, l'image est en BGR. L'index 0 est le Bleu.
-        b_channel = frame[:, :, 0]
+        if frame is None:
+            return []
 
-        # 2. On floute pour lisser
-        blurred = cv2.GaussianBlur(b_channel, (5, 5), 0)
-
-        # 3. On cherche ce qui est TRES bleu (proche de 255 sur le canal bleu)
-        # On utilise un seuil haut pour ignorer le reste
-        _, mask = cv2.threshold(blurred, 200, 255, cv2.THRESH_BINARY)
-
-        # 4. Filtre de sécurité : on vérifie en HSV que c'est bien dans la zone "Bleu"
-        # car un point blanc pur est aussi très fort en bleu.
+        # 1. Conversion en HSV pour mieux gérer les couleurs
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        # Plage large pour le bleu (environ 100 à 130 en OpenCV)
-        lower_blue = np.array([125, 0, 150])
-        upper_blue = np.array([160, 255, 255])
-        blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
 
-        # On combine : il faut que ce soit fort en canal Bleu ET que la teinte soit bleue
-        final_mask = cv2.bitwise_and(mask, blue_mask)
+        # 2. Définition des plages de couleurs
+        # Grosse tache : du noir au bleu "moyen"
+        lower_dark = np.array([90, 50, 0])  # Bleu marine / Noir
+        upper_dark = np.array([130, 255, 150])  # Bleu moyen, luminosité plafonnée
 
-        # 5. Nettoyage
-        final_mask = cv2.erode(final_mask, None, iterations=2)
-        final_mask = cv2.dilate(final_mask, None, iterations=2)
+        # Petite tache : du bleu moyen au blanc (LED vive)
+        lower_bright = np.array([80, 0, 150])  # Bleu clair / Désaturé
+        upper_bright = np.array([140, 255, 255])  # Blanc / Bleu très vif
 
-        # 6. Recherche des contours
-        contours, _ = cv2.findContours(
-            final_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        # Création des masques
+        mask_dark = cv2.inRange(hsv, lower_dark, upper_dark)
+        mask_bright = cv2.inRange(hsv, lower_bright, upper_bright)
+
+        # Combiner les deux pour l'analyse de structure
+        # On cherche le clair DANS le sombre
+        combined_mask = cv2.bitwise_or(mask_dark, mask_bright)
+
+        # 3. Trouver les contours avec hiérarchie
+        # RETR_CCOMP donne 2 niveaux : externe et interne
+        contours, hierarchy = cv2.findContours(
+            combined_mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
         )
 
-        valid_contours = []
-        for c in contours:
-            if cv2.contourArea(c) > self.min_contour_area:
-                print(cv2.contourArea(c))
-                valid_contours.append(c)
+        results = []
 
-        return sorted(valid_contours, key=cv2.contourArea, reverse=True)[:5]
+        if hierarchy is None:
+            return results
+
+        for i, cnt in enumerate(contours):
+            # On ne traite que les contours "parents" (ceux qui n'ont pas de parent au-dessus d'eux)
+            # hierarchy[0][i] = [Next, Previous, Child, Parent]
+            if hierarchy[0][i][3] == -1:
+                area_large = cv2.contourArea(cnt)
+
+                # Filtrage par taille minimum pour éviter le bruit
+                if area_large > 50:
+                    # Vérification de la circularité de la grosse tache
+                    perimeter = cv2.arcLength(cnt, True)
+                    if perimeter == 0:
+                        continue
+                    circularity = 4 * np.pi * (area_large / (perimeter * perimeter))
+
+                    if 0.5 < circularity < 1.5:  # Proche de 1 = cercle
+
+                        # Vérifier si ce contour a un enfant (la tache claire interne)
+                        child_idx = hierarchy[0][i][2]
+                        if child_idx != -1:
+                            child_cnt = contours[child_idx]
+                            area_small = cv2.contourArea(child_cnt)
+
+                            # Si la tache interne est bien plus petite
+                            if 0 < area_small < area_large:
+                                # Calcul du centre via les moments
+                                M = cv2.moments(cnt)
+                                if M["m00"] != 0:
+                                    cx = int(M["m10"] / M["m00"])
+                                    cy = int(M["m01"] / M["m00"])
+                                    results.append(((cx, cy), area_large))
+
+        return results
 
     def get_landing_vector(self, frame, verbose=False):
         """

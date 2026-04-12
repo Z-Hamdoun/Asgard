@@ -29,50 +29,27 @@ def main():
 
             # Appel de l'algo modifié
             contours = pnp.get_contours(frame)
-            for c in contours:
-                print(cv2.contourArea(c))
-
-                M = cv2.moments(c)
-                if M["m00"] != 0:
-                    cX = int(M["m10"] / M["m00"])
-                    cY = int(M["m01"] / M["m00"])
-                    cv2.putText(
-                        frame,
-                        str(cv2.contourArea(c)),
-                        (cX + 10, cY - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5,
-                        (255, 0, 0),
-                        2,
-                    )
-            result, centers = pnp.get_landing_vector(frame)
-
-            # 1. DESSIN DES CONTOURS (comme dans debug_mask)
-            # On dessine la silhouette de ce qui a été détecté en Jaune
-            cv2.drawContours(frame, contours, -1, (0, 255, 255), 2)
-
-            # 2. DESSIN DES POINTS CENTRAUX (comme dans test_camera)
-            for i, p in enumerate(centers):
-                # Un point bleu plein au centre
-                cv2.circle(frame, (p[0], p[1]), 5, (255, 0, 0), -1)
+            for coords, area in contours:
+                print(area)
                 cv2.putText(
                     frame,
-                    str(i + 1),
-                    (p[0] + 10, p[1] - 10),
+                    str(area),
+                    (coords[0] + 10, coords[1] - 10),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.5,
                     (255, 0, 0),
                     2,
                 )
+                cv2.circle(frame, (coords[0], coords[1]), 5, (255, 0, 0), -1)
 
-            # 3. AFFICHAGE DES INFOS PNP
-            if result:
-                dx, dy, dz = result
-                cv2.putText(frame, f"Z: {dz:.2f}m", (20, 50), 0, 1, (0, 255, 0), 2)
-            else:
-                cv2.putText(
-                    frame, f"Points: {len(centers)}/5", (20, 50), 0, 1, (0, 0, 255), 2
-                )
+            # # 3. AFFICHAGE DES INFOS PNP
+            # if result:
+            #     dx, dy, dz = result
+            #     cv2.putText(frame, f"Z: {dz:.2f}m", (20, 50), 0, 1, (0, 255, 0), 2)
+            # else:
+            #     cv2.putText(
+            #         frame, f"Points: {len(centers)}/5", (20, 50), 0, 1, (0, 0, 255), 2
+            #     )
 
             cv2.imshow("RPi - Detection Mixte", frame)
             if cv2.waitKey(1) & 0xFF == ord("q"):
