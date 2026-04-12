@@ -25,7 +25,7 @@ def activate_prec(drone, val):
             65535, 65535, 65535, 65535,
             65535, 65535, 65535, val
         )
-    msg = drone.master.recv_match(type='RC_CHANNELS', blocking=True, timeout=1.0)
+    msg = drone.get_msg(msg_type='RC_CHANNELS')
     
     if msg:
         rc8_value = msg.chan8_raw
