@@ -16,7 +16,7 @@ ffmpeg = subprocess.Popen([
     "ffmpeg",
     "-f", "rawvideo",
     "-pix_fmt", "bgr24",
-    "-s", "640x480",
+    "-s", "848x480",
     "-r", "30",
     "-i", "-",
     "-f", "mpegts",
@@ -26,7 +26,7 @@ ffmpeg = subprocess.Popen([
 
 picam2 = Picamera2()
 picam2.configure(picam2.create_video_configuration(
-    main={"size": (640, 480)}
+    main={"size": (848, 480)}
 ))
 picam2.start()
 

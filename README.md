@@ -1,4 +1,4 @@
-# Project Valkyrie
+# Project ASGARD
 Configuration wifi des deux RPI
 
 **WiFi SSID:** `Asgard`
@@ -32,3 +32,8 @@ ssh helics@valkyrie.local
 
 **password**: `opensesame`
 
+# Mavproxy
+
+```sh
+mavproxy.py --master=/dev/ttyAMA0 --baudrate 921600
+```
