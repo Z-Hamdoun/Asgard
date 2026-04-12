@@ -10,14 +10,22 @@ from threading import Thread
 
 
 def send_rc(drone):
-    for i in range(100):
-        drone.master.mav.rc_channels_override_send(
-                drone.master.target_system,
-                drone.master.target_component,
-                0, 0, 1500, 0,
-                0, 0, 0, 0
-            )
-        time.sleep(0.1)
+    drone.master.mav.rc_channels_override_send(
+            drone.master.target_system,
+            drone.master.target_component,
+            65535, 65535, 1500, 65535,
+            65535, 65535, 65535, 65535
+        )
+    time.sleep(0.1)
+
+def activate_prec(drone):
+    drone.master.mav.rc_channels_override_send(
+            drone.master.target_system,
+            drone.master.target_component,
+            65535, 65535, 65535, 65535,
+            65535, 65535, 65535, 1000
+        )
+    time.sleep(0.05)
 
 
 try:
@@ -74,8 +82,13 @@ try:
             loit = Thread(target=drone.loiter, )
             loit.start()
         
+        elif inpt == "onprec":
+            acti = Thread(target=activate_prec, args=(drone, ))
+            acti.start()
+        
         else:
             print("Bad command")
+            
      
 except Exception as e:
     print("Erreur innatendue")
