@@ -62,8 +62,8 @@ class PnPLandingSystem:
         upper_dark = np.array([130, 255, 150])  # Bleu moyen, luminosité plafonnée
 
         # Petite tache : du bleu moyen au blanc (LED vive)
-        lower_bright = np.array([80, 0, 150])  # Bleu clair / Désaturé
-        upper_bright = np.array([140, 255, 255])  # Blanc / Bleu très vif
+        lower_bright = np.array([60, 0, 150])  # Bleu clair / Désaturé
+        upper_bright = np.array([120, 255, 255])  # Blanc / Bleu très vif
 
         # Création des masques
         mask_dark = cv2.inRange(hsv, lower_dark, upper_dark)
