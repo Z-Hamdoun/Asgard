@@ -65,8 +65,8 @@ class PnPLandingSystem:
         # car un point blanc pur est aussi très fort en bleu.
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         # Plage large pour le bleu (environ 100 à 130 en OpenCV)
-        lower_blue = np.array([100, 50, 50])
-        upper_blue = np.array([135, 255, 255])
+        lower_blue = np.array([125, 0, 150])
+        upper_blue = np.array([160, 255, 255])
         blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
 
         # On combine : il faut que ce soit fort en canal Bleu ET que la teinte soit bleue
