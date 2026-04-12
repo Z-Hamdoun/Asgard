@@ -9,10 +9,10 @@ def print_authorised():
     # Grosse tache : du noir au bleu "moyen"
     # Note : Le noir est inclus car la "Value" (luminosité) va de 0 à 150.
     # Un noir pur est [0, 0, 0], donc il passe le filtre Value < 150.
-    lower_dark = np.array([90, 50, 0])
-    upper_dark = np.array([130, 255, 150])
-    lower_bright = np.array([80, 0, 150])
-    upper_bright = np.array([140, 255, 255])
+    lower_bright = np.array([90, 50, 0])
+    upper_bright = np.array([130, 255, 150])
+    lower_dark = np.array([80, 0, 150])
+    upper_dark = np.array([140, 255, 255])
     # --- Préparation des images ---
     # Nous allons créer des images où l'axe X est la Saturation,
     # l'axe Y est la Valeur (luminosité), et nous itérerons sur la Teinte (Hue).
