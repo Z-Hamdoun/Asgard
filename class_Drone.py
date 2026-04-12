@@ -1,5 +1,5 @@
 from pymavlink_code.class_MAVLinCS import MAVLinCS
-from Camera.class_Camera import Camera
+from camera.class_Camera import Camera
 from pymavlink import mavutil
 from divers.class_Logger import Logger
 import time
@@ -49,7 +49,7 @@ class Drone(MAVLinCS):
                 print('[Aruco] Going to AruCo marker')
                 print(result[0], result[1], result[2])
                 self.send_landing_target(result[0], result[1], result[2])
-            time.sleep(0.1)
+            time.sleep(0.05)
     
     
         

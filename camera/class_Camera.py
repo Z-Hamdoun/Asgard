@@ -233,7 +233,7 @@ class Camera:
                 self.aruco_size = 0.62 # Taille ArUco sur Gazebo
             else:
                 self.aruco_id = 4
-                self.aruco_size = 0.36
+                self.aruco_size = 0.1
 
             # Variables utilisées pour la détection ArUco
             self.DO_CROP: bool = do_crop
