@@ -26,6 +26,7 @@ def generate_frames():
 
         # Clone la frame originale pour dessiner dessus sans modifier la source
         output_frame = frame.copy()
+        _, output_frame = cv2.threshold(output_frame, 150, 255, cv2.THRESH_BINARY_INV)
 
         # Appel de la fonction de détection
         taches = detector.get_contours(frame)
