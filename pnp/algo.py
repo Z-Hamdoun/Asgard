@@ -263,7 +263,7 @@ class PnPLandingSystem:
         results_nested = self.get_nested_squares(results)
         ids_first = {t[0] for t in results_nested}
 
-        return [dico for dico in results if dico["id"] in ids_first]
+        return ([dico for dico in results if dico["id"] in ids_first], [], [], gray)
 
     def get_nested_squares(self, data):
         n = len(data)
