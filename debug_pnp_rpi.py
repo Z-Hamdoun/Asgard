@@ -27,7 +27,7 @@ def generate_frames():
         frame = cv2.cvtColor(frame_raw, cv2.COLOR_RGB2BGR)
 
         # On récupère les contours ET le masque (thresh)
-        taches1, taches2, taches3, thresh = detector.get_contours(frame)
+        taches1, taches2, taches3, thresh = detector.get_contours2(frame)
 
         # OPTION A : Afficher UNIQUEMENT le masque noir et blanc
         output_frame = thresh

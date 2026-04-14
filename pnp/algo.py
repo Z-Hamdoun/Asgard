@@ -140,9 +140,9 @@ class PnPLandingSystem:
 
         for i, cnt in enumerate(contours):
             area = cv2.contourArea(cnt)
-            print(area)
+
             if area > 3000 or area < 40:
-                print("no good area")
+
                 continue
             if not self._is_circular(cnt, area):
                 continue  # On ignore la tache si elle n'est pas assez ronde/carrée
@@ -191,6 +191,57 @@ class PnPLandingSystem:
             results_corrects_grande_tache,
             blurred,
         )
+
+    def get_contours_v2(self, frame):
+        # 1. Prétraitement (Optionnel : CLAHE pour la luminosité comme discuté avant)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # 2. Détection des "Keypoints" (les centres des cibles)
+        detector = self.setup_blob_detector()
+        keypoints = detector.detect(gray)
+
+        results = []
+        for i, kp in enumerate(keypoints):
+            # kp.pt contient (x, y)
+            cX, cY = int(kp.pt[0]), int(kp.pt[1])
+
+            # kp.size contient le diamètre de la tache
+            radius = kp.size / 2
+
+            # On recrée une structure compatible avec ton reste de code
+            results.append(
+                {
+                    "id": i,
+                    "center": (cX, cY),
+                    "area": np.pi * (radius**2),
+                    "limits": {
+                        "x_min": int(cX - radius),
+                        "x_max": int(cX + radius),
+                        "y_min": int(cY - radius),
+                        "y_max": int(cY + radius),
+                    },
+                    # Note : le blob detector ne donne pas les contours exacts (points)
+                    # On simule un cercle pour le dessin si nécessaire
+                    "contours": np.array(
+                        [
+                            [
+                                [
+                                    int(cX + radius * np.cos(a)),
+                                    int(cY + radius * np.sin(a)),
+                                ]
+                            ]
+                            for a in np.linspace(0, 2 * np.pi, 20)
+                        ],
+                        dtype=np.int32,
+                    ),
+                }
+            )
+
+        # On passe quand même par ta logique C pour trouver les triplets imbriqués
+        results_nested = self.get_nested_squares(results)
+        ids_first = {t[0] for t in results_nested}
+
+        return [dico for dico in results if dico["id"] in ids_first]
 
     def get_nested_squares(self, data):
         n = len(data)
