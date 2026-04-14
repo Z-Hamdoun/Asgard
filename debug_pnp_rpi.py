@@ -40,7 +40,8 @@ def generate_frames():
             # On dessine en VERT sur le masque pour voir si la détection matche le seuil
             cv2.drawContours(output_frame, [tache["contours"]], -1, (0, 255, 0), 2)
             if tache["center"] is not None:
-                cv2.circle(output_frame, tache["center"], 5, (0, 0, 255), -1)
+                cX, cY = tache["center"]
+                cv2.circle(output_frame, (cX, cY), 5, (0, 0, 255), -1)
                 aire = tache["area"]
                 texte_aire = f"A: {int(aire)}"
 
