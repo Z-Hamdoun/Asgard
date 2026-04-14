@@ -143,10 +143,10 @@ class PnPLandingSystem:
     def get_contours(self, frame):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-        erosed = cv2.erode(blurred, iteration=1)
-        dilated = cv2.dilate(blurred, iteration=1)
+        kernel = np.ones((5, 5), np.uint8)
+        opening = cv2.morphologyEx(blurred, cv2.MORPH_OPEN, kernel)
         # On garde le seuillage inversé
-        _, thresh = cv2.threshold(dilated, 150, 255, cv2.THRESH_BINARY_INV)
+        _, thresh = cv2.threshold(opening, 150, 255, cv2.THRESH_BINARY_INV)
 
         contours, hierarchy = cv2.findContours(
             thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE
