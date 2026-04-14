@@ -3,6 +3,35 @@ import numpy as np
 import math
 
 
+import ctypes
+
+
+# 1. Définition des structures pour faire le pont avec le C
+class BBox(ctypes.Structure):
+    _fields_ = [
+        ("x_min", ctypes.c_float),
+        ("x_max", ctypes.c_float),
+        ("y_min", ctypes.c_float),
+        ("y_max", ctypes.c_float),
+        ("id", ctypes.c_int),
+    ]
+
+
+class Result(ctypes.Structure):
+    _fields_ = [("id1", ctypes.c_int), ("id2", ctypes.c_int), ("id3", ctypes.c_int)]
+
+
+# 2. Chargement de la librairie
+lib = ctypes.CDLL("./pnp/logic.so")
+lib.find_nested_triplets.argtypes = [
+    ctypes.POINTER(BBox),
+    ctypes.c_int,
+    ctypes.POINTER(Result),
+    ctypes.c_int,
+]
+lib.find_nested_triplets.restype = ctypes.c_int
+
+
 class PnPLandingSystem:
     """
     Cette classe est le cerveau du système. Elle connaît la forme de la cible à chercher,
@@ -99,52 +128,79 @@ class PnPLandingSystem:
         return 0.5 < circularity < 1.5
 
     def get_contours(self, frame):
-        if frame is None:
-            return [], None, None
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        mask_dark, mask_bright = self._get_masks(hsv)
+        # On garde le seuillage inversé
+        _, thresh = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY_INV)
 
-        # On cherche les contours sur le masque SOMBRE uniquement pour la structure externe
-        # ou sur un combined_mask si on veut boucher les trous.
-        # Ici, on utilise le combined pour avoir la forme pleine.
-        combined = cv2.bitwise_or(mask_dark, mask_bright)
         contours, hierarchy = cv2.findContours(
-            combined, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
+            thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE
         )
 
         results = []
-        if hierarchy is None:
-            return [], mask_dark, mask_bright
 
         for i, cnt in enumerate(contours):
-            # 1. Est-ce un contour parent (externe) ?
-            if hierarchy[0][i][3] == -1:
-                area_l = cv2.contourArea(cnt)
+            area = cv2.contourArea(cnt)
+            if area < 50:
+                continue
+            M = cv2.moments(cnt)
+            if M["m00"] == 0:
+                continue
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
 
-                if 1000 > area_l > 50 and self._is_circular(cnt, area_l):
-                    child_idx = hierarchy[0][i][2]
+            if thresh[cY, cX] == 0:
+                # C'est le contour d'un trou (le vide), on l'ignore
+                continue
 
-                    if child_idx != -1:
-                        child_cnt = contours[child_idx]
-                        area_s = cv2.contourArea(child_cnt)
+            x, y, w, h = cv2.boundingRect(cnt)
 
-                        # --- LA CORRECTION EST ICI ---
-                        # On vérifie que le centre du petit contour est BLANC dans le masque CLAIR
-                        M_s = cv2.moments(child_cnt)
-                        if M_s["m00"] > 0:
-                            cx_s = int(M_s["m10"] / M_s["m00"])
-                            cy_s = int(M_s["m01"] / M_s["m00"])
+            results.append(
+                {
+                    "id": i,
+                    "center": (cX, cY),
+                    "contours": cnt,
+                    "area": area,
+                    "limits": {"x_min": x, "x_max": x + w, "y_min": y, "y_max": y + h},
+                }
+            )
 
-                            # On vérifie si ce point appartient au masque bright
-                            if mask_bright[cy_s, cx_s] > 0:
-                                M_l = cv2.moments(cnt)
-                                cx_l, cy_l = int(M_l["m10"] / M_l["m00"]), int(
-                                    M_l["m01"] / M_l["m00"]
-                                )
-                                results.append(((cx_l, cy_l), area_l, cnt, child_cnt))
+        results_nested = self.get_nested_squares(results)
+        ids_first = {t[0] for t in results_nested}
 
-        return results, mask_dark, mask_bright
+        # 3. On filtre la liste d'origine
+        results_corrects = [dico for dico in results if dico["id"] in ids_first]
+
+        # --- Affichage du résultat ---
+        return results_corrects
+
+    def get_nested_squares(self, data):
+        n = len(data)
+        # Préparation des données pour le C
+        c_boxes = (BBox * n)()
+        for i, item in enumerate(data):
+            limits = item["limits"]
+            c_boxes[i] = BBox(
+                limits["x_min"],
+                limits["x_max"],
+                limits["y_min"],
+                limits["y_max"],
+                item["id"],
+            )
+
+        # Buffer pour les résultats (ajustez la taille max selon vos besoins)
+        max_results = 1000
+        c_results = (Result * max_results)()
+
+        # Appel de la fonction C
+        num_found = lib.find_nested_triplets(c_boxes, n, c_results, max_results)
+
+        # Conversion en liste de tuples Python
+        return [
+            (c_results[i].id1, c_results[i].id2, c_results[i].id3)
+            for i in range(num_found)
+        ]
 
     def get_landing_vector(self, frame, verbose=False):
         """

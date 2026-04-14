@@ -1,77 +1,77 @@
-import cv2
 from picamera2 import Picamera2
+from flask import Flask, Response
+import cv2
 import os
 import sys
 
+# Garde tes imports spécifiques si ton dossier pnp est au même endroit
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "pnp"))
 from algo import PnPLandingSystem
 
+import numpy as np
 
-def main():
-    picam2 = Picamera2()
-    config = picam2.create_video_configuration(
-        main={"size": (1280, 720), "format": "BGR888"}
+
+app = Flask(__name__)
+picam2 = Picamera2()
+
+picam2.configure(picam2.create_video_configuration(main={"size": (1280, 720)}))
+picam2.start()
+
+
+def generate_frames():
+    detector = PnPLandingSystem()
+    while True:
+        frame_raw = picam2.capture_array()
+        frame = cv2.cvtColor(frame_raw, cv2.COLOR_RGB2BGR)
+
+        # Clone la frame originale pour dessiner dessus sans modifier la source
+        output_frame = frame.copy()
+
+        # Appel de la fonction de détection
+        taches = detector.get_contours(frame)
+
+        # --- Affichage des résultats ---
+        for tache in taches:
+            # 1. Dessiner le contour (en VERT, épaisseur 2)
+            cv2.drawContours(output_frame, [tache["contours"]], -1, (0, 255, 0), 2)
+
+            # 2. Dessiner le centre (point ROUGE plein)
+            if tache["center"] is not None:
+                cv2.circle(output_frame, tache["center"], 5, (0, 0, 255), -1)
+
+                # Optionnel: Afficher les coordonnées du centre
+                # cv2.putText(output_frame, f"({tache['center'][0]},{tache['center'][1]})",
+                #             (tache['center'][0] + 10, tache['center'][1]),
+                #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+
+            # 3. Dessiner le rectangle englobant (en BLEU, épaisseur 2)
+            # On utilise directement les données de 'limits'
+            lim = tache["limits"]
+            cv2.rectangle(
+                output_frame,
+                (lim["x_min"], lim["y_min"]),
+                (lim["x_max"], lim["y_max"]),
+                (255, 0, 0),
+                2,
+            )
+
+        ret, buffer = cv2.imencode(".jpg", output_frame)
+        if not ret:
+            continue
+
+        frame_bytes = buffer.tobytes()
+
+        yield (
+            b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
+        )
+
+
+@app.route("/video")
+def video():
+    return Response(
+        generate_frames(), mimetype="multipart/x-mixed-replace; boundary=frame"
     )
-    picam2.configure(config)
-    picam2.start()
-
-    pnp = PnPLandingSystem()
-
-    print("Lancement du mode Mixte (Contours + Points)...")
-
-    try:
-        while True:
-            frame_raw = picam2.capture_array()
-            frame = cv2.cvtColor(frame_raw, cv2.COLOR_RGB2BGR)
-
-            # On récupère les résultats + les deux masques
-            contours, m_dark, m_bright = pnp.get_contours(frame)
-
-            for coords, area, cnt_large, cnt_small in contours:
-                # Dessins sur la frame principale
-                cv2.drawContours(frame, [cnt_large], -1, (0, 0, 255), 2)
-                cv2.drawContours(frame, [cnt_small], -1, (0, 255, 0), 2)
-                cv2.circle(frame, coords, 5, (255, 0, 0), -1)
-                cv2.putText(
-                    frame,
-                    str(int(area)),
-                    (coords[0] + 10, coords[1] - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
-                    (255, 0, 0),
-                    2,
-                )
-
-            # 1. Fenêtre principale
-            cv2.imshow("RPi - Detection Mixte", frame)
-
-            if m_dark is not None:
-                m_dark_color = cv2.cvtColor(m_dark, cv2.COLOR_GRAY2BGR)
-                m_bright_color = cv2.cvtColor(m_bright, cv2.COLOR_GRAY2BGR)
-
-                # 2. Fenêtre Masque Sombre (Grosse tache)
-                print(contours)
-                for coords, area, cnt_large, cnt_small in contours:
-                    # On dessine sur m_dark_color (qui accepte le rouge et le vert maintenant)
-                    cv2.drawContours(m_dark_color, [cnt_large], -1, (0, 0, 255), 2)
-                    cv2.drawContours(m_dark_color, [cnt_small], -1, (0, 255, 0), 2)
-
-                cv2.imshow("Masque 1 - Sombre", m_dark_color)
-                # ... tes fonctions namedWindow/resizeWindow/moveWindow ...
-
-                # 3. Fenêtre Masque Clair (Petite tache / LED)
-                for coords, area, cnt_large, cnt_small in contours:
-                    # On dessine sur m_bright_color
-                    cv2.drawContours(m_bright_color, [cnt_large], -1, (0, 0, 255), 2)
-                    cv2.drawContours(m_bright_color, [cnt_small], -1, (0, 255, 0), 2)
-
-                cv2.imshow("Masque 2 - Clair", m_bright_color)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
-    finally:
-        picam2.stop()
-        cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
-    main()
+    app.run(host="0.0.0.0", port=5000)
