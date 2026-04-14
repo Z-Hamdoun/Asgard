@@ -1,3 +1,5 @@
+import time
+
 from picamera2 import Picamera2
 from flask import Flask, Response
 import cv2
@@ -21,16 +23,18 @@ picam2.start()
 def generate_frames():
     detector = PnPLandingSystem()
     while True:
+        t1 = time.time()
         frame_raw = picam2.capture_array()
         frame = cv2.cvtColor(frame_raw, cv2.COLOR_RGB2BGR)
-
+        print(time.time() - t1)
         # Clone la frame originale pour dessiner dessus sans modifier la source
         output_frame = frame.copy()
-        _, output_frame = cv2.threshold(output_frame, 150, 255, cv2.THRESH_BINARY_INV)
+
+        # _, output_frame = cv2.threshold(output_frame, 150, 255, cv2.THRESH_BINARY_INV)
 
         # Appel de la fonction de détection
         taches = detector.get_contours(frame)
-
+        print(time.time() - t1)
         # --- Affichage des résultats ---
         for tache in taches:
             # 1. Dessiner le contour (en VERT, épaisseur 2)
@@ -55,7 +59,7 @@ def generate_frames():
                 (255, 0, 0),
                 2,
             )
-
+        print(time.time() - t1)
         ret, buffer = cv2.imencode(".jpg", output_frame)
         if not ret:
             continue

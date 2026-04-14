@@ -104,34 +104,6 @@ class PnPLandingSystem:
         )
         # Configuration des seuils (à charger via sliders ou fichier)
 
-    def _get_masks(self, hsv):
-        """Génère et combine les masques isolés."""
-        mask_d1 = cv2.inRange(
-            hsv,
-            np.array(self.params["dark1"]["low"]),
-            np.array(self.params["dark1"]["high"]),
-        )
-        mask_d2 = cv2.inRange(
-            hsv,
-            np.array(self.params["dark2"]["low"]),
-            np.array(self.params["dark2"]["high"]),
-        )
-        mask_b1 = cv2.inRange(
-            hsv,
-            np.array(self.params["bright1"]["low"]),
-            np.array(self.params["bright1"]["high"]),
-        )
-        mask_b2 = cv2.inRange(
-            hsv,
-            np.array(self.params["bright2"]["low"]),
-            np.array(self.params["bright2"]["high"]),
-        )
-
-        mask_dark = cv2.bitwise_or(mask_d1, mask_d2)
-        mask_bright = cv2.bitwise_or(mask_b1, mask_b2)
-
-        return mask_dark, mask_bright
-
     def _is_circular(self, cnt, area):
         """Vérifie si une forme est approximativement ronde."""
         perimeter = cv2.arcLength(cnt, True)
