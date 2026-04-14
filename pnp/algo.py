@@ -21,13 +21,21 @@ class Result(ctypes.Structure):
     _fields_ = [("id1", ctypes.c_int), ("id2", ctypes.c_int), ("id3", ctypes.c_int)]
 
 
+import ctypes
 import os
-import sys
 
-# Garde tes imports spécifiques si ton dossier pnp est au même endroit
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "pnp"))
-# 2. Chargement de la librairie
-lib = ctypes.CDLL("logic.so")
+# Récupère le dossier où se trouve le présent fichier (algo.py)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Construit le chemin complet vers logic.so
+lib_path = os.path.join(current_dir, "logic.so")
+
+# Charge la bibliothèque avec le chemin absolu
+try:
+    lib = ctypes.CDLL(lib_path)
+except OSError as e:
+    print(f"Erreur : Impossible de trouver la lib C à l'adresse {lib_path}")
+    raise e
 lib.find_nested_triplets.argtypes = [
     ctypes.POINTER(BBox),
     ctypes.c_int,
