@@ -179,7 +179,7 @@ class PnPLandingSystem:
             )
 
         results_nested = self.get_nested_squares(results)
-        ids_first = {t[2] for t in results_nested}
+        ids_first = {t[0] for t in results_nested}
 
         # 3. On filtre la liste d'origine
         results_corrects = [dico for dico in results if dico["id"] in ids_first]
