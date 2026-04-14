@@ -110,7 +110,7 @@ class PnPLandingSystem:
         if perimeter == 0:
             return False
         circularity = 4 * np.pi * (area / (perimeter**2))
-        return 0.5 < circularity < 1.5
+        return 0.7 < circularity < 1.3
 
     def get_contours(self, frame):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -133,8 +133,12 @@ class PnPLandingSystem:
 
         for i, cnt in enumerate(contours):
             area = cv2.contourArea(cnt)
-            if area > 800 and area < 70:
+            print(area)
+            if area > 1600 and area < 70:
+                print("no good area")
                 continue
+            if not self._is_circular(cnt, area):
+                continue  # On ignore la tache si elle n'est pas assez ronde/carrée
             M = cv2.moments(cnt)
             if M["m00"] == 0:
                 continue

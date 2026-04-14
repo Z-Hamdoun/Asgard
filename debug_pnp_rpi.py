@@ -39,6 +39,14 @@ def generate_frames():
         for tache in taches1:
             # On dessine en VERT sur le masque pour voir si la détection matche le seuil
             cv2.drawContours(output_frame, [tache["contours"]], -1, (0, 255, 0), 2)
+
+        for tache in taches2:
+            # On dessine en VERT sur le masque pour voir si la détection matche le seuil
+            cv2.drawContours(output_frame, [tache["contours"]], -1, (0, 225, 0), 2)
+
+        for tache in taches3:
+            # On dessine en VERT sur le masque pour voir si la détection matche le seuil
+            cv2.drawContours(output_frame, [tache["contours"]], -1, (0, 205, 0), 2)
             if tache["center"] is not None:
                 cX, cY = tache["center"]
                 cv2.circle(output_frame, (cX, cY), 5, (0, 0, 255), -1)
@@ -57,13 +65,6 @@ def generate_frames():
                     1,
                     cv2.LINE_AA,
                 )
-        for tache in taches2:
-            # On dessine en VERT sur le masque pour voir si la détection matche le seuil
-            cv2.drawContours(output_frame, [tache["contours"]], -1, (0, 225, 0), 2)
-
-        for tache in taches3:
-            # On dessine en VERT sur le masque pour voir si la détection matche le seuil
-            cv2.drawContours(output_frame, [tache["contours"]], -1, (0, 205, 0), 2)
         nb_taches = len(taches1)
         texte = f"Taches detectees: {nb_taches}"
 
