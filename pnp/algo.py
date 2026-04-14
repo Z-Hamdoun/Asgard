@@ -21,8 +21,13 @@ class Result(ctypes.Structure):
     _fields_ = [("id1", ctypes.c_int), ("id2", ctypes.c_int), ("id3", ctypes.c_int)]
 
 
+import os
+import sys
+
+# Garde tes imports spécifiques si ton dossier pnp est au même endroit
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "pnp"))
 # 2. Chargement de la librairie
-lib = ctypes.CDLL("./pnp/logic.so")
+lib = ctypes.CDLL("logic.so")
 lib.find_nested_triplets.argtypes = [
     ctypes.POINTER(BBox),
     ctypes.c_int,
