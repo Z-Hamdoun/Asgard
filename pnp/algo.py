@@ -155,7 +155,7 @@ class PnPLandingSystem:
 
         for i, cnt in enumerate(contours):
             area = cv2.contourArea(cnt)
-            if area < 50:
+            if area < 10:
                 continue
             M = cv2.moments(cnt)
             if M["m00"] == 0:
