@@ -145,7 +145,7 @@ class PnPLandingSystem:
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 
         # On garde le seuillage inversé
-        _, thresh = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY_INV)
+        _, thresh = cv2.threshold(blurred, 150, 255, cv2.THRESH_BINARY_INV)
 
         contours, hierarchy = cv2.findContours(
             thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE
