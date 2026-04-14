@@ -44,23 +44,28 @@ def main():
 
             # 1. Fenêtre principale
             cv2.imshow("RPi - Detection Mixte", frame)
-            cv2.namedWindow("RPi - Detection Mixte")
-            cv2.resizeWindow("RPi - Detection Mixte", 240, 135)
-            cv2.moveWindow("RPi - Detection Mixte", 0, 0)
-            cv2.resizeWindow("RPi - Detection Mixte", 240, 135)
+
             if m_dark is not None:
+                m_dark_color = cv2.cvtColor(m_dark, cv2.COLOR_GRAY2BGR)
+                m_bright_color = cv2.cvtColor(m_bright, cv2.COLOR_GRAY2BGR)
+
                 # 2. Fenêtre Masque Sombre (Grosse tache)
-                cv2.imshow("Masque 1 - Sombre", m_dark)
-                cv2.namedWindow("Masque 1 - Sombre")
-                cv2.moveWindow("Masque 1 - Sombre", 650, 0)  # Décale à droite
-                cv2.resizeWindow("Masque 1 - Sombre", 240, 135)
+                print(contours)
+                for coords, area, cnt_large, cnt_small in contours:
+                    # On dessine sur m_dark_color (qui accepte le rouge et le vert maintenant)
+                    cv2.drawContours(m_dark_color, [cnt_large], -1, (0, 0, 255), 2)
+                    cv2.drawContours(m_dark_color, [cnt_small], -1, (0, 255, 0), 2)
+
+                cv2.imshow("Masque 1 - Sombre", m_dark_color)
+                # ... tes fonctions namedWindow/resizeWindow/moveWindow ...
 
                 # 3. Fenêtre Masque Clair (Petite tache / LED)
-                cv2.imshow("Masque 2 - Clair", m_bright)
-                cv2.namedWindow("Masque 2 - Clair")
+                for coords, area, cnt_large, cnt_small in contours:
+                    # On dessine sur m_bright_color
+                    cv2.drawContours(m_bright_color, [cnt_large], -1, (0, 0, 255), 2)
+                    cv2.drawContours(m_bright_color, [cnt_small], -1, (0, 255, 0), 2)
 
-                cv2.resizeWindow("Masque 2 - Clair", 240, 135)
-                cv2.moveWindow("Masque 2 - Clair", 650, 400)  # Décale en bas à droite
+                cv2.imshow("Masque 2 - Clair", m_bright_color)
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
     finally:

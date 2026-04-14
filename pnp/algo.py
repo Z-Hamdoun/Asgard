@@ -15,7 +15,19 @@ class PnPLandingSystem:
         # marker_distance : La taille du carré (40 cm).
         # net_depth : La profondeur du point central (20 cm plus bas).
         half = marker_distance / 2
+        self.h_min_d, self.s_min_d, self.v_min_d = 0, 0, 0
+        self.h_max_d, self.s_max_d, self.v_max_d = 255, 100, 80
+        self.h_min_d2, self.s_min_d2, self.v_min_d2 = 90, 100, 80
+        self.h_max_d2, self.s_max_d2, self.v_max_d2 = 115, 255, 255
 
+        self.h_min_b, self.s_min_b, self.v_min_b = 90, 0, 200
+        self.h_max_b, self.s_max_b, self.v_max_b = 115, 255, 255
+        self.params = {
+            "dark1": {"low": [0, 0, 0], "high": [255, 100, 80]},
+            "dark2": {"low": [90, 100, 80], "high": [115, 255, 175]},
+            "bright1": {"low": [90, 0, 175], "high": [115, 255, 235]},
+            "bright2": {"low": [0, 0, 235], "high": [255, 255, 255]},
+        }
         # On définit les 5 points dans l'espace (X, Y, Z) en mètres.
         self.object_points = np.array(
             [
@@ -48,69 +60,89 @@ class PnPLandingSystem:
         self.max_uncircularity_ratio = (
             0.15  # La tache doit être à peu près ronde ou carrée
         )
+        # Configuration des seuils (à charger via sliders ou fichier)
+
+    def _get_masks(self, hsv):
+        """Génère et combine les masques isolés."""
+        mask_d1 = cv2.inRange(
+            hsv,
+            np.array(self.params["dark1"]["low"]),
+            np.array(self.params["dark1"]["high"]),
+        )
+        mask_d2 = cv2.inRange(
+            hsv,
+            np.array(self.params["dark2"]["low"]),
+            np.array(self.params["dark2"]["high"]),
+        )
+        mask_b1 = cv2.inRange(
+            hsv,
+            np.array(self.params["bright1"]["low"]),
+            np.array(self.params["bright1"]["high"]),
+        )
+        mask_b2 = cv2.inRange(
+            hsv,
+            np.array(self.params["bright2"]["low"]),
+            np.array(self.params["bright2"]["high"]),
+        )
+
+        mask_dark = cv2.bitwise_or(mask_d1, mask_d2)
+        mask_bright = cv2.bitwise_or(mask_b1, mask_b2)
+
+        return mask_dark, mask_bright
+
+    def _is_circular(self, cnt, area):
+        """Vérifie si une forme est approximativement ronde."""
+        perimeter = cv2.arcLength(cnt, True)
+        if perimeter == 0:
+            return False
+        circularity = 4 * np.pi * (area / (perimeter**2))
+        return 0.5 < circularity < 1.5
 
     def get_contours(self, frame):
         if frame is None:
             return [], None, None
 
-        # 1. Conversion en HSV
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        mask_dark, mask_bright = self._get_masks(hsv)
 
-        # 2. Plages de couleurs
-        lower_dark = np.array([140, 50, 0])  # Bleu marine / Noir
-        upper_dark = np.array([190, 255, 150])  # Bleu moyen, luminosité plafonnée
-        lower_bright = np.array([130, 0, 190])  # Bleu clair / Désaturé
-        upper_bright = np.array([180, 255, 255])
-        # Masques
-        mask_dark = cv2.inRange(hsv, lower_dark, upper_dark)
-        mask_bright = cv2.inRange(hsv, lower_bright, upper_bright)
-
-        # Union pour l'analyse de hiérarchie
-        combined_mask = cv2.bitwise_or(mask_dark, mask_bright)
-
-        # 3. Trouver les contours avec hiérarchie (CCOMP pour parents/enfants directs)
+        # On cherche les contours sur le masque SOMBRE uniquement pour la structure externe
+        # ou sur un combined_mask si on veut boucher les trous.
+        # Ici, on utilise le combined pour avoir la forme pleine.
+        combined = cv2.bitwise_or(mask_dark, mask_bright)
         contours, hierarchy = cv2.findContours(
-            combined_mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
+            combined, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
         )
 
         results = []
-
         if hierarchy is None:
-            return results, None, None
+            return [], mask_dark, mask_bright
 
         for i, cnt in enumerate(contours):
-            # On cherche un contour parent (la grosse tache)
+            # 1. Est-ce un contour parent (externe) ?
             if hierarchy[0][i][3] == -1:
-                area_large = cv2.contourArea(cnt)
+                area_l = cv2.contourArea(cnt)
 
-                if area_large > 50:
-                    # Vérification circularité
-                    perimeter = cv2.arcLength(cnt, True)
-                    if perimeter == 0:
-                        continue
-                    circularity = 4 * np.pi * (area_large / (perimeter * perimeter))
+                if 1000 > area_l > 50 and self._is_circular(cnt, area_l):
+                    child_idx = hierarchy[0][i][2]
 
-                    if 0.5 < circularity < 1.5:
-                        # Chercher l'enfant direct (la petite tache interne)
-                        child_idx = hierarchy[0][i][2]
+                    if child_idx != -1:
+                        child_cnt = contours[child_idx]
+                        area_s = cv2.contourArea(child_cnt)
 
-                        if child_idx != -1:
-                            child_cnt = contours[child_idx]
-                            area_small = cv2.contourArea(child_cnt)
+                        # --- LA CORRECTION EST ICI ---
+                        # On vérifie que le centre du petit contour est BLANC dans le masque CLAIR
+                        M_s = cv2.moments(child_cnt)
+                        if M_s["m00"] > 0:
+                            cx_s = int(M_s["m10"] / M_s["m00"])
+                            cy_s = int(M_s["m01"] / M_s["m00"])
 
-                            # On valide que l'enfant est bien plus petit
-                            if 0 < area_small < area_large:
-                                # Calcul du centre
-                                M = cv2.moments(cnt)
-                                if M["m00"] != 0:
-                                    cx = int(M["m10"] / M["m00"])
-                                    cy = int(M["m01"] / M["m00"])
-
-                                    # On renvoie le tuple complet
-                                    # ( (x, y), Aire, Contour_Gros, Contour_Petit )
-                                    results.append(
-                                        ((cx, cy), area_large, cnt, child_cnt)
-                                    )
+                            # On vérifie si ce point appartient au masque bright
+                            if mask_bright[cy_s, cx_s] > 0:
+                                M_l = cv2.moments(cnt)
+                                cx_l, cy_l = int(M_l["m10"] / M_l["m00"]), int(
+                                    M_l["m01"] / M_l["m00"]
+                                )
+                                results.append(((cx_l, cy_l), area_l, cnt, child_cnt))
 
         return results, mask_dark, mask_bright
 
