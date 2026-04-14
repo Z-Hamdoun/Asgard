@@ -23,51 +23,70 @@ picam2.start()
 def generate_frames():
     detector = PnPLandingSystem()
     while True:
-        t1 = time.time()
         frame_raw = picam2.capture_array()
         frame = cv2.cvtColor(frame_raw, cv2.COLOR_RGB2BGR)
-        print(time.time() - t1)
-        # Clone la frame originale pour dessiner dessus sans modifier la source
-        output_frame = frame.copy()
 
-        # _, output_frame = cv2.threshold(output_frame, 150, 255, cv2.THRESH_BINARY_INV)
+        # On récupère les contours ET le masque (thresh)
+        taches1, taches2, taches3, thresh = detector.get_contours(frame)
 
-        # Appel de la fonction de détection
-        taches = detector.get_contours(frame)
-        print(time.time() - t1)
-        # --- Affichage des résultats ---
-        for tache in taches:
-            # 1. Dessiner le contour (en VERT, épaisseur 2)
+        # OPTION A : Afficher UNIQUEMENT le masque noir et blanc
+        output_frame = thresh
+
+        # OPTION B : Afficher les contours colorés SUR le masque (plus pratique pour debug)
+        # Comme 'thresh' est en niveaux de gris, on le repasse en BGR pour voir les couleurs
+        # output_frame = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+
+        for tache in taches1:
+            # On dessine en VERT sur le masque pour voir si la détection matche le seuil
             cv2.drawContours(output_frame, [tache["contours"]], -1, (0, 255, 0), 2)
-
-            # 2. Dessiner le centre (point ROUGE plein)
             if tache["center"] is not None:
                 cv2.circle(output_frame, tache["center"], 5, (0, 0, 255), -1)
+                aire = tache["area"]
+                texte_aire = f"A: {int(aire)}"
 
-                # Optionnel: Afficher les coordonnées du centre
-                # cv2.putText(output_frame, f"({tache['center'][0]},{tache['center'][1]})",
-                #             (tache['center'][0] + 10, tache['center'][1]),
-                #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                # 3. Afficher l'aire juste au-dessus de la tache
+                # On décale un peu le texte (-15 pixels en Y) pour ne pas chevaucher le centre
+                cv2.putText(
+                    output_frame,
+                    texte_aire,
+                    (cX - 20, cY - 15),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,  # Taille plus petite pour ne pas encombrer l'image
+                    (255, 255, 255),  # Blanc pour la lisibilité
+                    1,
+                    cv2.LINE_AA,
+                )
+        for tache in taches2:
+            # On dessine en VERT sur le masque pour voir si la détection matche le seuil
+            cv2.drawContours(output_frame, [tache["contours"]], -1, (0, 225, 0), 2)
 
-            # 3. Dessiner le rectangle englobant (en BLEU, épaisseur 2)
-            # On utilise directement les données de 'limits'
-            lim = tache["limits"]
-            cv2.rectangle(
-                output_frame,
-                (lim["x_min"], lim["y_min"]),
-                (lim["x_max"], lim["y_max"]),
-                (255, 0, 0),
-                2,
-            )
-        print(time.time() - t1)
+        for tache in taches3:
+            # On dessine en VERT sur le masque pour voir si la détection matche le seuil
+            cv2.drawContours(output_frame, [tache["contours"]], -1, (0, 205, 0), 2)
+        nb_taches = len(taches)
+        texte = f"Taches detectees: {nb_taches}"
+
+        # 2. Choisir la couleur (Vert si on en a 5, Rouge sinon)
+        couleur_texte = (0, 255, 0) if nb_taches == 5 else (0, 0, 255)
+
+        # 3. Dessiner le texte sur l'image
+        cv2.putText(
+            output_frame,
+            texte,
+            (20, 40),  # Position (x, y) en pixels depuis le coin haut-gauche
+            cv2.FONT_HERSHEY_SIMPLEX,  # Police de caractères
+            1.0,  # Taille de la police
+            couleur_texte,  # Couleur (BGR)
+            2,  # Épaisseur du trait
+            cv2.LINE_AA,  # Antialiasing pour un texte plus lisse
+        )
+        # Encodage et envoi
         ret, buffer = cv2.imencode(".jpg", output_frame)
         if not ret:
             continue
-
-        frame_bytes = buffer.tobytes()
-
         yield (
-            b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
+            b"--frame\r\n"
+            b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
         )
 
 

@@ -152,12 +152,27 @@ class PnPLandingSystem:
 
         results_nested = self.get_nested_squares(results)
         ids_first = {t[0] for t in results_nested}
+        ids_second = {t[1] for t in results_nested}
+        ids_third = {t[2] for t in results_nested}
 
         # 3. On filtre la liste d'origine
-        results_corrects = [dico for dico in results if dico["id"] in ids_first]
+        results_corrects_petite_tache = [
+            dico for dico in results if dico["id"] in ids_first
+        ]
+        results_corrects_moyenne_tache = [
+            dico for dico in results if dico["id"] in ids_second
+        ]
+        results_corrects_grande_tache = [
+            dico for dico in results if dico["id"] in ids_third
+        ]
 
         # --- Affichage du résultat ---
-        return results_corrects
+        return (
+            results_corrects_petite_tache,
+            results_corrects_moyenne_tache,
+            results_corrects_grande_tache,
+            thresh,
+        )
 
     def get_nested_squares(self, data):
         n = len(data)
