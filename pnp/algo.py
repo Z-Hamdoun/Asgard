@@ -192,6 +192,28 @@ class PnPLandingSystem:
             blurred,
         )
 
+    def setup_blob_detector(self):
+        params = cv2.SimpleBlobDetector_Params()
+
+        # Seuils de luminosité
+        params.minThreshold = 50
+        params.maxThreshold = 220
+
+        # Filtre par Aire (taille de la tache)
+        params.filterByArea = True
+        params.minArea = 70
+        params.maxArea = 2000
+
+        # Filtre par Circularité (1 = cercle parfait)
+        params.filterByCircularity = True
+        params.minCircularity = 0.7
+
+        # Filtre par Inertie (0 = ligne, 1 = cercle/carré)
+        params.filterByInertia = True
+        params.minInertiaRatio = 0.5
+
+        return cv2.SimpleBlobDetector_create(params)
+
     def get_contours_v2(self, frame):
         # 1. Prétraitement (Optionnel : CLAHE pour la luminosité comme discuté avant)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
