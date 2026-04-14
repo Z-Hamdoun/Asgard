@@ -63,7 +63,7 @@ def generate_frames():
         for tache in taches3:
             # On dessine en VERT sur le masque pour voir si la détection matche le seuil
             cv2.drawContours(output_frame, [tache["contours"]], -1, (0, 205, 0), 2)
-        nb_taches = len(taches)
+        nb_taches = len(taches1)
         texte = f"Taches detectees: {nb_taches}"
 
         # 2. Choisir la couleur (Vert si on en a 5, Rouge sinon)
