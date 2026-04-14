@@ -123,14 +123,15 @@ class PnPLandingSystem:
         gray = clahe.apply(gray)
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
         # On garde le seuillage inversé
-        thresh = cv2.adaptiveThreshold(
-            blurred,
-            255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY_INV,
-            11,  # Taille du voisinage (doit être impair : 3, 5, 7, 11...)
-            2,  # Constante soustraite à la moyenne
-        )
+        # thresh = cv2.adaptiveThreshold(
+        #     blurred,
+        #     255,
+        #     cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        #     cv2.THRESH_BINARY_INV,
+        #     11,  # Taille du voisinage (doit être impair : 3, 5, 7, 11...)
+        #     2,  # Constante soustraite à la moyenne
+        # )
+        _, thresh = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY_INV)
         contours, hierarchy = cv2.findContours(
             thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE
         )
