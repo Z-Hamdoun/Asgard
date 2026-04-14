@@ -114,6 +114,13 @@ class PnPLandingSystem:
 
     def get_contours(self, frame):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # Création de l'objet CLAHE
+        # clipLimit : force du contraste (2.0 - 3.0 est souvent idéal)
+        # tileGridSize : taille de la zone locale (8x8 pixels)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        gray = clahe.apply(gray)
+
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
         # On garde le seuillage inversé
         _, thresh = cv2.threshold(blurred, 150, 255, cv2.THRESH_BINARY_INV)
@@ -171,7 +178,7 @@ class PnPLandingSystem:
             results_corrects_petite_tache,
             results_corrects_moyenne_tache,
             results_corrects_grande_tache,
-            thresh,
+            blurred,
         )
 
     def get_nested_squares(self, data):
