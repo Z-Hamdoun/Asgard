@@ -118,9 +118,9 @@ class PnPLandingSystem:
         # Création de l'objet CLAHE
         # clipLimit : force du contraste (2.0 - 3.0 est souvent idéal)
         # tileGridSize : taille de la zone locale (8x8 pixels)
+        gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         gray = clahe.apply(gray)
-
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
         # On garde le seuillage inversé
         thresh = cv2.adaptiveThreshold(

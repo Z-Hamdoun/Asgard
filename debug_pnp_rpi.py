@@ -53,11 +53,15 @@ def generate_frames():
                 aire = tache["area"]
                 texte_aire = f"A: {int(aire)}"
 
+                perimeter = cv2.arcLength(tache["contours"], True)
+                if perimeter == 0:
+                    return False
+                circularity = 4 * np.pi * (aire / (perimeter**2))
                 # 3. Afficher l'aire juste au-dessus de la tache
                 # On décale un peu le texte (-15 pixels en Y) pour ne pas chevaucher le centre
                 cv2.putText(
                     output_frame,
-                    texte_aire,
+                    texte_aire + "circ: " + str(circularity),
                     (cX - 20, cY - 15),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.5,  # Taille plus petite pour ne pas encombrer l'image
