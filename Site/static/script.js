@@ -165,7 +165,7 @@ ws.onmessage = function(event) {
         case "ask_coords_ack":
             const data_coords = data.data
 
-            intern_log("Destination envoyée : " + data_coords["lat_mission"] + ", " + data_coords["lng_mission"]);
+            intern_log("Destination reçu : " + data_coords["lat_mission"] + ", " + data_coords["lng_mission"]);
             setview([ data_coords["lat_mission"], data_coords["lng_mission"]]);
 
             // Si un marqueur existe déjà, on le déplace, sinon on le crée
@@ -553,7 +553,7 @@ sendCoordsBTN.onclick = function() {
         const position = marker.getLatLng();
         const configData = {
             "lat_mission":position.lat,
-            "long_mission":position.lng
+            "lng_mission":position.lng
         };
         
         const messagevalh = {

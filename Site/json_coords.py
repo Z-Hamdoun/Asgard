@@ -1,13 +1,8 @@
 import json
 
-DEFAULT_DASSAULT = {
-    "lat_mission":47.6013,
-    "long_mission":2.0085
-}
-DEFAULT_GIF = {
-    "lat_mission":48.7097,
-    "long_mission":2.1671
-}
+DEFAULT_DASSAULT = {"lat_mission": 47.6013, "lng_mission": 2.0085}
+DEFAULT_GIF = {"lat_mission": 48.7097, "lng_mission": 2.1671}
+
 
 def charger_config():
     try:
