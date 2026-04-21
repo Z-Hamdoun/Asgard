@@ -9,12 +9,108 @@
     <link rel="stylesheet" href="/static/log-style.css">
     <link rel="stylesheet" href="/static/param-style.css">
     <link rel="stylesheet" href="/static/state-style.css">
-    
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.min.js"></script>
 </head>
 <body>
     <h1>Mission Asgard - Tableau de controle</h1>
 
+    <div class="row">
+
+            <div class="case">
+                
+                <h2>paramètre mission</h2>
+                <div style="display: flex;">
+                    <div id="mission-container" >
+                        <form>
+                            <h2>Choix de la mission</h2>
+                            <div class="mission-group">
+                                <input type="radio" id="mission1" name="mission" value="mission1" checked>
+                                <label for="mission1">Mission 1</label>
+                            </div>
+                            <div class="mission-group">
+                                <input type="radio" id="mission2" name="mission" value="mission2">
+                                <label for="mission2">Mission 2</label>
+                            </div>
+                            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+                            <div class="mission-group">
+                                <input type="radio" id="premission1" name="mission" value="premission1">
+                                <label for="premission1">Pré-mission 1</label>
+                            </div>
+                            <div class="mission-group">
+                                <input type="radio" id="premission2" name="mission" value="premission2">
+                                <label for="premission2">Pré-mission 2</label>
+                            </div>
+                            <div class="mission-group">
+                                <input type="radio" id="premission3" name="mission" value="premission3">
+                                <label for="premission3">Pré-mission 3</label>
+                            </div>
+                        </form>
+                    </div>
+                
+                    <div id="param-container">
+                        <div class="parametre-button-group">
+                                <button id="sendBtn" class="git-button">Appliquer</button>
+                                <button id="defaultBtn" class="git-button">Par défaut</button>
+                                <button id="requestBtn" class="git-button">Récupérer</button>
+                        </div>
+                        <form>
+                            <div class="parametre-groupe">
+                                <label for="vrai_largage">vrai_largage</label>
+                                <input type="text" id="vrai_largage" value="true">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="taille_quadrillage">taille_quadrillage</label>
+                                <input type="text" id="taille_quadrillage" value="10">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="pas_quadrillage">pas_quadrillage</label>
+                                <input type="text" id="pas_quadrillage" value="2">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="radius_acceptance">radius_acceptance</label>
+                                <input type="text" id="radius_acceptance" value="1">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="FOLLOW_MAX_SPEED">FOLLOW_MAX_SPEED</label>
+                                <input type="text" id="FOLLOW_MAX_SPEED" value="1400">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="alt_quadrillage">alt_quadrillage</label>
+                                <input type="text" id="alt_quadrillage" value="8">
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="case">
+                <h2>zone de recherche</h2>
+                <div style="display: flex;">
+                    <div class="map-button-container">
+                        
+                            <button class="git-button"> appliquer</button>
+                            <button id='gif-marker-button' class="git-button"> par défault Gif</button>
+                            <button id='dassault-marker-button' class="git-button"> par défault Dassault</button>
+                            <button class="git-button"> Récupérer</button>
+                            
+                            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+                            <button id="gif-view-button" class="git-button"> vue Gif</button>
+                            <button id="dassault-view-button" class="git-button"> vue Dassault</button>
+                            
+                    </div>
+                    <div class="map-container">
+                        <div id="map2"></div>
+                        <div class="info">
+                            <strong>Coordonnées :</strong> 
+                            <span id="coords">Aucun point sélectionné</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
     <div class="row">
         <div class="case">
             <h2>Log</h2>
@@ -77,10 +173,7 @@
             </div>
 
             <div class="case">
-                <select id="console-select" class="log-select" onchange="changeconsole()">
-                    <option value="terminal">Console </option>
-                    <option value="param">paramètre mission</option>
-                </select>
+                <h2>Console </h2>
                 
                 <div id="console-container" class="console">   
                     <span id="console"></span>
@@ -92,70 +185,8 @@
                         <span id="cursor" class="custom-cursor">_</span>
                     </div>
                 </div>
-
-                <div style="display: flex;">
-                    <div id="mission-container" class="null">
-                        <form>
-                            <h2>Choix de la mission</h2>
-                            <div class="mission-group">
-                                <input type="radio" id="mission1" name="mission" value="mission1" checked>
-                                <label for="mission1">Mission 1</label>
-                            </div>
-                            <div class="mission-group">
-                                <input type="radio" id="mission2" name="mission" value="mission2">
-                                <label for="mission2">Mission 2</label>
-                            </div>
-                            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
-                            <div class="mission-group">
-                                <input type="radio" id="premission1" name="mission" value="premission1">
-                                <label for="premission1">Pré-mission 1</label>
-                            </div>
-                            <div class="mission-group">
-                                <input type="radio" id="premission2" name="mission" value="premission2">
-                                <label for="premission2">Pré-mission 2</label>
-                            </div>
-                            <div class="mission-group">
-                                <input type="radio" id="premission3" name="mission" value="premission3">
-                                <label for="premission3">Pré-mission 3</label>
-                            </div>
-                        </form>
-                    </div>
-                
-                    <div id="param-container" class="null">
-                        <div class="parametre-button-group">
-                                <button id="sendBtn" class="git-button">Appliquer</button>
-                                <button id="defaultBtn" class="git-button">Par défaut</button>
-                                <button id="requestBtn" class="git-button">Récupérer</button>
-                        </div>
-                        <form>
-                            <div class="parametre-groupe">
-                                <label for="vrai_largage">vrai_largage</label>
-                                <input type="text" id="vrai_largage" value="true">
-                            </div>
-                            <div class="parametre-groupe">
-                                <label for="taille_quadrillage">taille_quadrillage</label>
-                                <input type="text" id="taille_quadrillage" value="10">
-                            </div>
-                            <div class="parametre-groupe">
-                                <label for="pas_quadrillage">pas_quadrillage</label>
-                                <input type="text" id="pas_quadrillage" value="2">
-                            </div>
-                            <div class="parametre-groupe">
-                                <label for="radius_acceptance">radius_acceptance</label>
-                                <input type="text" id="radius_acceptance" value="1">
-                            </div>
-                            <div class="parametre-groupe">
-                                <label for="FOLLOW_MAX_SPEED">FOLLOW_MAX_SPEED</label>
-                                <input type="text" id="FOLLOW_MAX_SPEED" value="1400">
-                            </div>
-                            <div class="parametre-groupe">
-                                <label for="alt_quadrillage">alt_quadrillage</label>
-                                <input type="text" id="alt_quadrillage" value="8">
-                            </div>
-                        </form>
-                    </div>
-                </div>
             </div>
+
         </div>
 
         <div class="case">

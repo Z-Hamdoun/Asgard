@@ -12,13 +12,6 @@
     padding-right: 20px;
 }
 
-#param-container.null{
-  display: none;
-}
-#mission-container.null{
-  display: none;
-}
-
 .parametre-groupe {
     display: flex;
     align-items: center;
@@ -77,3 +70,14 @@ label {
     font-weight: 500;
     width: 100%;
 }
+
+.map-button-container{
+    display: flex;
+    flex-direction: column;
+    padding-right: 20px;
+    margin-right: 20px;
+    border-right: 2px solid #fff;
+}
+#map2 { height: 300px; width: 700px; border-radius: 8px; }
+.info { margin-top: 10px; font-family: sans-serif; }
+    

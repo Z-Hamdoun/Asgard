@@ -4,6 +4,10 @@
 let valkTimer; 
 let valhTimer; 
 
+const dassaultLat=47.6013
+const dassaultLong=2.0085
+const giftLat=48.7097
+const gifLong=2.1671
 const updateBtnValk = document.getElementById('update-valk');
 const updateBtnValh = document.getElementById('update-valh');
 const mainBtn = document.getElementById('green-button');
@@ -26,7 +30,78 @@ mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
 
 // Lancement initial sur l'état IDLE
 window.onload = () => setState('INIT','LOADING');
+// Initialisation de la carte (centrée sur le monde)
+const map = L.map('map2').setView([ 48.7097, 2.1671], 16);
 
+// Ajout du fond de carte (OpenStreetMap)
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+}).addTo(map);
+
+let marker;
+
+// Événement au clic
+map.on('click', function(e) {
+    const lat = e.latlng.lat.toFixed(6);
+    const lng = e.latlng.lng.toFixed(6);
+
+    // Si un marqueur existe déjà, on le déplace, sinon on le crée
+    if (marker) {
+        marker.setLatLng(e.latlng);
+    } else {
+        marker = L.marker(e.latlng).addTo(map);
+    }
+
+    // Affichage des coordonnées dans l'interface
+    document.getElementById('coords').innerText = `Lat: ${lat}, Lng: ${lng}`;
+});
+
+
+function setview(coords){
+    map.flyTo(coords, 16, {
+        animate: true,
+        duration: 1.5 // durée du voyage en secondes
+    });
+
+}
+
+document.getElementById('gif-view-button').addEventListener('click', function() {
+    setview([ giftLat, gifLong]);
+});
+document.getElementById('dassault-view-button').addEventListener('click', function() {
+    // .flyTo() crée une animation fluide de déplacement
+    setview([ dassaultLat, dassaultLong]);
+});
+
+document.getElementById('gif-marker-button').addEventListener('click', function() {
+    // .flyTo() crée une animation fluide de déplacement
+    setview([ giftLat, gifLong]);
+
+    // Si un marqueur existe déjà, on le déplace, sinon on le crée
+    if (marker) {
+        marker.setLatLng([ giftLat, gifLong]);
+    } else {
+        marker = L.marker([giftLat, gifLong]).addTo(map);
+    }
+
+    // Affichage des coordonnées dans l'interface
+    document.getElementById('coords').innerText = `Lat: ${giftLat}, Lng: ${gifLong}`;
+});
+
+document.getElementById('dassault-marker-button').addEventListener('click', function() {
+    // .flyTo() crée une animation fluide de déplacement
+    setview([ dassaultLat, dassaultLong]);
+
+    // Si un marqueur existe déjà, on le déplace, sinon on le crée
+    if (marker) {
+        marker.setLatLng([ dassaultLat, dassaultLong]);
+    } else {
+        marker = L.marker([ dassaultLat, dassaultLong]).addTo(map);
+    }
+
+    // Affichage des coordonnées dans l'interface
+    document.getElementById('coords').innerText = `Lat: ${dassaultLat}, Lng: ${dassaultLong}`;
+});
 // ==========================================
 // WEBSOCKET (CONNEXION & PING)
 // ==========================================
@@ -181,28 +256,6 @@ function intern_log(log){
 }
 
 // CONSOLE
-function changeconsole() {
-    let choix = document.getElementById("console-select").value;
-    const container = document.getElementById("console-container");
-    const log = document.getElementById("input-log");
-    const param = document.getElementById("param-container")
-    const mission = document.getElementById("mission-container")
-    param.classList.remove('null');
-    container.classList.remove('null');  
-    mission.classList.remove('null')
-    log.classList.remove('null');
-    if (choix === "terminal") {
-        param.classList.add("null")
-        mission.classList.add("null")
-
-    } else if (choix === "param") {
-
-        container.classList.add('null');
-        log.classList.add('null');
-        
-    }
-}
-
 function updateCursor(event) {
     const keyName = event.key;
     if (keyName === "Enter") {
