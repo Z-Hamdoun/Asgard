@@ -163,20 +163,20 @@ ws.onmessage = function(event) {
             document.getElementById("alt_quadrillage").value = data_param["alt_quadrillage"];
             break
         case "ask_coords_ack":
-            const data_param = data.data
+            const data_coords = data.data
 
-            intern_log("Destination envoyée : " + data_param["lat_mission"] + ", " + data_param["lng_mission"]);
-            setview([ data_param["lat_mission"], data_param["lng_mission"]]);
+            intern_log("Destination envoyée : " + data_coords["lat_mission"] + ", " + data_coords["lng_mission"]);
+            setview([ data_coords["lat_mission"], data_coords["lng_mission"]]);
 
             // Si un marqueur existe déjà, on le déplace, sinon on le crée
             if (marker) {
-                marker.setLatLng([ data_param["lat_mission"], data_param["lng_mission"]]);
+                marker.setLatLng([ data_coords["lat_mission"], data_coords["lng_mission"]]);
             } else {
-                marker = L.marker([ data_param["lat_mission"], data_param["lng_mission"]]).addTo(map);
+                marker = L.marker([ data_coords["lat_mission"], data_coords["lng_mission"]]).addTo(map);
             }
 
             // Affichage des coordonnées dans l'interface
-            document.getElementById('coords').innerText = `Lat: ${data_param["lat_mission"]}, Lng: ${data_param["lng_mission"]}`;
+            document.getElementById('coords').innerText = `Lat: ${data_coords["lat_mission"]}, Lng: ${data_coords["lng_mission"]}`;
     }
 };
 
