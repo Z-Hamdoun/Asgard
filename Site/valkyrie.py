@@ -5,23 +5,34 @@ import json
 import sys
 import subprocess
 import json_config
+import json_coords
+
 
 # --- FONCTIONS UTILITAIRES WEBSOCKET ---
 def sendfail(socket, failure, e):
     response = {"type": "status", "command": failure, "source": "Valkyrie", "output": e}
     return socket.send(json.dumps(response))
 
+
 def sendack(socket, ack):
     response = {"type": "status", "command": ack, "source": "Valkyrie"}
     return socket.send(json.dumps(response))
 
-def senddata(socket, command,data):
+
+def senddata(socket, command, data):
     response = {"type": "log", "command": command, "source": "Valkyrie", "data": data}
     return socket.send(json.dumps(response))
 
+
 def sendlog(socket, command, result):
-    response = {"type": "log", "command": command, "source": "Valkyrie", "output": result}
+    response = {
+        "type": "log",
+        "command": command,
+        "source": "Valkyrie",
+        "output": result,
+    }
     return socket.send(json.dumps(response))
+
 
 # --- GESTION DE LA MISSION EN ARRIERE-PLAN ---
 async def run_mission(websocket, command_str):
@@ -31,9 +42,9 @@ async def run_mission(websocket, command_str):
             command_str,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
-            executable="/bin/bash"
+            executable="/bin/bash",
         )
-        
+
         # On stocke le process dans l'objet websocket pour y accéder ailleurs
         websocket.current_process = process
         print(f"--- exécution de main (PID: {process.pid}) ---")
@@ -53,21 +64,22 @@ async def run_mission(websocket, command_str):
         if return_code != 0:
             await sendfail(websocket, "main_fail", return_code)
             print(f"--- Terminé avec erreur {return_code} ---")
-            
+
     except Exception as e:
         print(f"Erreur mission: {e}")
     finally:
         websocket.current_process = None
 
+
 # --- BOUCLE PRINCIPALE DU CLIENT ---
 async def responder(ip_ordi):
-    uri = f"ws://{ip_ordi}:8000/ws/Valkyrie" 
-    
+    uri = f"ws://{ip_ordi}:8000/ws/Valkyrie"
+
     while True:
         try:
             async with websockets.connect(uri) as websocket:
                 print(f"Connecté à {ip_ordi}")
-                websocket.current_process = None # Initialisation
+                websocket.current_process = None  # Initialisation
 
                 while True:
                     message = await websocket.recv()
@@ -75,17 +87,21 @@ async def responder(ip_ordi):
 
                     # 1. Gestion du PING
                     if data.get("type") == "ping":
-                        sent_at = data.get("sent_at") 
-                        await websocket.send(json.dumps({
-                            "type": "pong", 
-                            "source": "Valkyrie", 
-                            "sent_at": sent_at
-                        }))
-                        
+                        sent_at = data.get("sent_at")
+                        await websocket.send(
+                            json.dumps(
+                                {
+                                    "type": "pong",
+                                    "source": "Valkyrie",
+                                    "sent_at": sent_at,
+                                }
+                            )
+                        )
+
                     # 2. Gestion des commandes de la console
                     elif data.get("command") == "terminal_log":
                         print(data.get("output"))
-                        
+
                     # 3. Lancement de la MISSION
                     elif data.get("command") == "main_mission":
                         if websocket.current_process is not None:
@@ -103,7 +119,7 @@ async def responder(ip_ordi):
                     # 4. Commande d'arrêt d'urgence
                     elif data.get("command") == "urgency_stop":
                         if websocket.current_process:
-                            websocket.current_process.terminate() 
+                            websocket.current_process.terminate()
                             print("Processus stoppé proprement.")
                             await sendack(websocket, "stop_ack")
                         else:
@@ -111,13 +127,16 @@ async def responder(ip_ordi):
                             await sendack(websocket, "no_process")
 
                     # 5. Gestion des Logs
-                    elif data.get("command") == "print_log" and data.get("target") == "Valkyrie":
+                    elif (
+                        data.get("command") == "print_log"
+                        and data.get("target") == "Valkyrie"
+                    ):
                         print("envoi des logs")
-                        f=open("log_test_valk.txt")
-                        log_txt=f.read()
+                        f = open("log_test_valk.txt")
+                        log_txt = f.read()
                         f.close()
-                        await sendlog(websocket, "log_ack",log_txt)
-                        
+                        await sendlog(websocket, "log_ack", log_txt)
+
                     # 6. Gestion des Configurations
                     elif data.get("command") == "update_config":
                         print("Nouvelle configuration reçue depuis l'interface web.")
@@ -127,15 +146,29 @@ async def responder(ip_ordi):
                             await sendack(websocket, "param_ack")
                     elif data.get("command") == "ask_config":
                         print("Requette de configuration vers l'interface web.")
-                        parametres= json_config.charger_config()
-                        await senddata(websocket,"ask_ack",parametres)
-                        
+                        parametres = json_config.charger_config()
+                        await senddata(websocket, "ask_ack", parametres)
+                    # 6.5 Gestion des Config de coordonnées
+                    elif data.get("command") == "update_coords":
+                        print("Nouvelle coordonnées reçue depuis l'interface web.")
+                        nouveaux_parametres = data.get("data")
+                        if nouveaux_parametres:
+                            json_coords.sauvegarder_config(nouveaux_parametres)
+                            await sendack(websocket, "coords_ack")
+
                     # 7. GIT PULL
-                    elif data.get("command") == "git_pull" and data.get("target") == "Valkyrie":
+                    elif (
+                        data.get("command") == "git_pull"
+                        and data.get("target") == "Valkyrie"
+                    ):
                         # (Ton code git pull peut rester ici ou passer en asynchrone aussi)
                         try:
-                            repo_path = "/home/helics/Desktop/mission/dassault-helics-2026"
-                            result = subprocess.check_output(["git", "pull"], cwd=repo_path).decode("utf-8")
+                            repo_path = (
+                                "/home/helics/Desktop/mission/dassault-helics-2026"
+                            )
+                            result = subprocess.check_output(
+                                ["git", "pull"], cwd=repo_path
+                            ).decode("utf-8")
                             print(result)
                             await sendlog(websocket, "pull_ack", result)
                         except Exception as e:
@@ -144,6 +177,7 @@ async def responder(ip_ordi):
         except Exception as e:
             print(f"Déconnecté. Nouvelle tentative dans 1s... ({e})")
             await asyncio.sleep(1)
+
 
 # --- POINT D'ENTREE ---
 if __name__ == "__main__":

@@ -17,6 +17,8 @@ const printBtn = document.getElementById("print-log")
 const defaultBtn = document.getElementById("defaultBtn")
 const requestBtn = document.getElementById("requestBtn")
 const sendBtn = document.getElementById("sendBtn")
+const sendCoordsBTN = document.getElementById("sendCoordsBtn")
+const requestCoordsBTN = document.getElementById("requestCoordsBtn")
 
 const input = document.getElementById('term-input');
 const cursor = document.getElementById('cursor');
@@ -208,6 +210,9 @@ ws.onmessage = function(event) {
             break;
         case "param_ack":
             intern_log("Paramètres mis à jour avec succès.");
+            break;
+        case "coords_ack":
+            intern_log("Coordonnées mis à jour avec succès.");
             break;
         case "ask_ack":
             intern_log("Paramètres récupéré avec succès.");
@@ -505,14 +510,66 @@ sendBtn.onclick = function() {
     };
 
     // 2. On prépare le message global pour le WebSocket
-    const message = {
+    const messagevalh = {
+        "command": "update_config",
+        "target": "Valhalla",
+        "data": configData // On intègre nos paramètres ici
+    };
+    const messagevalk = {
         "command": "update_config",
         "target": "Valkyrie",
         "data": configData // On intègre nos paramètres ici
     };
 
+
     if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(message));
+        ws.send(JSON.stringify(messagevalh));
+        ws.send(JSON.stringify(messagevalk));
+        intern_log("Envoi de la nouvelle configuration");
+    } else {
+        intern_log("site offline");
+    }
+}
+
+
+
+sendCoordsBTN.onclick = function() {
+    if (marker) {
+        const position = marker.getLatLng();
+        const configData = {
+            "lat_mission":position.lat,
+            "long_mission":position.lng
+        };
+        
+        const messagevalh = {
+            "command": "update_coords",
+            "target": "Valhalla",
+            "data": configData // On intègre nos paramètres ici
+        };
+        const messagevalk = {
+            "command": "update_coords",
+            "target": "Valkyrie",
+            "data": configData // On intègre nos paramètres ici
+        };
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(messagevalh));
+            ws.send(JSON.stringify(messagevalk));
+            intern_log("Destination envoyée : " + position.lat + ", " + position.lng);
+    
+        } else {
+            intern_log("site offline");
+        }
+    } else {
+        intern_log("Aucun point à envoyer");
+    }
+    
+
+    
+
+
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(messagevalh));
+        ws.send(JSON.stringify(messagevalk));
         intern_log("Envoi de la nouvelle configuration");
     } else {
         intern_log("site offline");
