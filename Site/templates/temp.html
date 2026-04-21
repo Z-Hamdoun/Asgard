@@ -2,58 +2,124 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Sélecteur de coordonnées</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <title>Générateur de Points</title>
     <style>
-        #map2 { height: 500px; width: 100%; border-radius: 8px; }
-        .info { margin-top: 10px; font-family: sans-serif; }
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+
+        /* Le conteneur de l'image */
+        #image-container {
+            position: relative;
+            width: 424px;
+            height: 240px;
+            background-color: black;
+            border-radius: 4px;
+            overflow: hidden; /* Pour que les points ne sortent pas du cadre */
+            margin-bottom: 20px;
+        }
+
+        /* Le compteur en haut à droite */
+        #counter {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-weight: bold;
+            z-index: 1; /* Derrière les points (les points auront un z-index par défaut ou plus élevé) */
+        }
+
+        /* Style des points verts */
+        .point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #5cb85c;
+            border-radius: 50%;
+            transform: translate(-50%, -50%); /* Pour centrer le point sur la coordonnée pile */
+            z-index: 10; /* Devant le texte */
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            width: 80px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #4cae4c;
+        }
     </style>
 </head>
 <body>
 
-    <h2>Cliquez sur la carte pour placer un point</h2>
-    <div id="map2"></div>
-    
-    <div class="info">
-        <strong>Coordonnées :</strong> 
-        <span id="coords">Aucun point sélectionné</span>
+    <div id="image-container">
+        <div id="counter">Points : 0</div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <div class="controls">
+        <input type="number" id="posX" placeholder="X (px)">
+        <input type="number" id="posY" placeholder="Y (px)">
+        <button id="addPoint">Ajouter le point</button>
+    </div>
+
     <script>
-        // Initialisation de la carte (centrée sur le monde)
-        // Initialisation de la carte sur Paris (Latitude: 48.8584, Longitude: 2.2945)
-        // Avec un zoom de 16 (très proche)
-        const map = L.map('map2').setView([ 48.7097, 2.1671], 16);
+        const container = document.getElementById('image-container');
+        const btn = document.getElementById('addPoint');
+        const counterDisplay = document.getElementById('counter');
+        const inputX = document.getElementById('posX');
+        const inputY = document.getElementById('posY');
 
-        // Ajout du fond de carte
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
-        // Ajout du fond de carte (OpenStreetMap)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
+        let pointCount = 0;
 
-        let marker;
+        btn.addEventListener('click', () => {
+            const x = inputX.value;
+            const y = inputY.value;
 
-        // Événement au clic
-        map.on('click', function(e) {
-            const lat = e.latlng.lat.toFixed(6);
-            const lng = e.latlng.lng.toFixed(6);
+            if (x !== "" && y !== "") {
+                // Création du point
+                const point = document.createElement('div');
+                point.className = 'point';
+                
+                // Positionnement
+                point.style.left = x + 'px';
+                point.style.top = y + 'px';
 
-            // Si un marqueur existe déjà, on le déplace, sinon on le crée
-            if (marker) {
-                marker.setLatLng(e.latlng);
+                // Ajout au conteneur
+                container.appendChild(point);
+
+                // Mise à jour du compteur
+                pointCount++;
+                counterDisplay.innerText = "Points : " + pointCount;
+
+                // Optionnel : vider les inputs après ajout
+                inputX.value = "";
+                inputY.value = "";
+                inputX.focus();
             } else {
-                marker = L.marker(e.latlng).addTo(map);
+                alert("Veuillez entrer des coordonnées X et Y.");
             }
-
-            // Affichage des coordonnées dans l'interface
-            document.getElementById('coords').innerText = `Lat: ${lat}, Lng: ${lng}`;
-            
-            // Log console pour récupération facile
-            console.log(`Point placé : ${lat}, ${lng}`);
         });
     </script>
 </body>

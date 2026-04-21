@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/static/log-style.css">
     <link rel="stylesheet" href="/static/param-style.css">
     <link rel="stylesheet" href="/static/state-style.css">
+    <link rel="stylesheet" href="/static/cam-style.css">
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />    
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -19,6 +20,26 @@
     <h1>Mission Asgard - Tableau de controle</h1>
 
     <div class="row">
+        <div class ="col">
+            <div class="case">
+                    <h2> Git</h2>
+                    <div class="git-container">
+                        <button class="git-button" id="update-valk"> Git pull Valkyrie</button>
+                        <div id="git-dot-valk"></div>
+                    </div>
+                    <div class="git-container">
+                        <button class="git-button" id="update-valh"> Git pull Valhalla</button>
+                        <div id="git-dot-valh"></div>
+                    </div>
+                </div>
+                <div class="case">
+                    <h2> Check</h2>
+                    <button class="git-button"> Check OK Valkyrie</button>
+                    <button class="git-button"> Check OK Valhalla</button>
+                    <button class="git-button"> Check OK Everyone</button>
+                </div>
+            
+        </div>
 
             <div class="case">
                 
@@ -114,7 +135,7 @@
     <div class="row">
         <div class="case">
             <h2>Log</h2>
-            <div style="width: 400px; height: 800px">
+            <div style="width: 400px; height: 850px">
                 <div>
                     <select id="choix" class="log-select" onchange="changelog()">
                         <option value="">-- No Log --</option>
@@ -130,47 +151,6 @@
         </div>
 
         <div class="col">
-            <div class ="row">
-                <div class ="col">
-                    <div class="case">
-                        <h2> Heartbeat - Valkyrie</h2>
-                        <div id="status-dot"></div>
-                        <p>Latence: <span id="latency">0</span> ms</p>
-                    </div>
-
-                    <div class="case">
-                        <h2> Heartbeat - Valhalla</h2>
-                        <div id="status-dot2"></div>
-                        <p>Latence: <span id="latency2">0</span> ms</p>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="case">
-                        <h2 style="margin: 5px;">lancer la mission</h2>
-                        <button id="green-button">c'est parti</button>
-                    </div>
-                    <div class="case">
-                        <h2 style="margin: 5px;">arrêt d'urgence</h2>
-                        <button id="orange-button">atterrissage d'urgence</button>
-                        <button id="red-button">arrêt d'extrême urgence</button>
-                    </div>
-                </div>
-
-                <div class="case">
-                    <h2> Git</h2>
-                    <div class="git-container">
-                        <button class="git-button" id="update-valk"> Git pull Valkyrie</button>
-                        <div id="git-dot-valk"></div>
-                    </div>
-                    <div class="git-container">
-                        <button class="git-button" id="update-valh"> Git pull Valhalla</button>
-                        <div id="git-dot-valh"></div>
-                    </div>
-                    <button class="git-button"> Check OK Valkyrie</button>
-                    <button class="git-button"> Check OK Valhalla</button>
-                </div>
-            </div>
 
             <div class="case">
                 <h2>Console </h2>
@@ -186,6 +166,43 @@
                     </div>
                 </div>
             </div>
+            <div class ="row">
+                
+                <div class="col">
+                    <div class="case">
+                        <h2 style="margin: 5px;">lancer la mission</h2>
+                        <button id="green-button">c'est parti</button>
+                    </div>
+                    <div class="case">
+                        <h2 style="margin: 5px;">arrêt d'urgence</h2>
+                        <button id="orange-button">atterrissage d'urgence</button>
+                        <button id="red-button">arrêt d'extrême urgence</button>
+                    </div>
+                </div>
+                <div class="col"> 
+                    <div class="row">
+                        <div class="case">
+                            <h2> Heartbeat - Valkyrie</h2>
+                            <div id="status-dot"></div>
+                            <p>Latence: <span id="latency">0</span> ms</p>
+                        </div>
+
+                        <div class="case">
+                            <h2> Heartbeat - Valhalla</h2>
+                            <div id="status-dot2"></div>
+                            <p>Latence: <span id="latency2">0</span> ms</p>
+                        </div> 
+                    </div>
+                    <div class="case">
+                        <h2> stream camera</h2>
+                        <div id="image-container">
+                            <div id="counter">Points : 0</div>
+                        </div>
+                    </div>
+                </div>
+                        
+            </div>
+
 
         </div>
 
