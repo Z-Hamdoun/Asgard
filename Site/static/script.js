@@ -579,7 +579,7 @@ sendCoordsBTN.onclick = function() {
     }
 }
 
-requestBtn.onclick = function() {
+requestCoordsBtn.onclick = function() {
     const message = {
         "command": "ask_coords",
         "target": "Valkyrie"
