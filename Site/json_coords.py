@@ -6,7 +6,7 @@ DEFAULT_GIF = {"lat_mission": 48.7097, "lng_mission": 2.1671}
 
 def charger_config():
     try:
-        with open("config.json", "r") as fichier:
+        with open("coords.json", "r") as fichier:
             config = json.load(fichier)
             return config
     except FileNotFoundError:
@@ -15,7 +15,7 @@ def charger_config():
 
 
 def sauvegarder_config(nouvelles_donnees):
-    with open("config.json", "w") as fichier:
+    with open("coords.json", "w") as fichier:
         json.dump(nouvelles_donnees, fichier, indent=4)
 
 
