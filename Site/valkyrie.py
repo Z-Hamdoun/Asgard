@@ -155,6 +155,10 @@ async def responder(ip_ordi):
                         if nouveaux_parametres:
                             json_coords.sauvegarder_config(nouveaux_parametres)
                             await sendack(websocket, "coords_ack")
+                    elif data.get("command") == "ask_coords":
+                        print("Requette de configuration vers l'interface web.")
+                        parametres = json_coords.charger_config()
+                        await senddata(websocket, "ask_coords_ack", parametres)
 
                     # 7. GIT PULL
                     elif (

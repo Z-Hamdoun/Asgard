@@ -42,68 +42,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 let marker;
 
-// Événement au clic
-map.on('click', function(e) {
-    const lat = e.latlng.lat.toFixed(6);
-    const lng = e.latlng.lng.toFixed(6);
-
-    // Si un marqueur existe déjà, on le déplace, sinon on le crée
-    if (marker) {
-        marker.setLatLng(e.latlng);
-    } else {
-        marker = L.marker(e.latlng).addTo(map);
-    }
-
-    // Affichage des coordonnées dans l'interface
-    document.getElementById('coords').innerText = `Lat: ${lat}, Lng: ${lng}`;
-});
-
-
-function setview(coords){
-    map.flyTo(coords, 16, {
-        animate: true,
-        duration: 1.5 // durée du voyage en secondes
-    });
-
-}
-
-document.getElementById('gif-view-button').addEventListener('click', function() {
-    setview([ giftLat, gifLong]);
-});
-document.getElementById('dassault-view-button').addEventListener('click', function() {
-    // .flyTo() crée une animation fluide de déplacement
-    setview([ dassaultLat, dassaultLong]);
-});
-
-document.getElementById('gif-marker-button').addEventListener('click', function() {
-    // .flyTo() crée une animation fluide de déplacement
-    setview([ giftLat, gifLong]);
-
-    // Si un marqueur existe déjà, on le déplace, sinon on le crée
-    if (marker) {
-        marker.setLatLng([ giftLat, gifLong]);
-    } else {
-        marker = L.marker([giftLat, gifLong]).addTo(map);
-    }
-
-    // Affichage des coordonnées dans l'interface
-    document.getElementById('coords').innerText = `Lat: ${giftLat}, Lng: ${gifLong}`;
-});
-
-document.getElementById('dassault-marker-button').addEventListener('click', function() {
-    // .flyTo() crée une animation fluide de déplacement
-    setview([ dassaultLat, dassaultLong]);
-
-    // Si un marqueur existe déjà, on le déplace, sinon on le crée
-    if (marker) {
-        marker.setLatLng([ dassaultLat, dassaultLong]);
-    } else {
-        marker = L.marker([ dassaultLat, dassaultLong]).addTo(map);
-    }
-
-    // Affichage des coordonnées dans l'interface
-    document.getElementById('coords').innerText = `Lat: ${dassaultLat}, Lng: ${dassaultLong}`;
-});
 // ==========================================
 // WEBSOCKET (CONNEXION & PING)
 // ==========================================
@@ -224,12 +162,89 @@ ws.onmessage = function(event) {
             document.getElementById("FOLLOW_MAX_SPEED").value = data_param["FOLLOW_MAX_SPEED"];
             document.getElementById("alt_quadrillage").value = data_param["alt_quadrillage"];
             break
+        case "ask_coords_ack":
+            const data_param = data.data
+
+            intern_log("Destination envoyée : " + data_param["lat_mission"] + ", " + data_param["lng_mission"]);
+            setview([ data_param["lat_mission"], data_param["lng_mission"]]);
+
+            // Si un marqueur existe déjà, on le déplace, sinon on le crée
+            if (marker) {
+                marker.setLatLng([ data_param["lat_mission"], data_param["lng_mission"]]);
+            } else {
+                marker = L.marker([ data_param["lat_mission"], data_param["lng_mission"]]).addTo(map);
+            }
+
+            // Affichage des coordonnées dans l'interface
+            document.getElementById('coords').innerText = `Lat: ${data_param["lat_mission"]}, Lng: ${data_param["lng_mission"]}`;
     }
 };
 
 // ==========================================
 // FONCTIONS DE L'INTERFACE UI
 // ==========================================
+
+map.on('click', function(e) {
+    const lat = e.latlng.lat.toFixed(6);
+    const lng = e.latlng.lng.toFixed(6);
+
+    // Si un marqueur existe déjà, on le déplace, sinon on le crée
+    if (marker) {
+        marker.setLatLng(e.latlng);
+    } else {
+        marker = L.marker(e.latlng).addTo(map);
+    }
+
+    // Affichage des coordonnées dans l'interface
+    document.getElementById('coords').innerText = `Lat: ${lat}, Lng: ${lng}`;
+});
+
+
+function setview(coords){
+    map.flyTo(coords, 16, {
+        animate: true,
+        duration: 1.5 // durée du voyage en secondes
+    });
+
+}
+
+document.getElementById('gif-view-button').addEventListener('click', function() {
+    setview([ giftLat, gifLong]);
+});
+document.getElementById('dassault-view-button').addEventListener('click', function() {
+    // .flyTo() crée une animation fluide de déplacement
+    setview([ dassaultLat, dassaultLong]);
+});
+
+document.getElementById('gif-marker-button').addEventListener('click', function() {
+    // .flyTo() crée une animation fluide de déplacement
+    setview([ giftLat, gifLong]);
+
+    // Si un marqueur existe déjà, on le déplace, sinon on le crée
+    if (marker) {
+        marker.setLatLng([ giftLat, gifLong]);
+    } else {
+        marker = L.marker([giftLat, gifLong]).addTo(map);
+    }
+
+    // Affichage des coordonnées dans l'interface
+    document.getElementById('coords').innerText = `Lat: ${giftLat}, Lng: ${gifLong}`;
+});
+
+document.getElementById('dassault-marker-button').addEventListener('click', function() {
+    // .flyTo() crée une animation fluide de déplacement
+    setview([ dassaultLat, dassaultLong]);
+
+    // Si un marqueur existe déjà, on le déplace, sinon on le crée
+    if (marker) {
+        marker.setLatLng([ dassaultLat, dassaultLong]);
+    } else {
+        marker = L.marker([ dassaultLat, dassaultLong]).addTo(map);
+    }
+
+    // Affichage des coordonnées dans l'interface
+    document.getElementById('coords').innerText = `Lat: ${dassaultLat}, Lng: ${dassaultLong}`;
+});
 
 function changelog() {
     let choix = document.getElementById("choix").value;
@@ -562,15 +577,17 @@ sendCoordsBTN.onclick = function() {
     } else {
         intern_log("Aucun point à envoyer");
     }
-    
+}
 
-    
-
+requestBtn.onclick = function() {
+    const message = {
+        "command": "ask_coords",
+        "target": "Valkyrie"
+    };
 
     if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(messagevalh));
-        ws.send(JSON.stringify(messagevalk));
-        intern_log("Envoi de la nouvelle configuration");
+        ws.send(JSON.stringify(message));
+        intern_log("Envoi de la requette de configuration");
     } else {
         intern_log("site offline");
     }
