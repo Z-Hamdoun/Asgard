@@ -6,6 +6,8 @@ import sys
 import subprocess
 import json_config
 import json_coords
+import pkg_resources
+from pkg_resources import DistributionNotFound, VersionConflict
 
 
 # --- FONCTIONS UTILITAIRES WEBSOCKET ---
@@ -69,6 +71,19 @@ async def run_mission(websocket, command_str):
         print(f"Erreur mission: {e}")
     finally:
         websocket.current_process = None
+
+
+async def check_requirements(websocket, requirements_path="requirements.txt"):
+    with open(requirements_path) as f:
+        requirements = f.read().splitlines()
+
+    try:
+        pkg_resources.require(requirements)
+        await sendack(websocket, "check_valk_ack")
+        print("Toutes les dépendances sont présentes et à jour sur Valkyrie.")
+    except (DistributionNotFound, VersionConflict) as e:
+        await sendfail(websocket, "check_valk_fail", e)
+        print(f"Erreur de dépendance : {e}")
 
 
 # --- BOUCLE PRINCIPALE DU CLIENT ---
@@ -177,6 +192,10 @@ async def responder(ip_ordi):
                             await sendlog(websocket, "pull_ack", result)
                         except Exception as e:
                             await sendfail(websocket, "pull_fail", str(e))
+
+                    # 8. Check valkyrie
+                    elif data.get("command") == "check_V":
+                        asyncio.create_task(check_requirements(websocket))
 
         except Exception as e:
             print(f"Déconnecté. Nouvelle tentative dans 1s... ({e})")

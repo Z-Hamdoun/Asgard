@@ -19,6 +19,9 @@ const requestBtn = document.getElementById("requestBtn")
 const sendBtn = document.getElementById("sendBtn")
 const sendCoordsBTN = document.getElementById("sendCoordsBtn")
 const requestCoordsBTN = document.getElementById("requestCoordsBtn")
+const checkValkBtn = document.getElementById("check-valk-btn")
+const checkValhBtn = document.getElementById("check-valh-btn")
+const checkEvrnBtn = document.getElementById("check-evrn-btn")
 
 const input = document.getElementById('term-input');
 const cursor = document.getElementById('cursor');
@@ -314,11 +317,15 @@ function setState(ValhState, ValkState) {
 stateDiagram-v2
 classDef highlight fill:#3b82f6,color:white,stroke:#2563eb,stroke-width:2px
 
-INIT --> LOADING : Démarrer
-LOADING --> SUCCESS : Terminé
-LOADING --> ERROR : Échec
-SUCCESS --> IDLE : Réinitialiser
-ERROR --> IDLE : Réessayer
+* --> WAIT 
+WAIT --> DISARMED : Terminé
+DISARMED --> ARMED : Échec
+ARMED --> STANDBY : Réinitialiser
+STANDBY --> MOVING : Réessayer
+MOVING --> FLYING : Terminé
+FLYING --> GROUNDED : Échec
+GROUNDED --> FLYING : Réinitialiser
+FLYING --> RTL 
 
 class ${ValhState} highlight
     `;
@@ -591,4 +598,45 @@ requestCoordsBtn.onclick = function() {
     } else {
         intern_log("site offline");
     }
+}
+
+checkValkBtn.onclick = function(){
+    const message = {
+        "command": "check_V",
+        "target": "Valkyrie"
+    };
+
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+        intern_log("Check Valkyrie");
+    } else {
+        intern_log("site offline");
+    }   
+}
+
+checkValhBtn.onclick = function(){
+    const message = {
+        "command": "check_V",
+        "target": "Valhalla"
+    };
+
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+        intern_log("Check Valhalla");
+    } else {
+        intern_log("site offline");
+    }   
+}
+
+checkEvrnBtn.onclick = function(){
+    const message = {
+        "command": "check_E",
+        "target": "Valkyrie"
+    };
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+        intern_log("Check tout le monde");
+    } else {
+        intern_log("site offline");
+    }   
 }
