@@ -1,6 +1,1 @@
-asyncio
 websockets
-json
-sys
-subprocess
-pkg_resources

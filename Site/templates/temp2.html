@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+
+    <h2>Diagramme de Mission (Évolutif)</h2>
+
+    <div class="mermaid">
+    stateDiagram-v2
+        state STABILIZE {
+            state "grounded" as stabilize_grounded {
+                state "WAIT" as stabilize_WAIT
+                stabilize_WAIT --> stabilize_WAIT: mode_change_fail
+            }
+        }
+        [*] --> stabilize_WAIT
+        state GUIDED {
+            state "grounded" as guided_grounded {
+                DISARMED --> ARMED : arm + gps_ok
+                DISARMED --> DISARMED : arm + gps_fail
+                ARMED --> DISARMED : disarm
+                ARMED --> ARMED : takeoff_fail
+            }
+
+            state FLYING {
+                STANDBY: STANDBY
+                STANDBY: fait for ... time units
+                STANDBY --> STANDBY : goto_fail
+                MOVING: MOVING
+                MOVING : - manual takeover if infinite\n- tell Valkyrie when closely
+                STANDBY --> MOVING : goto_ok
+                state ON_TARGET {
+                    state "FLYING" as on_target_AIR
+                    state "GROUNDED" as on_target_GROUND
+                    on_target_AIR --> on_target_GROUND : standby
+                    on_target_GROUND --> on_target_AIR : Valkyrie_finished
+                }
+            }
+            
+        }
+        guided_grounded --> LAND: no_gps
+        FLYING --> LAND: no_gps
+        stabilize_WAIT --> DISARMED: mode_change_ok
+        ARMED --> STANDBY : takeoff_ok
+        MOVING --> on_target_AIR
+        on_target_AIR --> RTL : mission_finish
+        RTL --> [*]
+        LAND --> [*]
+    </div>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    </script>
+
+</body>
+</html>
