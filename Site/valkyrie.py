@@ -6,8 +6,8 @@ import sys
 import subprocess
 import json_config
 import json_coords
-import pkg_resources
-from pkg_resources import DistributionNotFound, VersionConflict
+import importlib.metadata
+import os
 
 
 # --- FONCTIONS UTILITAIRES WEBSOCKET ---
@@ -74,16 +74,34 @@ async def run_mission(websocket, command_str):
 
 
 async def check_requirements(websocket, requirements_path="requirements.txt"):
-    with open(requirements_path) as f:
-        requirements = f.read().splitlines()
+    if not os.path.exists(requirements_path):
+        print(f"Fichier {requirements_path} introuvable.")
+        await sendfail(websocket, "check_valk_fail", "requirements.txt introuvable")
 
-    try:
-        pkg_resources.require(requirements)
-        await sendack(websocket, "check_valk_ack")
-        print("Toutes les dépendances sont présentes et à jour sur Valkyrie.")
-    except (DistributionNotFound, VersionConflict) as e:
-        await sendfail(websocket, "check_valk_fail", str(e))
-        print(f"Erreur de dépendance : {e}")
+    with open(requirements_path, "r") as f:
+        dependencies = [
+            line.split("==")[0].split(">=")[0].strip()
+            for line in f
+            if line.strip() and not line.startswith("#")
+        ]
+
+    missing = []
+    for auth in dependencies:
+        try:
+            importlib.metadata.version(auth)
+        except importlib.metadata.PackageNotFoundError:
+            missing.append(auth)
+
+    if missing:
+        print(f"Erreur de dépendance. Manquant(s) : {', '.join(missing)}")
+        await sendfail(
+            websocket,
+            "check_fail",
+            f"Manquant(s) : {', '.join(missing)}",
+        )
+    else:
+        print("Toutes les dépendances sont présentes et à jour.")
+        await sendack(websocket, "check_ack")
 
 
 # --- BOUCLE PRINCIPALE DU CLIENT ---

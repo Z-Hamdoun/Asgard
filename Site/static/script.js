@@ -117,6 +117,15 @@ ws.onmessage = function(event) {
             clearTimeout(timer);
             updateStatusDot(`git-dot-${sourceSuffix}`, 'online');
             break;
+        
+        case "check_ack":
+            intern_log(`Toutes les dépendances sont présentes et à jour sur ${data.source}.`)
+            break;
+
+        case "check_fail":
+            intern_log(`Erreur de dépendance sur ${data.source}`)
+            intern_log(data.output)
+            break;
 
         case "pull_fail":
             clearTimeout(timer);
