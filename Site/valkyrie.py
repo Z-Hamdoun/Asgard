@@ -82,7 +82,7 @@ async def check_requirements(websocket, requirements_path="requirements.txt"):
         await sendack(websocket, "check_valk_ack")
         print("Toutes les dépendances sont présentes et à jour sur Valkyrie.")
     except (DistributionNotFound, VersionConflict) as e:
-        await sendfail(websocket, "check_valk_fail", e)
+        await sendfail(websocket, "check_valk_fail", str(e))
         print(f"Erreur de dépendance : {e}")
 
 
