@@ -89,7 +89,7 @@ def generate_frames():
         )
         cv2.putText(
             output_frame,
-            str(vector),
+            vector_text,
             (20, 80),  # Position (x, y) en pixels depuis le coin haut-gauche
             cv2.FONT_HERSHEY_SIMPLEX,  # Police de caractères
             0.8,  # Taille de la police
