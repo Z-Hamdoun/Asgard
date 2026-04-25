@@ -1,25 +1,47 @@
-.state-diagram{
+.diagram-wrapper {
+    position: relative;
+    margin-bottom: 20px; /* Espace entre les deux blocs */
+    width: fit-content;
+}
+
+/* Le titre est extrait du flux et placé par dessus */
+.diagram-label {
+    position: absolute;
+    top: 15px;      /* Ajustez selon la position voulue */
+    left: 20px;     /* Ajustez selon la position voulue */
+    z-index: 10;    /* Pour passer devant le diagramme */
+    margin: 0;
+    background: rgba(0, 0, 0, 0.8); /* Fond semi-transparent pour la lisibilité */
+    padding: 2px 8px;
+    border-radius: 5px;
+    pointer-events: none; /* Permet de cliquer à travers le titre si besoin */
+}
+
+.state-diagram {
   display: flex;
-  justify-content: center;
   flex-direction: column;
-  align-items: center;
+  /* On aligne au début pour que le scroll commence à 0,0 */
+  align-items: flex-start; 
+  justify-content: flex-start;
+  
   background: #fff;
   border: 2px solid #000;
   border-radius: 20px;
-  padding: 5px;
+  padding: 15px; /* Un peu plus de padding pour respirer */
   width: 450px;
+  height: 400px;
   margin: 5px;
+  overflow: auto; 
+  position: relative;
 }
-
 #diagram-container-valh, #diagram-container-valk {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 #diagram-container-valh svg,#diagram-container-valk svg {
-  height: 380px;
+  height: 1000px;
+  width: 1200px;
 }
 
 /* Cible le texte à l'intérieur du SVG généré */

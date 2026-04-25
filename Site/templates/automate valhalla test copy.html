@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        #controls { margin: 20px; position: sticky; top: 10px; z-index: 100; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; background: #009F00; color: white; border: none; border-radius: 5px; }
+        button:hover { background: #007a00; } 
+        .active-state rect { fill: #90EE90 !important; stroke: #006400 !important; stroke-width: 4px !important; transition: all 0.3s; }
+    </style>
+</head>
+<body>
+
+    <h2>Diagramme de Mission (Évolutif)</h2>
+    <div id="controls">
+        <button onclick="nextStep()">Étape Suivante</button>
+    </div>
+    <div class="mermaid">
+    flowchart TD
+    %% Point de départ
+    Start(( )) --> stabilize_WAIT
+
+    subgraph STABILIZE
+        subgraph stabilize_grounded [grounded]
+            stabilize_WAIT[WAIT]
+            stabilize_WAIT -- "<span style='color:red'>mode_change_fail</span>" --> stabilize_WAIT
+        end
+    end
+
+    Start_Valhalla[/Mission Start Valhalla/] -.-> fork
+    stabilize_WAIT -- "<span style='color:#009F00'>mode_change_ok</span>" --> fork
+    fork{ }
+
+    subgraph GUIDED
+        subgraph guided_grounded [grounded]
+            fork --> DISARMED[DISARMED]
+            DISARMED -- "<span style='color:#009F00'>arm + gps_ok</span>" --> ARMED[ARMED]
+            DISARMED -- "<span style='color:red'>arm + gps_fail</span>" --> DISARMED
+            ARMED -- "<span style='color:red'>takeoff_fail</span>" --> ARMED
+            ARMED -- "<span style='color:red'>disarm</span>" --> DISARMED
+        end
+
+        subgraph guided_flying [flying]
+            ARMED -- "<span style='color:#009F00'>takeoff_ok</span>" --> MOVING[MOVING]
+            
+            subgraph hovering [HOVERING]
+                direction TB
+                MOVING -- "approach" --> hovering_CLOSE[CLOSE]
+                hovering_CLOSE -- "<span style='color:red'>close_False</span>" --> hovering_CLOSE
+                hovering_CLOSE -- "<span style='color:#009F00'>close_True</span>" --> hovering_CENTERED[CENTERED]
+                hovering_CENTERED -- "<span style='color:red'>centered_False</span>" --> hovering_CENTERED
+            end
+
+            hovering_CENTERED -- "<span style='color:#009F00'>centered_True</span>" --> PLACING[PLACING]
+            PLACING -- "retreat" --> RETREATED[RETREATED]
+            RETREATED -- "<span style='color:red'>retreated_False</span>" --> RETREATED
+            
+            RETREATED -- "<span style='color:#009F00'>mission_done</span>" --> guided_WAIT[WAIT]
+            guided_WAIT -- "<span style='color:red'>change_mode_fail</span>" --> guided_WAIT
+        end
+    end
+
+    subgraph FOLLOW
+        subgraph follow_flying [flying]
+            guided_WAIT -- "<span style='color:#009F00'>mode_change_ok</span>" --> FOLLOWING[FOLLOWING]
+        end
+    end
+
+    %% Sorties de secours
+    FOLLOWING -- "end_mission" --> RTL[RTL]
+    GUIDED -- "<span style='color:red'>no_gps</span>" --> LAND[LAND]
+    
+    RTL --> End(( ))
+    LAND -.-> End
+    </div>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        
+        // Configuration de Mermaid
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'neutral' 
+        });
+
+        // Liste des IDs
+        const sequence = ['stabilize_WAIT', 'DISARMED', 'ARMED', 'STANDBY', 'MOVING', 'on_target_AIR', 'RTL'];
+        let currentIndex = -1;
+
+        // La fonction qui change l'état
+        window.nextStep = function() {
+            document.querySelectorAll('.active-state').forEach(el => el.classList.remove('active-state'));
+            currentIndex++;
+            if (currentIndex >= sequence.length) currentIndex = 0;
+
+            const targetId = sequence[currentIndex];
+            const nodes = document.querySelectorAll('.nodes .node');
+            
+            nodes.forEach(node => {
+                const regex = new RegExp(`(^|-)${targetId}(-|$)`);
+
+                if (regex.test(node.id)) {
+                    node.classList.add('active-state');
+                    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        };
+
+        // --- NOUVEAU : Activer le premier état au chargement ---
+        // On attend que Mermaid ait fini de générer le SVG
+        window.addEventListener('load', () => {
+            // Un court délai de 200ms suffit généralement pour que le SVG soit injecté dans le DOM
+            setTimeout(() => {
+                nextStep(); 
+            }, 200);
+        });
+    </script>
+</body>
+</html>

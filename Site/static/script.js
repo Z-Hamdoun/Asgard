@@ -31,8 +31,13 @@ const divconsole = document.getElementById('console');
 // INITIALISATION
 // ==========================================
 // Initialisation de Mermaid
-mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
-
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'default',
+  state: {
+    fontSize: 20, // Augmente la taille de base
+  }
+});
 // Lancement initial sur l'état IDLE
 window.onload = () => setState('INIT','LOADING');
 // Initialisation de la carte (centrée sur le monde)
@@ -196,6 +201,7 @@ ws.onmessage = function(event) {
 // FONCTIONS DE L'INTERFACE UI
 // ==========================================
 
+
 map.on('click', function(e) {
     const lat = e.latlng.lat.toFixed(6);
     const lng = e.latlng.lng.toFixed(6);
@@ -323,20 +329,60 @@ function updateCursor(event) {
 
 function setState(ValhState, ValkState) {
     const diagramValhDefinition = `
-stateDiagram-v2
-classDef highlight fill:#3b82f6,color:white,stroke:#2563eb,stroke-width:2px
+    flowchart TD
+    %% Point de départ
+    Start(( )) --> stabilize_WAIT
 
-* --> WAIT 
-WAIT --> DISARMED : Terminé
-DISARMED --> ARMED : Échec
-ARMED --> STANDBY : Réinitialiser
-STANDBY --> MOVING : Réessayer
-MOVING --> FLYING : Terminé
-FLYING --> GROUNDED : Échec
-GROUNDED --> FLYING : Réinitialiser
-FLYING --> RTL 
+    subgraph STABILIZE
+        subgraph stabilize_grounded [grounded]
+            stabilize_WAIT[WAIT]
+            stabilize_WAIT -- "<span style='color:red; margin: 0 4px;'>mode_change_fail</span>" --> stabilize_WAIT
+        end
+    end
 
-class ${ValhState} highlight
+    subgraph GUIDED
+        subgraph guided_grounded [grounded]
+            DISARMED -- "<span style='color:#009F00'>arm + gps_ok</span>" --> ARMED
+            %% Polices Rouges pour Fails/Disarm
+            DISARMED -- "<span style='color:red'>arm + gps_fail</span>" --> DISARMED
+            ARMED -- "<span style='color:red'>disarm</span>" --> DISARMED
+            ARMED -- "<span style='color:red'>takeoff_fail</span>" --> ARMED
+        end
+
+        subgraph flying
+            STANDBY["STANDBY<br/>fait for ... time units"]
+            STANDBY -- "<span style='color:red'>goto_fail</span>" --> STANDBY
+            
+            MOVING["MOVING<br/>- manual takeover if infinite<br/>- tell Valkyrie when closely"]
+            
+            %% Police Verte pour Success
+            STANDBY -- "<span style='color:#009F00'>goto_ok</span>" --> MOVING
+            subgraph ON_TARGET
+                on_target_AIR[FLYING]
+                on_target_GROUND[GROUNDED]
+                on_target_AIR -- standby --> on_target_GROUND
+                on_target_GROUND -- Valkyrie_finished --> on_target_AIR
+            end
+        end
+    end
+
+    %% Transitions inter-blocs
+    stabilize_WAIT -- "<span style='color:#009F00'>mode_change_ok</span>" ---> DISARMED
+    ARMED -- "<span style='color:#009F00'>takeoff_ok</span>" --> STANDBY
+    MOVING -- "<span style='color:#009F00'>target_reached</span>" --> on_target_AIR
+    %% Sorties de secours et fin
+    guided_grounded -- "<span style='color:red; margin: 0 4px;'>no_gps</span>" --> LAND
+    flying -- "<span style='color:red; margin: 0 4px;'>no_gps</span>" --> LAND
+    on_target_AIR -- "<span style='color:#009F00'>mission_finish</span>" --> RTL
+    RTL --> End(( ))
+    LAND --> End
+    style STABILIZE fill:#f9fff9,stroke:#c0f0c0,stroke-width:4px
+    style stabilize_grounded fill:#f9fff9,stroke:#d0f0d0,stroke-width:2px
+    style GUIDED fill:#f9f9ff,stroke:#c0c0f0,stroke-width:4px
+    style guided_grounded fill:#f9f9ff,stroke:#d0d0f0,stroke-width:2px
+    style flying fill:#f9f9ff,stroke:#d0d0f0,stroke-width:2px
+    linkStyle 1,3,4,5,6,13,14 stroke:#ff0000,stroke-width:2px
+        linkStyle 2,7,10,11,12,15 stroke:#009f00,stroke-width:2px
     `;
     const diagramContainerValh = document.getElementById('diagram-container-valh');
     // Suppression de l'attribut data-processed indispensable pour forcer Mermaid à redessiner
