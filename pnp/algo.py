@@ -115,7 +115,7 @@ class PnPLandingSystem:
     def get_contours(self, frame):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        gray = cv2.normalize(frame, None, 0, 255, cv2.NORM_MINMAX)
+        gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         gray = clahe.apply(gray)
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
