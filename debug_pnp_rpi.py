@@ -27,7 +27,8 @@ def generate_frames():
         frame = cv2.cvtColor(frame_raw, cv2.COLOR_RGB2BGR)
 
         # On récupère les contours ET le masque (thresh)
-        taches1, taches2, taches3, thresh = detector.get_contours(frame)
+        vector, get_contours = detector.get_landing_vector(frame)
+        taches1, taches2, taches3, thresh = get_contours
 
         # OPTION A : Afficher UNIQUEMENT le masque noir et blanc
         output_frame = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
@@ -74,6 +75,16 @@ def generate_frames():
             output_frame,
             texte,
             (20, 40),  # Position (x, y) en pixels depuis le coin haut-gauche
+            cv2.FONT_HERSHEY_SIMPLEX,  # Police de caractères
+            0.8,  # Taille de la police
+            couleur_texte,  # Couleur (BGR)
+            2,  # Épaisseur du trait
+            cv2.LINE_AA,  # Antialiasing pour un texte plus lisse
+        )
+        cv2.putText(
+            output_frame,
+            str(vector),
+            (20, 80),  # Position (x, y) en pixels depuis le coin haut-gauche
             cv2.FONT_HERSHEY_SIMPLEX,  # Police de caractères
             0.8,  # Taille de la police
             couleur_texte,  # Couleur (BGR)

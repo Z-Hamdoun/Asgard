@@ -180,79 +180,6 @@ class PnPLandingSystem:
             blurred,
         )
 
-    def setup_blob_detector(self):
-        params = cv2.SimpleBlobDetector_Params()
-
-        # Seuils de luminosité
-        params.minThreshold = 50
-        params.maxThreshold = 220
-
-        # Filtre par Aire (taille de la tache)
-        params.filterByArea = True
-        params.minArea = 70
-        params.maxArea = 2000
-
-        # Filtre par Circularité (1 = cercle parfait)
-        params.filterByCircularity = True
-        params.minCircularity = 0.7
-
-        # Filtre par Inertie (0 = ligne, 1 = cercle/carré)
-        params.filterByInertia = True
-        params.minInertiaRatio = 0.5
-
-        return cv2.SimpleBlobDetector_create(params)
-
-    def get_contours_v2(self, frame):
-        # 1. Prétraitement (Optionnel : CLAHE pour la luminosité comme discuté avant)
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        # 2. Détection des "Keypoints" (les centres des cibles)
-        detector = self.setup_blob_detector()
-        keypoints = detector.detect(gray)
-
-        results = []
-        for i, kp in enumerate(keypoints):
-            # kp.pt contient (x, y)
-            cX, cY = int(kp.pt[0]), int(kp.pt[1])
-
-            # kp.size contient le diamètre de la tache
-            radius = kp.size / 2
-
-            # On recrée une structure compatible avec ton reste de code
-            results.append(
-                {
-                    "id": i,
-                    "center": (cX, cY),
-                    "area": np.pi * (radius**2),
-                    "limits": {
-                        "x_min": int(cX - radius),
-                        "x_max": int(cX + radius),
-                        "y_min": int(cY - radius),
-                        "y_max": int(cY + radius),
-                    },
-                    # Note : le blob detector ne donne pas les contours exacts (points)
-                    # On simule un cercle pour le dessin si nécessaire
-                    "contours": np.array(
-                        [
-                            [
-                                [
-                                    int(cX + radius * np.cos(a)),
-                                    int(cY + radius * np.sin(a)),
-                                ]
-                            ]
-                            for a in np.linspace(0, 2 * np.pi, 20)
-                        ],
-                        dtype=np.int32,
-                    ),
-                }
-            )
-
-        # On passe quand même par ta logique C pour trouver les triplets imbriqués
-        results_nested = self.get_nested_squares(results)
-        ids_first = {t[0] for t in results_nested}
-
-        return ([dico for dico in results if dico["id"] in ids_first], [], [], gray)
-
     def get_nested_squares(self, data):
         n = len(data)
         # Préparation des données pour le C
@@ -285,24 +212,11 @@ class PnPLandingSystem:
         C'est ici qu'on calcule la distance en mètres entre la caméra et la cible.
         """
         # Étape 1 : On récupère les 5 taches roses sur l'image
-        valid_contours = self.get_contours(frame)
-        if valid_contours is None:
-            return None, []
+        a, b, Taches, d = self.get_contours(frame)
 
-        # Étape 2 : On cherche le centre exact (en pixels) de chaque tache
-        points_2d = []
-        for c in valid_contours:
-            M = cv2.moments(c)
-            if M["m00"] != 0:
-                cX = int(M["m10"] / M["m00"])
-                cY = int(M["m01"] / M["m00"])
-                points_2d.append([cX, cY])
-
-        if len(points_2d) != 5:
-            return None, points_2d
-
-        if verbose:
-            print("[PnP] SUCCÈS : 5 points trouvés ! Calcul en cours...")
+        if len(Taches) != 5:
+            return None, (a, b, Taches, d)
+        points_2d = [tache["center"] for tache in Taches]
 
         try:
             # Étape 3 : On devine quel point est le centre, et lesquels sont les coins
@@ -320,7 +234,7 @@ class PnPLandingSystem:
             )
 
             if not success:
-                return None, points_2d
+                return None, (a, b, Taches, d)
 
             # tvec contient notre position par rapport à la caméra
             x_cam = tvec[0][0]  # Décalage gauche/droite
@@ -332,12 +246,11 @@ class PnPLandingSystem:
             drone_dx = -x_cam  # Avant/Arrière
             drone_dy = y_cam  # Gauche/Droite
             drone_dz = z_cam  # Altitude relative
-            return (drone_dx, drone_dy, drone_dz), points_2d
+            return (drone_dx, drone_dy, drone_dz), (a, b, Taches, d)
 
         except Exception as e:
-            if verbose:
-                print(f"[PnP] ERREUR : {e}")
-            return None, points_2d
+
+            return None, (a, b, Taches, d)
 
     def _order_points(self, pts):
         """
