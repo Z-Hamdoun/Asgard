@@ -28,9 +28,10 @@ def generate_frames():
 
         # On récupère les contours ET le masque (thresh)
         taches1, taches2, taches3, thresh = detector.get_contours(frame)
-
+        gray = 
         # OPTION A : Afficher UNIQUEMENT le masque noir et blanc
-        output_frame = thresh
+        output_frame = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+
 
         # OPTION B : Afficher les contours colorés SUR le masque (plus pratique pour debug)
         # Comme 'thresh' est en niveaux de gris, on le repasse en BGR pour voir les couleurs

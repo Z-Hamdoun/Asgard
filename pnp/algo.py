@@ -113,6 +113,8 @@ class PnPLandingSystem:
         return 0.7 < circularity < 1.3
 
     def get_contours(self, frame):
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
         gray = cv2.normalize(frame, None, 0, 255, cv2.NORM_MINMAX)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         gray = clahe.apply(gray)
