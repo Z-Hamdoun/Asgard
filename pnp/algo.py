@@ -113,24 +113,10 @@ class PnPLandingSystem:
         return 0.7 < circularity < 1.3
 
     def get_contours(self, frame):
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        # Création de l'objet CLAHE
-        # clipLimit : force du contraste (2.0 - 3.0 est souvent idéal)
-        # tileGridSize : taille de la zone locale (8x8 pixels)
-        gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
+        gray = cv2.normalize(frame, None, 0, 255, cv2.NORM_MINMAX)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         gray = clahe.apply(gray)
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-        # On garde le seuillage inversé
-        # thresh = cv2.adaptiveThreshold(
-        #     blurred,
-        #     255,
-        #     cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        #     cv2.THRESH_BINARY_INV,
-        #     11,  # Taille du voisinage (doit être impair : 3, 5, 7, 11...)
-        #     2,  # Constante soustraite à la moyenne
-        # )
         _, thresh = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY_INV)
         contours, hierarchy = cv2.findContours(
             thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE
@@ -141,11 +127,11 @@ class PnPLandingSystem:
         for i, cnt in enumerate(contours):
             area = cv2.contourArea(cnt)
 
-            if area > 3000 or area < 40:
+            if area > 5000 or area < 40:
 
                 continue
             if not self._is_circular(cnt, area):
-                continue  # On ignore la tache si elle n'est pas assez ronde/carrée
+                continue
             M = cv2.moments(cnt)
             if M["m00"] == 0:
                 continue

@@ -81,7 +81,7 @@ def generate_frames():
             texte,
             (20, 40),  # Position (x, y) en pixels depuis le coin haut-gauche
             cv2.FONT_HERSHEY_SIMPLEX,  # Police de caractères
-            1.0,  # Taille de la police
+            0.8,  # Taille de la police
             couleur_texte,  # Couleur (BGR)
             2,  # Épaisseur du trait
             cv2.LINE_AA,  # Antialiasing pour un texte plus lisse
