@@ -66,7 +66,13 @@ def generate_frames():
                 )
         nb_taches = len(taches1)
         texte = f"Taches detectees: {nb_taches}"
-
+        vector_text = "no vector"
+        if nb_taches == 5:
+            vector_text = (
+                str(round(vector[0], 2))
+                + str(round(vector[1], 2))
+                + str(round(vector[2], 2))
+            )
         # 2. Choisir la couleur (Vert si on en a 5, Rouge sinon)
         couleur_texte = (0, 255, 0) if nb_taches == 5 else (0, 0, 255)
 
