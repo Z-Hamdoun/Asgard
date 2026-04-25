@@ -69,8 +69,11 @@ def generate_frames():
         vector_text = "no vector"
         if nb_taches == 5:
             vector_text = (
-                str(round(vector[0], 2))
+                "x:"
+                + str(round(vector[0], 2))
+                + " y:"
                 + str(round(vector[1], 2))
+                + " z:"
                 + str(round(vector[2], 2))
             )
         # 2. Choisir la couleur (Vert si on en a 5, Rouge sinon)
