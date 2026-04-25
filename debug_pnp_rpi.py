@@ -36,24 +36,18 @@ def generate_frames():
         # Comme 'thresh' est en niveaux de gris, on le repasse en BGR pour voir les couleurs
         # output_frame = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
 
-        for tache in taches1:
+        for i in range(len(taches1)):
             # On dessine en VERT sur le masque pour voir si la détection matche le seuil
-            cv2.drawContours(output_frame, [tache["contours"]], -1, (0, 255, 0), 2)
-
-        for tache in taches2:
-            # On dessine en VERT sur le masque pour voir si la détection matche le seuil
-            cv2.drawContours(output_frame, [tache["contours"]], -1, (0, 225, 0), 2)
-
-        for tache in taches3:
-            # On dessine en VERT sur le masque pour voir si la détection matche le seuil
-            cv2.drawContours(output_frame, [tache["contours"]], -1, (0, 205, 0), 2)
-            if tache["center"] is not None:
-                cX, cY = tache["center"]
+            cv2.drawContours(output_frame, [taches1[i]["contours"]], -1, (0, 255, 0), 2)
+            cv2.drawContours(output_frame, [taches2[i]["contours"]], -1, (0, 225, 0), 2)
+            cv2.drawContours(output_frame, [taches3[i]["contours"]], -1, (0, 205, 0), 2)
+            if taches3[i]["center"] is not None:
+                cX, cY = taches3[i]["center"]
                 cv2.circle(output_frame, (cX, cY), 5, (0, 0, 255), -1)
-                aire = tache["area"]
-                texte_aire = f"A: {int(aire)}"
+                aire = taches3[i]["area"]
+                texte_aire = f"A: {int(aire)}:{int(taches1[i]["area"])}"
 
-                perimeter = cv2.arcLength(tache["contours"], True)
+                perimeter = cv2.arcLength(taches3[i]["contours"], True)
                 if perimeter == 0:
                     return False
                 circularity = 4 * np.pi * (aire / (perimeter**2))
