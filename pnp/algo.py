@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import math
-
+import time
 
 import ctypes
 
@@ -211,11 +211,12 @@ class PnPLandingSystem:
         """
         C'est ici qu'on calcule la distance en mètres entre la caméra et la cible.
         """
+        t = time.time()
         # Étape 1 : On récupère les 5 taches roses sur l'image
         a, b, Taches, d = self.get_contours(frame)
 
         if len(Taches) != 5:
-            return None, (a, b, Taches, d)
+            return None, (a, b, Taches, d), time.time() - t
         points_2d = [tache["center"] for tache in Taches]
 
         try:
@@ -234,7 +235,7 @@ class PnPLandingSystem:
             )
 
             if not success:
-                return None, (a, b, Taches, d)
+                return None, (a, b, Taches, d), time.time() - t
 
             # tvec contient notre position par rapport à la caméra
             x_cam = tvec[0][0]  # Décalage gauche/droite
@@ -250,7 +251,7 @@ class PnPLandingSystem:
 
         except Exception as e:
 
-            return None, (a, b, Taches, d)
+            return None, (a, b, Taches, d), time.time() - t
 
     def _order_points(self, pts):
         """

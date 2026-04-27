@@ -14,7 +14,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />    
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.min.js"></script>
 </head>
 <body>
     <h1>Mission Asgard - Tableau de controle</h1>
@@ -212,14 +211,70 @@
             <div class="diagram-wrapper">
                 <h4 class="diagram-label">Valhalla</h4>
                 <div class="state-diagram">
-                    <div id="diagram-container-valh"></div>
+
+    <div class="mermaid">
+    flowchart TD
+        %% Point de départ
+        Start(( )) --> stabilize_WAIT
+
+        subgraph STABILIZE
+            subgraph stabilize_grounded [grounded]
+                stabilize_WAIT[WAIT]
+                stabilize_WAIT -- "<span style='color:red; margin: 0 4px;'>mode_change_fail</span>" --> stabilize_WAIT
+            end
+        end
+
+        subgraph GUIDED
+            subgraph guided_grounded [grounded]
+                stabilize_WAIT -- "<span style='color:#009F00'>mode_change_ok</span>" ---> DISARMED
+        
+                DISARMED -- "<span style='color:#009F00'>arm + gps_ok</span>" --> ARMED
+                DISARMED -- "<span style='color:red'>arm + gps_fail</span>" --> DISARMED
+                ARMED -- "<span style='color:red'>takeoff_fail</span>" --> ARMED
+                ARMED -- "<span style='color:red'>disarm</span>" --> DISARMED
+            end
+
+            subgraph flying
+                STANDBY["STANDBY<br/>fait for ... time units"]
+                ARMED -- "<span style='color:#009F00'>takeoff_ok</span>" --> STANDBY
+        
+                STANDBY -- "<span style='color:red'>goto_fail</span>" --> STANDBY
+                
+                MOVING["MOVING<br/>- manual takeover if infinite<br/>- tell Valkyrie when closely"]
+                
+                %% Police Verte pour Success
+                STANDBY -- "<span style='color:#009F00'>goto_ok</span>" --> MOVING
+                subgraph ON_TARGET
+                    on_target_AIR[FLYING]
+                    
+                    on_target_GROUND[GROUNDED]
+                    on_target_AIR -- standby --> on_target_GROUND
+                    on_target_GROUND -- Valkyrie_finished --> on_target_AIR
+                end
+                MOVING --> on_target_AIR
+
+            end
+        end
+
+        on_target_AIR -- "<span style='color:#009F00'>mission_finish</span>" --> RTL
+        flying -- "<span style='color:red; margin: 0 4px;'>no_gps</span>" --> LAND
+        RTL --> End(( ))
+        style STABILIZE fill:#f9fff9,stroke:#c0f0c0,stroke-width:4px
+        style stabilize_grounded fill:#f9fff9,stroke:#d0f0d0,stroke-width:2px
+        style GUIDED fill:#f9f9ff,stroke:#c0c0f0,stroke-width:4px
+        style guided_grounded fill:#f9f9ff,stroke:#d0d0f0,stroke-width:2px
+        style flying fill:#f9f9ff,stroke:#d0d0f0,stroke-width:2px
+        linkStyle 1,4,5,6,8,14 stroke:#ff0000,stroke-width:2px
+        linkStyle 2,3,7,9,13 stroke:#009f00,stroke-width:2px
+    </div>
+                    <!-- <div id="diagram-container-valh"></div> -->
                 </div>
             </div>
 
             <div class="diagram-wrapper">
                 <h4 class="diagram-label">Valkyrie</h4>
                 <div class="state-diagram">
-                    <div id="diagram-container-valk"></div>
+                    <!-- <div id="diagram-container-valk"></div> -->
                 </div>
             </div>
         </div>
@@ -229,6 +284,6 @@
         Station au Sol IP: {{ local_ip }}
     </p>
 
-    <script src="/static/script.js"></script>
+    <script type="module" src="/static/script.js"></script>
 </body>
 </html>

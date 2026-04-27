@@ -17,19 +17,21 @@
     </div>
     <div class="mermaid">
     flowchart TD
+    
     %% Point de départ
     Start(( )) --> stabilize_WAIT
 
     subgraph STABILIZE
         subgraph stabilize_grounded [grounded]
+        
             stabilize_WAIT[WAIT]
             stabilize_WAIT -- "<span style='color:red'>mode_change_fail</span>" --> stabilize_WAIT
         end
     end
-
+    fork{ }
     Start_Valhalla[/Mission Start Valhalla/] -.-> fork
     stabilize_WAIT -- "<span style='color:#009F00'>mode_change_ok</span>" --> fork
-    fork{ }
+    
 
     subgraph GUIDED
         subgraph guided_grounded [grounded]
@@ -41,11 +43,11 @@
         end
 
         subgraph guided_flying [flying]
-            ARMED -- "<span style='color:#009F00'>takeoff_ok</span>" --> MOVING[MOVING]
-            
-            subgraph hovering [HOVERING]
+            ARMED -- "<span style='color:#009F00'>takeoff_ok</span>" --> STANDBY[STANDBY<br>wait for ... time units]
+            STANDBY -- "<span style='color:red'>goto_fail</span>"--> STANDBY
+            STANDBY --> LOOKING[LOOKING]
+            subgraph searching [SEARCHING]
                 direction TB
-                MOVING -- "approach" --> hovering_CLOSE[CLOSE]
                 hovering_CLOSE -- "<span style='color:red'>close_False</span>" --> hovering_CLOSE
                 hovering_CLOSE -- "<span style='color:#009F00'>close_True</span>" --> hovering_CENTERED[CENTERED]
                 hovering_CENTERED -- "<span style='color:red'>centered_False</span>" --> hovering_CENTERED
