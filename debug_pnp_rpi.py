@@ -67,7 +67,7 @@ def generate_frames():
         nb_taches = len(taches1)
         texte = f"Taches detectees: {nb_taches}"
         vector_text = "no vector"
-        if nb_taches == 5:
+        if vector is not None:
             vector_text = (
                 "x:"
                 + str(round(vector[0], 2))
