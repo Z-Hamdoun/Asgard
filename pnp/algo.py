@@ -247,7 +247,7 @@ class PnPLandingSystem:
             drone_dx = -x_cam  # Avant/Arrière
             drone_dy = y_cam  # Gauche/Droite
             drone_dz = z_cam  # Altitude relative
-            return (drone_dx, drone_dy, drone_dz), (a, b, Taches, d)
+            return (drone_dx, drone_dy, drone_dz), (a, b, Taches, d), time.time() - t
 
         except Exception as e:
 
