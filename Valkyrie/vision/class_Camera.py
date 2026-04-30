@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 import cv2
 import cv2.aruco as aruco
@@ -9,7 +9,7 @@ from typing import Sequence
 import time
 import threading
 
-from divers.class_Logger import Logger
+from utils.class_Logger import Logger
 
 
 RESOLUTION_CAMERA_GAZEBO = (640, 480) # A vérifier
