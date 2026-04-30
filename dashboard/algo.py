@@ -57,19 +57,6 @@ class PnPLandingSystem:
         # marker_distance : La taille du carré (40 cm).
         # net_depth : La profondeur du point central (20 cm plus bas).
         half = marker_distance / 2
-        self.h_min_d, self.s_min_d, self.v_min_d = 0, 0, 0
-        self.h_max_d, self.s_max_d, self.v_max_d = 255, 100, 80
-        self.h_min_d2, self.s_min_d2, self.v_min_d2 = 90, 100, 80
-        self.h_max_d2, self.s_max_d2, self.v_max_d2 = 115, 255, 255
-
-        self.h_min_b, self.s_min_b, self.v_min_b = 90, 0, 200
-        self.h_max_b, self.s_max_b, self.v_max_b = 115, 255, 255
-        self.params = {
-            "dark1": {"low": [0, 0, 0], "high": [255, 100, 80]},
-            "dark2": {"low": [90, 100, 80], "high": [115, 255, 175]},
-            "bright1": {"low": [90, 0, 175], "high": [115, 255, 235]},
-            "bright2": {"low": [0, 0, 235], "high": [255, 255, 255]},
-        }
         # On définit les 5 points dans l'espace (X, Y, Z) en mètres.
         self.object_points = np.array(
             [
@@ -85,24 +72,10 @@ class PnPLandingSystem:
             ],
             dtype=np.float32,
         )
-
-        # 2. LES YEUX DE LA CAMÉRA (Matrice intrinsèque)
-        # C'est la "paire de lunettes" de la caméra. Cela décrit comment sa lentille
-        # déforme la réalité. Ici, on utilise des valeurs standards pour une webcam de PC.
         self.camera_matrix = np.array(
             [[1000, 0, 640], [0, 1000, 360], [0, 0, 1]], dtype=np.float32
         )
         self.dist_coeffs = np.zeros((4, 1))
-        self.min_contour_area = 50
-        self.max_contour_area = 1600
-        # Le Blanc/Bleu clair en HSV a une saturation basse et une valeur (luminosité) très haute.
-        # (Cette deuxième plage est vide/inutile ici, mais gardée pour la structure de l'algo)
-
-        # 4. CRITÈRES POUR RECONNAÎTRE UNE TACHE
-        self.max_uncircularity_ratio = (
-            0.15  # La tache doit être à peu près ronde ou carrée
-        )
-        # Configuration des seuils (à charger via sliders ou fichier)
 
     def _is_circular(self, cnt, area):
         """Vérifie si une forme est approximativement ronde."""
@@ -116,7 +89,7 @@ class PnPLandingSystem:
         t0 = time.time()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         t1 = time.time()
-        gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
+        gray = cv2.normalize(gray, gray.copy(), 0, 255, cv2.NORM_MINMAX)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         gray = clahe.apply(gray)
         t2 = time.time()
@@ -145,10 +118,6 @@ class PnPLandingSystem:
                 continue
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
-
-            if thresh[cY, cX] == 0:
-                # C'est le contour d'un trou (le vide), on l'ignore
-                continue
 
             x, y, w, h = cv2.boundingRect(cnt)
 
