@@ -1,0 +1,4 @@
+C'est pour tester un réseau ESP-NOW le plus simple possible.
+Les deux cartes sont connectées à 2 PC différents (ou 2 cables usb sur le même PC).
+Quand on envoie un message sur une interface série, le message est transmit à l'autre.
+

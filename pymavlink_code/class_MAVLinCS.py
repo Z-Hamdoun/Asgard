@@ -13,7 +13,7 @@ import pymavlink_code.code_de_gestion_de_missions as CGM
 from pymavlink_code.class_Statustext_Receiver import Statustext_Receiver
 from pymavlink_code.class_Timesync_Handler import Timesync_Handler
 from pymavlink_code.class_MavThread import MavThread
-from divers.class_Logger import Logger
+from utils.class_Logger import Logger
 
 # Disclaimer : cette classe a de base été créée pour être utilisée sur ArduPilot.
 # Cependant, PX4 a été implémenté à de nombreux endroits mais non testé.

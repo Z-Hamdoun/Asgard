@@ -1,0 +1,3 @@
+Ce code permet de tester la bande passante entre 2 cartes uniquement.
+Lorsqu'on entre "test" dans la console de l'une des cartes, elle envoie une masse de données pendant 5 secondes.
+La seconde carte reçoit les données et affiche les statistiques.

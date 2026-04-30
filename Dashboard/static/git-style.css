@@ -1,0 +1,49 @@
+.git-button {
+  padding: 12px 20px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  border: 1px solid #000000;
+  background: #ffffff;
+  color: #000000;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 
+              0 1px 3px rgba(0, 0, 0, 0.02);
+  outline: none;
+}
+
+.git-button:hover {
+  transform: translateY(-3px);
+  background: #E0E0E0;
+  
+  box-shadow: 0 12px 24px rgba(59, 130, 246, 0.12), 
+              0 4px 8px rgba(0, 0, 0, 0.04);
+}
+
+.git-button:active {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.1s;
+}
+
+
+.git-container{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#git-dot-valk, #git-dot-valh {
+    width: 25px;
+    height: 25px;
+    background: #333;
+    border: 2px solid #000;
+    border-radius: 50%;
+    margin-left:  10px;
+    margin-bottom: 10px;
+    display: inline-block;
+    transition: background 0.1s;
+}

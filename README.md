@@ -59,7 +59,7 @@ La commande suivante est utilisée pour lancer la simulation du contrôleur de v
 
 **hostname**: `...`
 
-**username**: `Asgard`
+**username**: `asgard`
 
 **password**: `Dassault2025`
 
@@ -79,8 +79,10 @@ Raspberry Pi OS Lite (64-bit)
 
 **password**: `opensesame`
 
-**WiFi SSID**: `hotspot-helics`
+**WiFi SSID**: `Asgard`
 
 **WiFi pwd**: `wifisupelec`
 
 **SSH**: activated + using password authentification
+
+ssh helics@uav-companion.local

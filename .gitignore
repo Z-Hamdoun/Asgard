@@ -23,6 +23,9 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Ignore json file
+*.json
+
 ## General Cache
 # Ignore common cache directories
 .cache/

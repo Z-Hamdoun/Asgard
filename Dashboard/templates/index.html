@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Asgard Mission Control</title>
+    
+    <link rel="stylesheet" href="/static/main-style.css">
+    <link rel="stylesheet" href="/static/heartbeat-style.css">
+    <link rel="stylesheet" href="/static/git-style.css">
+    <link rel="stylesheet" href="/static/log-style.css">
+    <link rel="stylesheet" href="/static/param-style.css">
+    <link rel="stylesheet" href="/static/state-style.css">
+    <link rel="stylesheet" href="/static/cam-style.css">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+</head>
+<body>
+    <h1>Mission Asgard - Tableau de controle</h1>
+
+    <div class="row">
+        <div class ="col">
+            <div class="case">
+                    <h2> Git</h2>
+                    <div class="git-container">
+                        <button class="git-button" id="update-valk"> Git pull Valkyrie</button>
+                        <div id="git-dot-valk"></div>
+                    </div>
+                    <div class="git-container">
+                        <button class="git-button" id="update-valh"> Git pull Valhalla</button>
+                        <div id="git-dot-valh"></div>
+                    </div>
+                </div>
+                <div class="case">
+                    <h2> Check</h2>
+                    <button class="git-button" id="check-valk-btn"> Check OK Valkyrie</button>
+                    <button class="git-button" id="check-valh-btn"> Check OK Valhalla</button>
+                    <button class="git-button" id="check-evrn-btn"> Check OK Everyone</button>
+                </div>
+            
+        </div>
+
+            <div class="case">
+                
+                <h2>paramètre mission</h2>
+                <div style="display: flex;">
+                    <div id="mission-container" >
+                        <form>
+                            <h2>Choix de la mission</h2>
+                            <div class="mission-group">
+                                <input type="radio" id="mission1" name="mission" value="mission1" checked>
+                                <label for="mission1">Mission 1</label>
+                            </div>
+                            <div class="mission-group">
+                                <input type="radio" id="mission2" name="mission" value="mission2">
+                                <label for="mission2">Mission 2</label>
+                            </div>
+                            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+                            <div class="mission-group">
+                                <input type="radio" id="premission1" name="mission" value="premission1">
+                                <label for="premission1">Pré-mission 1</label>
+                            </div>
+                            <div class="mission-group">
+                                <input type="radio" id="premission2" name="mission" value="premission2">
+                                <label for="premission2">Pré-mission 2</label>
+                            </div>
+                            <div class="mission-group">
+                                <input type="radio" id="premission3" name="mission" value="premission3">
+                                <label for="premission3">Pré-mission 3</label>
+                            </div>
+                        </form>
+                    </div>
+                
+                    <div id="param-container">
+                        <div class="parametre-button-group">
+                                <button id="sendBtn" class="git-button">Appliquer</button>
+                                <button id="defaultBtn" class="git-button">Par défaut</button>
+                                <button id="requestBtn" class="git-button">Récupérer</button>
+                        </div>
+                        <form>
+                            <div class="parametre-groupe">
+                                <label for="vrai_largage">vrai_largage</label>
+                                <input type="text" id="vrai_largage" value="true">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="taille_quadrillage">taille_quadrillage</label>
+                                <input type="text" id="taille_quadrillage" value="10">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="pas_quadrillage">pas_quadrillage</label>
+                                <input type="text" id="pas_quadrillage" value="2">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="radius_acceptance">radius_acceptance</label>
+                                <input type="text" id="radius_acceptance" value="1">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="FOLLOW_MAX_SPEED">FOLLOW_MAX_SPEED</label>
+                                <input type="text" id="FOLLOW_MAX_SPEED" value="1400">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="alt_quadrillage">alt_quadrillage</label>
+                                <input type="text" id="alt_quadrillage" value="8">
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="case">
+                <h2>zone de recherche</h2>
+                <div style="display: flex;">
+                    <div class="map-button-container">
+                        
+                            <button id='sendCoordsBtn' class="git-button"> appliquer</button>
+                            <button id='gif-marker-button' class="git-button"> par défault Gif</button>
+                            <button id='dassault-marker-button' class="git-button"> par défault Dassault</button>
+                            <button id='requestCoordsBtn' class="git-button"> Récupérer</button>
+                            
+                            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+                            <button id="gif-view-button" class="git-button"> vue Gif</button>
+                            <button id="dassault-view-button" class="git-button"> vue Dassault</button>
+                            
+                    </div>
+                    <div class="map-container">
+                        <div id="map2"></div>
+                        <div class="info">
+                            <strong>Coordonnées :</strong> 
+                            <span id="coords">Aucun point sélectionné</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+    <div class="row">
+        <div class="case">
+            <h2>Log</h2>
+            <div style="width: 400px; height: 850px">
+                <div>
+                    <select id="choix" class="log-select" onchange="changelog()">
+                        <option value="">-- No Log --</option>
+                        <option value="a">Log Valkyrie</option>
+                        <option value="b">Log Valhalla</option>
+                        <option value="c">Double Log</option>
+                    </select>
+                    <button class="print-button" id="print-log">print log</button>
+                </div>
+                <div class="drone-log-container" id="valk-log"></div>
+                <div class="drone-log-container" id="valh-log"></div>
+            </div>
+        </div>
+
+        <div class="col">
+
+            <div class="case">
+                <h2>Console </h2>
+                
+                <div id="console-container" class="console">   
+                    <span id="console"></span>
+                </div>
+                <div id="input-log" class="log" style="display: none;" onclick="document.getElementById('term-input').focus()">
+                    <span>helics:~$</span>
+                    <div class="input-wrapper">
+                        <input type="text" id="term-input" spellcheck="false" autofocus>
+                        <span id="cursor" class="custom-cursor">_</span>
+                    </div>
+                </div>
+            </div>
+            <div class ="row">
+                
+                <div class="col">
+                    <div class="case">
+                        <h2 style="margin: 5px;">lancer la mission</h2>
+                        <button id="green-button">c'est parti</button>
+                    </div>
+                    <div class="case">
+                        <h2 style="margin: 5px;">arrêt d'urgence</h2>
+                        <button id="orange-button">atterrissage d'urgence</button>
+                        <button id="red-button">arrêt d'extrême urgence</button>
+                    </div>
+                </div>
+                <div class="col"> 
+                    <div class="row">
+                        <div class="case">
+                            <h2> Heartbeat - Valkyrie</h2>
+                            <div id="status-dot"></div>
+                            <p>Latence: <span id="latency">0</span> ms</p>
+                        </div>
+
+                        <div class="case">
+                            <h2> Heartbeat - Valhalla</h2>
+                            <div id="status-dot2"></div>
+                            <p>Latence: <span id="latency2">0</span> ms</p>
+                        </div> 
+                    </div>
+                    <div class="case">
+                        <h2> stream camera</h2>
+                        <div id="image-container">
+                            <div id="counter">Points : 0</div>
+                        </div>
+                    </div>
+                </div>
+                        
+            </div>
+
+
+        </div>
+
+        <div class="case">
+            <h2>État de la mission</h2>
+
+            <div class="diagram-wrapper">
+                <h4 class="diagram-label">Valhalla</h4>
+                <div class="state-diagram">
+
+    <div class="mermaid">
+    flowchart TD
+        %% Point de départ
+        Start(( )) --> stabilize_WAIT
+
+        subgraph STABILIZE
+            subgraph stabilize_grounded [grounded]
+                stabilize_WAIT[WAIT]
+                stabilize_WAIT -- "<span style='color:red; margin: 0 4px;'>mode_change_fail</span>" --> stabilize_WAIT
+            end
+        end
+
+        subgraph GUIDED
+            subgraph guided_grounded [grounded]
+                stabilize_WAIT -- "<span style='color:#009F00'>mode_change_ok</span>" ---> DISARMED
+        
+                DISARMED -- "<span style='color:#009F00'>arm + gps_ok</span>" --> ARMED
+                DISARMED -- "<span style='color:red'>arm + gps_fail</span>" --> DISARMED
+                ARMED -- "<span style='color:red'>takeoff_fail</span>" --> ARMED
+                ARMED -- "<span style='color:red'>disarm</span>" --> DISARMED
+            end
+
+            subgraph flying
+                STANDBY["STANDBY<br/>fait for ... time units"]
+                ARMED -- "<span style='color:#009F00'>takeoff_ok</span>" --> STANDBY
+        
+                STANDBY -- "<span style='color:red'>goto_fail</span>" --> STANDBY
+                
+                MOVING["MOVING<br/>- manual takeover if infinite<br/>- tell Valkyrie when closely"]
+                
+                %% Police Verte pour Success
+                STANDBY -- "<span style='color:#009F00'>goto_ok</span>" --> MOVING
+                subgraph ON_TARGET
+                    on_target_AIR[FLYING]
+                    
+                    on_target_GROUND[GROUNDED]
+                    on_target_AIR -- standby --> on_target_GROUND
+                    on_target_GROUND -- Valkyrie_finished --> on_target_AIR
+                end
+                MOVING --> on_target_AIR
+
+            end
+        end
+
+        on_target_AIR -- "<span style='color:#009F00'>mission_finish</span>" --> RTL
+        flying -- "<span style='color:red; margin: 0 4px;'>no_gps</span>" --> LAND
+        RTL --> End(( ))
+        style STABILIZE fill:#f9fff9,stroke:#c0f0c0,stroke-width:4px
+        style stabilize_grounded fill:#f9fff9,stroke:#d0f0d0,stroke-width:2px
+        style GUIDED fill:#f9f9ff,stroke:#c0c0f0,stroke-width:4px
+        style guided_grounded fill:#f9f9ff,stroke:#d0d0f0,stroke-width:2px
+        style flying fill:#f9f9ff,stroke:#d0d0f0,stroke-width:2px
+        linkStyle 1,4,5,6,8,14 stroke:#ff0000,stroke-width:2px
+        linkStyle 2,3,7,9,13 stroke:#009f00,stroke-width:2px
+    </div>
+                    <!-- <div id="diagram-container-valh"></div> -->
+                </div>
+            </div>
+
+            <div class="diagram-wrapper">
+                <h4 class="diagram-label">Valkyrie</h4>
+                <div class="state-diagram">
+                    <!-- <div id="diagram-container-valk"></div> -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <p>
+        Station au Sol IP: {{ local_ip }}
+    </p>
+
+    <script type="module" src="/static/script.js"></script>
+</body>
+</html>
