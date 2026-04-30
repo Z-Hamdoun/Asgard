@@ -27,7 +27,8 @@ def generate_frames():
 
         # On récupère les contours ET le masque (thresh)
         vector, get_contours, time = detector.get_landing_vector(frame)
-        taches1, taches2, taches3, output_frame = get_contours
+        taches1, taches2, taches3, d = get_contours
+        output_frame, frame_blurred = d
         print(time)
         # OPTION A : Afficher UNIQUEMENT le masque noir et blanc
 
@@ -37,9 +38,9 @@ def generate_frames():
 
         for i in range(len(taches1)):
             # On dessine en VERT sur le masque pour voir si la détection matche le seuil
-            cv2.drawContours(output_frame, [taches1[i]["contours"]], -1, (0, 255, 0), 2)
-            cv2.drawContours(output_frame, [taches2[i]["contours"]], -1, (0, 225, 0), 2)
-            cv2.drawContours(output_frame, [taches3[i]["contours"]], -1, (0, 205, 0), 2)
+            # cv2.drawContours(output_frame, [taches1[i]["contours"]], -1, (0, 255, 0), 2)
+            # cv2.drawContours(output_frame, [taches2[i]["contours"]], -1, (0, 225, 0), 2)
+            # cv2.drawContours(output_frame, [taches3[i]["contours"]], -1, (0, 205, 0), 2)
             if taches3[i]["center"] is not None:
                 cX, cY = taches3[i]["center"]
                 cv2.circle(output_frame, (cX, cY), 5, (0, 0, 255), -1)
@@ -109,7 +110,8 @@ def generate_frames():
             cv2.LINE_AA,  # Antialiasing pour un texte plus lisse
         )
         # Encodage et envoi
-        ret, buffer = cv2.imencode(".jpg", output_frame)
+        img_finale = cv2.vconcat([output_frame, frame_blurred])
+        ret, buffer = cv2.imencode(".jpg", img_finale)
         if not ret:
             continue
         yield (

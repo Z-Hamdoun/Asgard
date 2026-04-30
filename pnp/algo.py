@@ -190,7 +190,7 @@ class PnPLandingSystem:
             results_corrects_petite_tache,
             results_corrects_moyenne_tache,
             results_corrects_grande_tache,
-            thresh,
+            (thresh, blurred),
         )
 
     def get_nested_squares(self, data):
