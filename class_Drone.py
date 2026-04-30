@@ -1,5 +1,5 @@
 from pymavlink_code.class_MAVLinCS import MAVLinCS
-from Camera.class_Camera import Camera
+from camera.class_Camera import Camera
 from pymavlink import mavutil
 from divers.class_Logger import Logger
 import time
@@ -27,7 +27,7 @@ class Drone(MAVLinCS):
         
         # Variables d'Etat
         self.current_state = None
-        self.camera = Camera(simulation='SITL', camera_topic=camera_topic, logger=self.logger)
+        self.camera = Camera(simulation=None, camera_topic=camera_topic, logger=self.logger)
         self.target_system = target_system # On garde l'ID pour les logs, 1 pour drone maitre et 2 pour l'autre
     
     def precision_land(self):
@@ -44,12 +44,14 @@ class Drone(MAVLinCS):
     
     def loiter(self):
         while True:
-            result = self.camera.analyse(affichage=True)
+            result = self.camera.analyse(affichage=False)
             if result[-2] is not None:
                 print('[Aruco] Going to AruCo marker')
                 print(result[0], result[1], result[2])
                 self.send_landing_target(result[0], result[1], result[2])
-            time.sleep(0.01)
+            time.sleep(0.05)
+    
+    
         
     def update(self):
         """Fait avancer la FSM d'un pas"""
