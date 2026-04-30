@@ -1,7 +1,7 @@
 from pymavlink_code.class_MAVLinCS import MAVLinCS
 from camera.class_Camera import Camera
 from pymavlink import mavutil
-from divers.class_Logger import Logger
+from utils.class_Logger import Logger
 import time
 
 
