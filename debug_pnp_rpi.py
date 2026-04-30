@@ -43,7 +43,7 @@ def generate_frames():
             # cv2.drawContours(output_frame, [taches3[i]["contours"]], -1, (0, 205, 0), 2)
             if taches3[i]["center"] is not None:
                 cX, cY = taches3[i]["center"]
-                cv2.circle(output_frame, (cX, cY), 5, (0, 0, 255), -1)
+                # cv2.circle(output_frame, (cX, cY), 5, (0, 0, 255), -1)
                 aire = taches3[i]["area"]
                 texte_aire = f"A: {int(aire)}:{int(taches1[i]["area"])}"
 
