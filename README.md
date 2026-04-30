@@ -84,3 +84,5 @@ Raspberry Pi OS Lite (64-bit)
 **WiFi pwd**: `wifisupelec`
 
 **SSH**: activated + using password authentification
+
+ssh helics@uav-companion.local

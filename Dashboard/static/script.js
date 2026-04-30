@@ -4,6 +4,10 @@
 let valkTimer; 
 let valhTimer; 
 
+const dassaultLat=47.6013
+const dassaultLong=2.0085
+const giftLat=48.7097
+const gifLong=2.1671
 const updateBtnValk = document.getElementById('update-valk');
 const updateBtnValh = document.getElementById('update-valh');
 const mainBtn = document.getElementById('green-button');
@@ -13,6 +17,11 @@ const printBtn = document.getElementById("print-log")
 const defaultBtn = document.getElementById("defaultBtn")
 const requestBtn = document.getElementById("requestBtn")
 const sendBtn = document.getElementById("sendBtn")
+const sendCoordsBTN = document.getElementById("sendCoordsBtn")
+const requestCoordsBTN = document.getElementById("requestCoordsBtn")
+const checkValkBtn = document.getElementById("check-valk-btn")
+const checkValhBtn = document.getElementById("check-valh-btn")
+const checkEvrnBtn = document.getElementById("check-evrn-btn")
 
 const input = document.getElementById('term-input');
 const cursor = document.getElementById('cursor');
@@ -21,11 +30,17 @@ const divconsole = document.getElementById('console');
 // ==========================================
 // INITIALISATION
 // ==========================================
-// Initialisation de Mermaid
-mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+// Initialisation de la carte (centrée sur le monde)
+const map = L.map('map2').setView([ 48.7097, 2.1671], 16);
 
-// Lancement initial sur l'état IDLE
-window.onload = () => setState('INIT','LOADING');
+// Ajout du fond de carte (OpenStreetMap)
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+}).addTo(map);
+
+let marker;
 
 // ==========================================
 // WEBSOCKET (CONNEXION & PING)
@@ -99,6 +114,15 @@ ws.onmessage = function(event) {
             clearTimeout(timer);
             updateStatusDot(`git-dot-${sourceSuffix}`, 'online');
             break;
+        
+        case "check_ack":
+            intern_log(`Toutes les dépendances sont présentes et à jour sur ${data.source}.`)
+            break;
+
+        case "check_fail":
+            intern_log(`Erreur de dépendance sur ${data.source}`)
+            intern_log(data.output)
+            break;
 
         case "pull_fail":
             clearTimeout(timer);
@@ -134,6 +158,9 @@ ws.onmessage = function(event) {
         case "param_ack":
             intern_log("Paramètres mis à jour avec succès.");
             break;
+        case "coords_ack":
+            intern_log("Coordonnées mis à jour avec succès.");
+            break;
         case "ask_ack":
             intern_log("Paramètres récupéré avec succès.");
             const data_param = data.data
@@ -144,12 +171,90 @@ ws.onmessage = function(event) {
             document.getElementById("FOLLOW_MAX_SPEED").value = data_param["FOLLOW_MAX_SPEED"];
             document.getElementById("alt_quadrillage").value = data_param["alt_quadrillage"];
             break
+        case "ask_coords_ack":
+            const data_coords = data.data
+
+            intern_log("Destination reçu : " + data_coords["lat_mission"] + ", " + data_coords["lng_mission"]);
+            setview([ data_coords["lat_mission"], data_coords["lng_mission"]]);
+
+            // Si un marqueur existe déjà, on le déplace, sinon on le crée
+            if (marker) {
+                marker.setLatLng([ data_coords["lat_mission"], data_coords["lng_mission"]]);
+            } else {
+                marker = L.marker([ data_coords["lat_mission"], data_coords["lng_mission"]]).addTo(map);
+            }
+
+            // Affichage des coordonnées dans l'interface
+            document.getElementById('coords').innerText = `Lat: ${data_coords["lat_mission"]}, Lng: ${data_coords["lng_mission"]}`;
     }
 };
 
 // ==========================================
 // FONCTIONS DE L'INTERFACE UI
 // ==========================================
+
+
+map.on('click', function(e) {
+    const lat = e.latlng.lat.toFixed(6);
+    const lng = e.latlng.lng.toFixed(6);
+
+    // Si un marqueur existe déjà, on le déplace, sinon on le crée
+    if (marker) {
+        marker.setLatLng(e.latlng);
+    } else {
+        marker = L.marker(e.latlng).addTo(map);
+    }
+
+    // Affichage des coordonnées dans l'interface
+    document.getElementById('coords').innerText = `Lat: ${lat}, Lng: ${lng}`;
+});
+
+
+function setview(coords){
+    map.flyTo(coords, 16, {
+        animate: true,
+        duration: 1.5 // durée du voyage en secondes
+    });
+
+}
+
+document.getElementById('gif-view-button').addEventListener('click', function() {
+    setview([ giftLat, gifLong]);
+});
+document.getElementById('dassault-view-button').addEventListener('click', function() {
+    // .flyTo() crée une animation fluide de déplacement
+    setview([ dassaultLat, dassaultLong]);
+});
+
+document.getElementById('gif-marker-button').addEventListener('click', function() {
+    // .flyTo() crée une animation fluide de déplacement
+    setview([ giftLat, gifLong]);
+
+    // Si un marqueur existe déjà, on le déplace, sinon on le crée
+    if (marker) {
+        marker.setLatLng([ giftLat, gifLong]);
+    } else {
+        marker = L.marker([giftLat, gifLong]).addTo(map);
+    }
+
+    // Affichage des coordonnées dans l'interface
+    document.getElementById('coords').innerText = `Lat: ${giftLat}, Lng: ${gifLong}`;
+});
+
+document.getElementById('dassault-marker-button').addEventListener('click', function() {
+    // .flyTo() crée une animation fluide de déplacement
+    setview([ dassaultLat, dassaultLong]);
+
+    // Si un marqueur existe déjà, on le déplace, sinon on le crée
+    if (marker) {
+        marker.setLatLng([ dassaultLat, dassaultLong]);
+    } else {
+        marker = L.marker([ dassaultLat, dassaultLong]).addTo(map);
+    }
+
+    // Affichage des coordonnées dans l'interface
+    document.getElementById('coords').innerText = `Lat: ${dassaultLat}, Lng: ${dassaultLong}`;
+});
 
 function changelog() {
     let choix = document.getElementById("choix").value;
@@ -181,28 +286,6 @@ function intern_log(log){
 }
 
 // CONSOLE
-function changeconsole() {
-    let choix = document.getElementById("console-select").value;
-    const container = document.getElementById("console-container");
-    const log = document.getElementById("input-log");
-    const param = document.getElementById("param-container")
-    const mission = document.getElementById("mission-container")
-    param.classList.remove('null');
-    container.classList.remove('null');  
-    mission.classList.remove('null')
-    log.classList.remove('null');
-    if (choix === "terminal") {
-        param.classList.add("null")
-        mission.classList.add("null")
-
-    } else if (choix === "param") {
-
-        container.classList.add('null');
-        log.classList.add('null');
-        
-    }
-}
-
 function updateCursor(event) {
     const keyName = event.key;
     if (keyName === "Enter") {
@@ -236,42 +319,85 @@ function updateCursor(event) {
     document.body.removeChild(tempSpan);
 }
 
-function setState(ValhState, ValkState) {
-    const diagramValhDefinition = `
-stateDiagram-v2
-classDef highlight fill:#3b82f6,color:white,stroke:#2563eb,stroke-width:2px
+// function setState(ValhState, ValkState) {
+//     const diagramValhDefinition = `
+//     flowchart TD
+//     %% Point de départ
+//     Start(( )) --> stabilize_WAIT
 
-INIT --> LOADING : Démarrer
-LOADING --> SUCCESS : Terminé
-LOADING --> ERROR : Échec
-SUCCESS --> IDLE : Réinitialiser
-ERROR --> IDLE : Réessayer
+//     subgraph STABILIZE
+//         subgraph stabilize_grounded [grounded]
+//             stabilize_WAIT[WAIT]
+//             stabilize_WAIT -- "<span style='color:red; margin: 0 4px;'>mode_change_fail</span>" --> stabilize_WAIT
+//         end
+//     end
 
-class ${ValhState} highlight
-    `;
-    const diagramContainerValh = document.getElementById('diagram-container-valh');
-    // Suppression de l'attribut data-processed indispensable pour forcer Mermaid à redessiner
-    diagramContainerValh.removeAttribute('data-processed'); 
-    diagramContainerValh.innerHTML = diagramValhDefinition;
-    mermaid.init(undefined, diagramContainerValh);
-    const diagramValkDefinition = `
-stateDiagram-v2
-classDef highlight fill:#3b82f6,color:white,stroke:#2563eb,stroke-width:2px
+//     subgraph GUIDED
+//         subgraph guided_grounded [grounded]
+//             stabilize_WAIT -- "<span style='color:#009F00'>mode_change_ok</span>" ---> DISARMED
+    
+//             DISARMED -- "<span style='color:#009F00'>arm + gps_ok</span>" --> ARMED
+//             DISARMED -- "<span style='color:red'>arm + gps_fail</span>" --> DISARMED
+//             ARMED -- "<span style='color:red'>takeoff_fail</span>" --> ARMED
+//             ARMED -- "<span style='color:red'>disarm</span>" --> DISARMED
+//         end
 
-INIT --> LOADING : Démarrer
-LOADING --> SUCCESS : Terminé
-LOADING --> ERROR : Échec
-SUCCESS --> IDLE : Réinitialiser
-ERROR --> IDLE : Réessayer
+//         subgraph flying
+//             STANDBY["STANDBY<br/>fait for ... time units"]
+//             ARMED -- "<span style='color:#009F00'>takeoff_ok</span>" --> STANDBY
+    
+//             STANDBY -- "<span style='color:red'>goto_fail</span>" --> STANDBY
+            
+//             MOVING["MOVING<br/>- manual takeover if infinite<br/>- tell Valkyrie when closely"]
+            
+//             %% Police Verte pour Success
+//             STANDBY -- "<span style='color:#009F00'>goto_ok</span>" --> MOVING
+//             subgraph ON_TARGET
+//                 on_target_AIR[FLYING]
+//                 MOVING -- "<span style='color:#009F00'>target_reached</span>" --> on_target_AIR
 
-class ${ValkState} highlight
-    `;
-    const diagramContainerValk = document.getElementById('diagram-container-valk');
-    diagramContainerValk.removeAttribute('data-processed'); 
-    diagramContainerValk.innerHTML = diagramValkDefinition;
-    mermaid.init(undefined, diagramContainerValk);
+//                 on_target_GROUND[GROUNDED]
+//                 on_target_AIR -- standby --> on_target_GROUND
+//                 on_target_GROUND -- Valkyrie_finished --> on_target_AIR
+//             end
+//         end
+//     end
 
-}
+//     on_target_AIR -- "<span style='color:#009F00'>mission_finish</span>" --> RTL
+//     flying -- "<span style='color:red; margin: 0 4px;'>no_gps</span>" --> LAND
+//     RTL --> End(( ))
+//     style STABILIZE fill:#f9fff9,stroke:#c0f0c0,stroke-width:4px
+//     style stabilize_grounded fill:#f9fff9,stroke:#d0f0d0,stroke-width:2px
+//     style GUIDED fill:#f9f9ff,stroke:#c0c0f0,stroke-width:4px
+//     style guided_grounded fill:#f9f9ff,stroke:#d0d0f0,stroke-width:2px
+//     style flying fill:#f9f9ff,stroke:#d0d0f0,stroke-width:2px
+//     linkStyle 1,4,5,6,8,14 stroke:#ff0000,stroke-width:2px
+//     linkStyle 2,3,7,9,10,13 stroke:#009f00,stroke-width:2px
+    
+//         `;
+//     const diagramContainerValh = document.getElementById('diagram-container-valh');
+//     // Suppression de l'attribut data-processed indispensable pour forcer Mermaid à redessiner
+//     diagramContainerValh.removeAttribute('data-processed'); 
+//     diagramContainerValh.innerHTML = diagramValhDefinition;
+//     mermaid.init(undefined, diagramContainerValh);
+//     const diagramValkDefinition = `
+// stateDiagram-v2
+// classDef highlight fill:#3b82f6,color:white,stroke:#2563eb,stroke-width:2px
+
+// INIT --> LOADING : Démarrer
+// LOADING --> SUCCESS : Terminé
+// LOADING --> ERROR : Échec
+// SUCCESS --> IDLE : Réinitialiser
+// ERROR --> IDLE : Réessayer
+
+// class ${ValkState} highlight
+//     `;
+//     const diagramContainerValk = document.getElementById('diagram-container-valk');
+//     diagramContainerValk.removeAttribute('data-processed'); 
+//     diagramContainerValk.innerHTML = diagramValkDefinition;
+//     mermaid.init(undefined, diagramContainerValk);
+
+// }
 
 // ==========================================
 // ECOUTEURS D'ÉVÉNEMENTS (EVENT LISTENERS)
@@ -452,16 +578,111 @@ sendBtn.onclick = function() {
     };
 
     // 2. On prépare le message global pour le WebSocket
-    const message = {
+    const messagevalh = {
+        "command": "update_config",
+        "target": "Valhalla",
+        "data": configData // On intègre nos paramètres ici
+    };
+    const messagevalk = {
         "command": "update_config",
         "target": "Valkyrie",
         "data": configData // On intègre nos paramètres ici
     };
 
+
     if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(message));
+        ws.send(JSON.stringify(messagevalh));
+        ws.send(JSON.stringify(messagevalk));
         intern_log("Envoi de la nouvelle configuration");
     } else {
         intern_log("site offline");
     }
+}
+
+
+
+sendCoordsBTN.onclick = function() {
+    if (marker) {
+        const position = marker.getLatLng();
+        const configData = {
+            "lat_mission":position.lat,
+            "lng_mission":position.lng
+        };
+        
+        const messagevalh = {
+            "command": "update_coords",
+            "target": "Valhalla",
+            "data": configData // On intègre nos paramètres ici
+        };
+        const messagevalk = {
+            "command": "update_coords",
+            "target": "Valkyrie",
+            "data": configData // On intègre nos paramètres ici
+        };
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(messagevalh));
+            ws.send(JSON.stringify(messagevalk));
+            intern_log("Destination envoyée : " + position.lat + ", " + position.lng);
+    
+        } else {
+            intern_log("site offline");
+        }
+    } else {
+        intern_log("Aucun point à envoyer");
+    }
+}
+
+requestCoordsBtn.onclick = function() {
+    const message = {
+        "command": "ask_coords",
+        "target": "Valkyrie"
+    };
+
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+        intern_log("Envoi de la requette de configuration");
+    } else {
+        intern_log("site offline");
+    }
+}
+
+checkValkBtn.onclick = function(){
+    const message = {
+        "command": "check_V",
+        "target": "Valkyrie"
+    };
+
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+        intern_log("Check Valkyrie");
+    } else {
+        intern_log("site offline");
+    }   
+}
+
+checkValhBtn.onclick = function(){
+    const message = {
+        "command": "check_V",
+        "target": "Valhalla"
+    };
+
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+        intern_log("Check Valhalla");
+    } else {
+        intern_log("site offline");
+    }   
+}
+
+checkEvrnBtn.onclick = function(){
+    const message = {
+        "command": "check_E",
+        "target": "Valkyrie"
+    };
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+        intern_log("Check tout le monde");
+    } else {
+        intern_log("site offline");
+    }   
 }

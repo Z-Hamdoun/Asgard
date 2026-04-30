@@ -18,7 +18,7 @@
 
 .print-button:hover {
   transform: translateY(-3px);
-  background: #d6ddde;
+  background: #E0E0E0;
   
   box-shadow: 0 12px 24px rgba(59, 130, 246, 0.12), 
               0 4px 8px rgba(0, 0, 0, 0.04);
@@ -76,12 +76,12 @@
 .drone-log-container.full{
   display:flex;
   flex-direction: column;
-  height: 700px;
+  height: 765px;
 }
 .drone-log-container.demi{
   display:flex;
   flex-direction: column;
-  height: 330px;
+  height: 360px;
 }
 
 .console {
@@ -95,7 +95,7 @@
   border-radius: 20px;
   border: 2px solid #fff;
   margin-bottom: 10px;
-  height: 250px;
+  height: 300px;
   width: 650px;
   
   overflow-y: auto; 

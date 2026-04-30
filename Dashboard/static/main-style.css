@@ -14,14 +14,11 @@ body h1{
 .row {display: flex;
     justify-content: center;
     align-items: center;
-    gap: 30px;
-    margin-top:30px;
 }
 .col {display: flex;
     justify-content: center;
     align-items: center;
     flex-direction: column;
-    gap: 30px;
 }
 
 .case {display: flex;
@@ -32,10 +29,14 @@ border: 2px solid #fff;
 background: #2f3b93;
 border-radius: 35px;
 padding: 20px 15px;
+margin: 15px;
 color: #fff;
 }
 .case h2{
   margin-bottom: 5px;
   margin-top: 0px;
   font-size: 1.3rem;
+}
+.case p{
+    margin: 0 0;
 }
