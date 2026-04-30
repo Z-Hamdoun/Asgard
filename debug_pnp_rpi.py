@@ -23,15 +23,13 @@ picam2.start()
 def generate_frames():
     detector = PnPLandingSystem()
     while True:
-        frame_raw = picam2.capture_array()
-        frame = cv2.cvtColor(frame_raw, cv2.COLOR_RGB2BGR)
+        frame = picam2.capture_array()
 
         # On récupère les contours ET le masque (thresh)
         vector, get_contours, time = detector.get_landing_vector(frame)
-        taches1, taches2, taches3, thresh = get_contours
-
+        taches1, taches2, taches3, output_frame = get_contours
+        print(time)
         # OPTION A : Afficher UNIQUEMENT le masque noir et blanc
-        output_frame = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
 
         # OPTION B : Afficher les contours colorés SUR le masque (plus pratique pour debug)
         # Comme 'thresh' est en niveaux de gris, on le repasse en BGR pour voir les couleurs

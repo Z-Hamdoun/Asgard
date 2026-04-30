@@ -113,23 +113,29 @@ class PnPLandingSystem:
         return 0.7 < circularity < 1.3
 
     def get_contours(self, frame):
+        t0 = time.time()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
+        t1 = time.time()
         gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         gray = clahe.apply(gray)
+        t2 = time.time()
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
         _, thresh = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY_INV)
+
+        t3 = time.time()
         contours, hierarchy = cv2.findContours(
             thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE
         )
+
+        t4 = time.time()
 
         results = []
 
         for i, cnt in enumerate(contours):
             area = cv2.contourArea(cnt)
 
-            if area > 5000 or area < 40:
+            if area > 5000 or area < 20:
 
                 continue
             if not self._is_circular(cnt, area):
@@ -156,11 +162,13 @@ class PnPLandingSystem:
                 }
             )
 
+        t5 = time.time()
         results_nested = self.get_nested_squares(results)
         ids_first = {t[0] for t in results_nested}
         ids_second = {t[1] for t in results_nested}
         ids_third = {t[2] for t in results_nested}
 
+        t6 = time.time()
         # 3. On filtre la liste d'origine
         results_corrects_petite_tache = [
             dico for dico in results if dico["id"] in ids_first
@@ -172,12 +180,17 @@ class PnPLandingSystem:
             dico for dico in results if dico["id"] in ids_third
         ]
 
+        t7 = time.time()
+        print(
+            f"bgr2gray: {t1-t0}, normalize: {t2-t1}, threshold: {t3-t2}, contours: {t4-t3}, trouve centre: {t5-t4},nested squares: {t6-t5}, liste taches: {t7-t6}, total{t7-t1}"
+        )
+
         # --- Affichage du résultat ---
         return (
             results_corrects_petite_tache,
             results_corrects_moyenne_tache,
             results_corrects_grande_tache,
-            blurred,
+            thresh,
         )
 
     def get_nested_squares(self, data):
