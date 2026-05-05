@@ -7,7 +7,7 @@ import os
 import sys
 
 # Garde tes imports spécifiques si ton dossier pnp est au même endroit
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "pnp"))
+sys.path.insert(0, os.path.join("../../" + os.path.dirname(__file__), "pnp"))
 from algo import PnPLandingSystem
 
 import numpy as np
