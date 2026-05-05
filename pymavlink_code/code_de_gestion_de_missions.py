@@ -1,3 +1,17 @@
+from enum import Enum
+from typing import Optional
+
+
+class Level(Enum):
+    # Level
+    Empty = 'Empty'
+    Sucesses = 'Sucesses'
+    Message = 'Message'
+    Warning = 'Warning'
+    Failure = 'Failure'
+    Critical = 'Critical'
+
+
 class CGM:
     """
     Classe représentant un CGM de gestion de mission avec différentes propriétés, niveaux et descriptions.
@@ -13,22 +27,41 @@ class CGM:
     def __init__(self,
                  value: int,
                  name: str,
-                 level: str,
-                 description: str):
+                 short_description: str,
+                 long_description: str,
+                 potential_sender: Optional[str] = None):
         """
         Initialise un nouvel objet CGM.
         
-        Args:
-            value (int): La valeur numérique unique associée au CGM.
-            name (str): Le nom du CGM.
-            level (str): Type de CGM (ex : SUCCESS).
-            description (str): Une courte description du CGM.
+        :param value: La valeur numérique unique associée au CGM.
+        :param name: Le nom du CGM.
+        :param short_description: Une courte description du CGM.
+        :param long_description: Une description détaillée du CGM.
+        :param potential_sender: Optionnel, indique un expéditeur potentiel.
         """
         self.value = value
         self.name = name
-        self.level = level
-        self.description = f"[{level}][{name}] {description}"
-        
+        self.short_description_str = short_description
+        self.long_description_str = long_description
+        self.potential_sender = potential_sender
+        self.level: Level = None
+
+        # Déterminer le niveau et le sous-niveau en fonction de la valeur du CGM
+        if self.value == 0:
+            self.level = Level.Empty
+        elif 100 <= self.value < 200:
+            self.level = Level.Sucesses
+        elif 200 <= self.value < 300:
+            self.level = Level.Message
+        elif 300 <= self.value < 400:
+            self.level = Level.Warning
+        elif 400 <= self.value < 500:
+            self.level = Level.Failure
+        elif 500 <= self.value < 600:
+            self.level = Level.Critical
+        else:
+            raise ValueError("Invalid CGM number")  # Valeur hors des plages valides
+
         # Vérifie si le CGM existe déjà dans le dictionnaire statique
         if self.value in CGM.__dict:
             raise ValueError("Already existing CGM")  # Empêche les doublons
@@ -46,7 +79,7 @@ class CGM:
         Retourne une représentation textuelle concise de l'objet CGM.
         Inclut le niveau, la valeur et une petite description.
         """
-        return self.description
+        return self.short_description()
 
     def __int__(self) -> int:
         """
@@ -59,15 +92,36 @@ class CGM:
             return self.value == other.value
         elif isinstance(other, int):
             return self.value == other
-        elif isinstance(other, str):
-            return self.name == other
         return False
-    
-    def __hash__(self):
-        return hash(self.value)
+
+    def header(self) -> str:
+        """
+        Retourne une représentation concise pour l'en-tête.
+        Inclut le niveau, la valeur et le nom.
+        """
+        return f'[{self.level.value} {self.value}]'
+
+    def short_description(self) -> str:
+        """
+        Génère une description courte de l'objet CGM.
+        """
+        text = self.header()
+        text += f"[{self.short_description_str}]"
+        return text
+
+    def long_description(self) -> str:
+        """
+        Génère une description longue de l'objet CGM.
+        Ajoute des informations supplémentaires.
+        """
+        text = f'[{self.level.value} {self.value}: {self.name}]'
+        if self.potential_sender is not None:
+            text += f'[Sender: {self.potential_sender}]'
+        text += f"[{self.long_description_str}]"
+        return text
 
     @staticmethod
-    def get(value: int) -> 'CGM':
+    def get(value: int) -> Optional['CGM']:
         """
         Récupère un objet CGM à partir de sa valeur numérique.
         Retourne EMPTY si aucun CGM n'existe avec cette valeur.
@@ -75,23 +129,50 @@ class CGM:
         return CGM.__dict.get(value, EMPTY)
     
     @staticmethod
-    def get_name(name: str) -> 'CGM':
+    def get_name(name: str) -> Optional['CGM']:
         """
         Récupère un objet CGM à partir de son nom.
         Retourne EMPTY si aucun CGM n'existe avec ce nom.
         """
         return CGM.__dict_name.get(name, EMPTY)
 
+    @staticmethod
+    def get_all_level(level: Level) -> list['CGM']:
+        """
+        Récupère tous les objets CGM ayant un niveau donné, triés par valeur.
+        """
+        return sorted(
+            [cgm for cgm in CGM.__dict.values() if cgm.level == level],
+            key=lambda CGM: CGM.value
+        )
+
+    @staticmethod
+    def get_all() -> list['CGM']:
+        """
+        Retourne une liste de tous les objets CGM créés.
+        """
+        return list(CGM.__dict.values())
+
 EMPTY = CGM(
     value=0,
     name="EMPTY",
-    level="EMPTY",
-    description="empty"
+    short_description="empty",
+    long_description="empty",
+    potential_sender="pc"
 )
 
-EXAMPLE = CGM(
-    value=100,
-    name="EXAMPLE",
-    level="LOG",
-    description="Exemple."
+PC_DEMANDE_MISSION = CGM(
+    value=200,
+    name="PC_DEMANDE_MISSION",
+    short_description="La station au sol demande de lancer la mission",
+    long_description="Une fois le point GPS choisi, le bouton sur le Dashboard demande a Valhalla de demarrer la mission",
+    potential_sender="pc"
+)
+
+VALHALLA_EN_POSITION = CGM(
+    value=101,
+    name="VALHALLA_EN_POSITION",
+    short_description="Valhalla est en position.",
+    long_description="Valhalla a atteint sa cible, est descendu et attend Valkyrie.",
+    potential_sender="valhalla"
 )
