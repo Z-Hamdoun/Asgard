@@ -273,7 +273,113 @@
 
             <div class="diagram-wrapper">
                 <h4 class="diagram-label">Valkyrie</h4>
-                <div class="state-diagram">
+                <div class="state-diagram2">
+
+                    <div class="mermaid">
+                        flowchart TD
+                        
+                        %% Point de départ
+                        Start(( )) --> stabilize_WAIT
+
+                        subgraph STABILIZE
+                            subgraph stabilize_grounded [grounded]
+                            
+                                stabilize_WAIT[WAIT<br>waiting for mission_start Valhalla]
+                                stabilize_WAIT -- "<span style='color:red'>mode_change_fail</span>" --> stabilize_WAIT
+                            end
+                        end
+                        fork{ }
+                        Start_Valhalla[/Valhalla/] -." mission_start".-> fork
+                        stabilize_WAIT -- "<span style='color:#009F00'>mode_change_ok</span>" --> fork
+                        
+
+                        subgraph GUIDED
+                        fork --> DISARMED[DISARMED]
+                            subgraph guided_grounded [grounded]
+                                ARMED -- "<span style='color:red'>disarm</span>" --> DISARMED
+
+                                DISARMED -- "<span style='color:#009F00'>arm + gps_ok</span>" --> ARMED[ARMED]
+                                DISARMED -- "<span style='color:red'>arm + gps_fail</span>" --> DISARMED
+                                ARMED -- "<span style='color:red'>takeoff_fail</span>" --> ARMED
+                            end
+
+                            subgraph flying [flying]
+                                ARMED -- "<span style='color:#009F00'>takeoff_ok</span>" --> STANDBY[STANDBY<br>wait for ... time units]
+                                STANDBY -- "<span style='color:red'>goto_fail</span>"--> STANDBY
+                                STANDBY --> LOOKING[LOOKING]
+                                subgraph searching [SEARCHING]
+                                    direction TB
+                                    LOOKING -- "<span style='color:red'>found_False</span>" --> LOOKING
+                                    LOOKING -- "<span style='color:#009F00'>found_True</span>" --> FOUND[FOUND]
+                                end
+                                FOUND -- "<span style='color:#009F00'>precision_landing</span>" --> LANDING[LANDING]
+                                LANDING -- "<span style='color:red'>landed_fail</span>" --> TAKEOFF[TAKEOFF]
+                                TAKEOFF -- "<span style='color:red'></span>" --> LOOKING
+                            end
+                            LANDING -- "<span style='color:#009F00'>landing_ok</span>" --> EMPTY[EMPTY]
+                            
+                            EMPTY -- "<span style='color:red'>claw_Empty</span>" --> TAKEOFF
+                            
+                            subgraph grasping_grounded [grounded]
+                                subgraph grasping [GRASPING]
+                                    EMPTY -- "<span style='color:#009F00'>claw_Full</span>" --> FULL[FULL]
+                            
+                                end
+                            end
+                            subgraph flying2 [flying]
+                                FULL --> TAKEOFF2[TAKEOFF]
+                                TAKEOFF2 -- "<span style='color:red'>takeoff_fail</span>" --> TAKEOFF2
+                                TAKEOFF2 -- "<span style='color:#009F00'>takeoff_ok</span>" --> STANDBY2[STANDBY<br>wait for ... time units]
+                                STANDBY2 -- "<span style='color:#009F00'>gotp_ok</span>" --> MOVING[MOVING<br>- manual takeover if infinite<br>- tell Valhalla when above<br>- when close by,switch from GPS to CV]
+                                MOVING --"approach" -->CLOSE[CLOSE]
+                                subgraph HOVERING[HOVERING]
+                                    CLOSE -- "<span style='color:#009F00'>close_True</span>" --> CENTERED[CENTERED]
+                                    CLOSE -- "<span style='color:red'>close_False</span>" --> CLOSE
+                                    CENTERED -- "<span style='color:#009F00'>centered_True</span>" --> PLACING[PLACING]
+                                    CENTERED -- "<span style='color:red'>centered_False</span>" --> CENTERED
+                                    PLACING -- "retreat" --> RETREATED[RETREATED]
+                                    RETREATED -- "<span style='color:#009F00'>retreated_True</span>" --> guided_WAIT[WAIT]
+                                                        
+                                    RETREATED -- "<span style='color:red'>retreated_False</span>" --> RETREATED
+                                    guided_WAIT -- "<span style='color:red'>change_mode_fail</span>" --> guided_WAIT
+
+                                end   
+                            end
+                                
+                                
+                            
+                        end
+
+                        subgraph FOLLOW
+                            subgraph follow_flying [flying]
+                                guided_WAIT -- "<span style='color:#009F00'>mode_change_ok</span>" --> FOLLOWING[FOLLOWING]
+                            end
+                        end
+
+                        %% Sorties de secours
+                        FOLLOWING -- "end_mission" --> End(( ))
+                        flying -- "<span style='color:red'>no_gps</span>" --> LAND[LAND]
+                        flying2 -- "<span style='color:red'>no_gps</span>" --> LAND[LAND]
+                        follow_flying -- "<span style='color:red'>no_gps</span>" --> LAND[LAND]
+                        RTL --> End
+                        %% follow_flying -- "mission_end" --> END_Valhalla[/Valhalla/]
+                        LAND -.-> End
+                        style STABILIZE fill:#f9fff9,stroke:#c0f0c0,stroke-width:4px
+                        style stabilize_grounded fill:#f9fff9,stroke:#d0f0d0,stroke-width:2px
+                        style GUIDED fill:#f9f9ff,stroke:#c0c0f0,stroke-width:4px
+                        style guided_grounded fill:#f9f9ff,stroke:#d0d0f0,stroke-width:2px
+                        style flying fill:#f9f9ff,stroke:#d0d0f0,stroke-width:2px
+                        style grasping_grounded fill:#f9f9ff,stroke:#d0d0f0,stroke-width:2px
+                        style flying2 fill:#f9f9ff,stroke:#d0d0f0,stroke-width:2px
+                        style Start_Valhalla fill: #ffffbb
+                        style FOLLOW fill:#ffeeff,stroke:#ffaaff,stroke-width:4px
+                        style follow_flying fill:#fff6ff,stroke:#ffdaff,stroke-width:4px
+                        style searching fill:#ffffff,stroke:#000000,stroke-width:1px
+                        style grasping fill:#ffffff,stroke:#000000,stroke-width:1px
+                        style HOVERING fill:#ffffff,stroke:#000000,stroke-width:1px
+                        linkStyle 1,5,7,8,10,12,15,18,21,26,28,31,32,35,36,37 stroke:#ff0000,stroke-width:2px
+                        linkStyle 3,6,9,13,14,16,17,19,22,23,27,30,33 stroke:#009f00,stroke-width:2px
+                    </div>
                     <!-- <div id="diagram-container-valk"></div> -->
                 </div>
             </div>

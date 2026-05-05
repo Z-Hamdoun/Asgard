@@ -12,7 +12,6 @@ from algo import PnPLandingSystem
 
 import numpy as np
 
-
 app = Flask(__name__)
 picam2 = Picamera2()
 
@@ -101,7 +100,7 @@ def generate_frames():
         )
         cv2.putText(
             output_frame,
-            str(time),
+            str(1 / time),
             (20, 120),  # Position (x, y) en pixels depuis le coin haut-gauche
             cv2.FONT_HERSHEY_SIMPLEX,  # Police de caractères
             0.8,  # Taille de la police
