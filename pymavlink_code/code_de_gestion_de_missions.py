@@ -178,11 +178,11 @@ PC_DEMANDE_TAKEOFF_VALHALLA = CGM(
 )
 
 
-VALHALLA_EN_POSITION = CGM(
+VALHALLA_POINT_ATTEINT = CGM(
     value=101,
-    name="VALHALLA_EN_POSITION",
-    short_description="Valhalla est en position.",
-    long_description="Valhalla a atteint sa cible, est descendu et attend Valkyrie.",
+    name="VALHALLA_POINT_ATTEINT",
+    short_description="Valhalla est arrive au point GPS",
+    long_description="Valhalla va maintenant descendre et attendre valkyrie",
     potential_sender="valhalla"
 )
 
