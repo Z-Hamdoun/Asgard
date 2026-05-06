@@ -4,7 +4,6 @@ from pymavlink import mavutil
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 from class_Drone import Drone
-from Valhalla.states import Idle as Valhalla_Idle
 import time
 
 
@@ -19,10 +18,7 @@ def main():
         target_system=1,
         baud=921600,
     )
-    
-    valhalla.current_state = Valhalla_Idle()
 
-    if valhalla.current_state: valhalla.current_state.on_enter(valhalla)
     try:
         while True:
             valhalla.update()

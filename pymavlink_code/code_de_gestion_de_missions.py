@@ -169,10 +169,53 @@ PC_DEMANDE_MISSION = CGM(
     potential_sender="pc"
 )
 
+PC_DEMANDE_TAKEOFF_VALHALLA = CGM(
+    value=201,
+    name="PC_DEMANDE_TAKEOFF_VALHALLA",
+    short_description="",
+    long_description="",
+    potential_sender="pc"
+)
+
+
 VALHALLA_EN_POSITION = CGM(
     value=101,
     name="VALHALLA_EN_POSITION",
     short_description="Valhalla est en position.",
     long_description="Valhalla a atteint sa cible, est descendu et attend Valkyrie.",
+    potential_sender="valhalla"
+)
+
+VALHALLA_ARMED = CGM(
+    value=102,
+    name="VALHALLA_ARMED",
+    short_description="",
+    long_description="",
+    potential_sender="valhalla"
+)
+
+
+
+VALHALLA_ARM_FAIL = CGM(
+    value=400,
+    name="VALHALLA_ARM_FAIL",
+    short_description="",
+    long_description="",
+    potential_sender="valhalla"
+)
+
+VALHALLA_MODE_CHANGE_FAIL = CGM(
+    value=401,
+    name="VALHALLA_MODE_CHANGE_FAIL",
+    short_description="",
+    long_description="",
+    potential_sender="valhalla"
+)
+
+VALHALLA_TAKEOFF_FAIL = CGM(
+    value=402,
+    name="VALHALLA_TAKEOFF_FAIL",
+    short_description="",
+    long_description="",
     potential_sender="valhalla"
 )
