@@ -318,87 +318,6 @@ function updateCursor(event) {
     
     document.body.removeChild(tempSpan);
 }
-
-// function setState(ValhState, ValkState) {
-//     const diagramValhDefinition = `
-//     flowchart TD
-//     %% Point de départ
-//     Start(( )) --> stabilize_WAIT
-
-//     subgraph STABILIZE
-//         subgraph stabilize_grounded [grounded]
-//             stabilize_WAIT[WAIT]
-//             stabilize_WAIT -- "<span style='color:red; margin: 0 4px;'>mode_change_fail</span>" --> stabilize_WAIT
-//         end
-//     end
-
-//     subgraph GUIDED
-//         subgraph guided_grounded [grounded]
-//             stabilize_WAIT -- "<span style='color:#009F00'>mode_change_ok</span>" ---> DISARMED
-    
-//             DISARMED -- "<span style='color:#009F00'>arm + gps_ok</span>" --> ARMED
-//             DISARMED -- "<span style='color:red'>arm + gps_fail</span>" --> DISARMED
-//             ARMED -- "<span style='color:red'>takeoff_fail</span>" --> ARMED
-//             ARMED -- "<span style='color:red'>disarm</span>" --> DISARMED
-//         end
-
-//         subgraph flying
-//             STANDBY["STANDBY<br/>fait for ... time units"]
-//             ARMED -- "<span style='color:#009F00'>takeoff_ok</span>" --> STANDBY
-    
-//             STANDBY -- "<span style='color:red'>goto_fail</span>" --> STANDBY
-            
-//             MOVING["MOVING<br/>- manual takeover if infinite<br/>- tell Valkyrie when closely"]
-            
-//             %% Police Verte pour Success
-//             STANDBY -- "<span style='color:#009F00'>goto_ok</span>" --> MOVING
-//             subgraph ON_TARGET
-//                 on_target_AIR[FLYING]
-//                 MOVING -- "<span style='color:#009F00'>target_reached</span>" --> on_target_AIR
-
-//                 on_target_GROUND[GROUNDED]
-//                 on_target_AIR -- standby --> on_target_GROUND
-//                 on_target_GROUND -- Valkyrie_finished --> on_target_AIR
-//             end
-//         end
-//     end
-
-//     on_target_AIR -- "<span style='color:#009F00'>mission_finish</span>" --> RTL
-//     flying -- "<span style='color:red; margin: 0 4px;'>no_gps</span>" --> LAND
-//     RTL --> End(( ))
-//     style STABILIZE fill:#f9fff9,stroke:#c0f0c0,stroke-width:4px
-//     style stabilize_grounded fill:#f9fff9,stroke:#d0f0d0,stroke-width:2px
-//     style GUIDED fill:#f9f9ff,stroke:#c0c0f0,stroke-width:4px
-//     style guided_grounded fill:#f9f9ff,stroke:#d0d0f0,stroke-width:2px
-//     style flying fill:#f9f9ff,stroke:#d0d0f0,stroke-width:2px
-//     linkStyle 1,4,5,6,8,14 stroke:#ff0000,stroke-width:2px
-//     linkStyle 2,3,7,9,10,13 stroke:#009f00,stroke-width:2px
-    
-//         `;
-//     const diagramContainerValh = document.getElementById('diagram-container-valh');
-//     // Suppression de l'attribut data-processed indispensable pour forcer Mermaid à redessiner
-//     diagramContainerValh.removeAttribute('data-processed'); 
-//     diagramContainerValh.innerHTML = diagramValhDefinition;
-//     mermaid.init(undefined, diagramContainerValh);
-//     const diagramValkDefinition = `
-// stateDiagram-v2
-// classDef highlight fill:#3b82f6,color:white,stroke:#2563eb,stroke-width:2px
-
-// INIT --> LOADING : Démarrer
-// LOADING --> SUCCESS : Terminé
-// LOADING --> ERROR : Échec
-// SUCCESS --> IDLE : Réinitialiser
-// ERROR --> IDLE : Réessayer
-
-// class ${ValkState} highlight
-//     `;
-//     const diagramContainerValk = document.getElementById('diagram-container-valk');
-//     diagramContainerValk.removeAttribute('data-processed'); 
-//     diagramContainerValk.innerHTML = diagramValkDefinition;
-//     mermaid.init(undefined, diagramContainerValk);
-
-// }
-
 // ==========================================
 // ECOUTEURS D'ÉVÉNEMENTS (EVENT LISTENERS)
 // ==========================================
@@ -452,21 +371,18 @@ updateBtnValh.onclick = function() {
     }
 };
 
-mainBtn.onclick = function() {
-    if (ws.readyState === WebSocket.OPEN) {
-        const command = {
-            command: "main_mission",
-            target: "Valkyrie"
-        };
-
-        intern_log("requête d'execution envoyé");
-        ws.send(JSON.stringify(command));
-        
-
-    } else {
-        intern_log("site offline");
-    }
-};
+mainBtn.onclick = function () {
+    fetch('http://localhost:8000/start-mission')
+        .then(response => response.json())
+        .then(data => {
+            if(data.statut === 'succes') {
+                intern_log(`${data.resultat}`);
+            } else {
+                intern_log(`Erreur serveur : ${data.message}`);
+            }
+        })
+        .catch(error => console.error(`Site offline`));
+}
 
 landBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {

@@ -3,6 +3,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import time
 import socket
@@ -12,17 +13,19 @@ import socket
 def get_local_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        # On n'a pas besoin de se connecter réellement, 
+        # On n'a pas besoin de se connecter réellement,
         # l'OS nous donne l'IP qui sortirait vers cette adresse
-        s.connect(('8.8.8.8', 1))
+        s.connect(("8.8.8.8", 1))
         ip = s.getsockname()[0]
     except Exception:
-        ip = '127.0.0.1'
+        ip = "127.0.0.1"
     finally:
         s.close()
     return ip
 
+
 # --- GESTIONNAIRE WEBSOCKET ---
+
 
 class ConnectionManager:
     def __init__(self):
@@ -50,25 +53,58 @@ class ConnectionManager:
         for connection in self.active_connections.values():
             await connection.send_json(message)
 
+
 # --- INITIALISATION DE L'APPLICATION ---
 app = FastAPI()
 manager = ConnectionManager()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En production, remplacez "*" par l'URL de votre site web
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # 1. On "monte" le dossier static pour qu'il soit accessible via /static
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 2. On configure le moteur de templates
 templates = Jinja2Templates(directory="templates")
 
+
 # --- ROUTES ---
 @app.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
     local_ip = get_local_ip()
     return templates.TemplateResponse(
-        request=request, 
-        name="index.html",
-        context={"local_ip": local_ip}
+        request=request, name="index.html", context={"local_ip": local_ip}
     )
+
+
+@app.get("/start-mission")
+async def executer_python():
+    try:
+        # Lancement du script de manière asynchrone
+        process = await asyncio.create_subprocess_exec(
+            "python",
+            "start_mission.py",  # Remplacez par le nom ou le chemin de votre script
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        # On attend que le script termine et on récupère la sortie (stdout) et les erreurs (stderr)
+        stdout, stderr = await process.communicate()
+
+        if process.returncode == 0:
+            # Succès : on renvoie ce que le script a affiché, en décodant les bytes en texte
+            return {"statut": "succes", "resultat": stdout.decode("utf-8")}
+        else:
+            # Erreur lors de l'exécution du script
+            return {"statut": "erreur", "message": stderr.decode("utf-8")}
+
+    except Exception as e:
+        # Erreur si le script est introuvable ou autre plantage serveur
+        return {"statut": "erreur", "message": str(e)}
+
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
@@ -76,18 +112,17 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     try:
         while True:
             data = await websocket.receive_json()
-            
+
             target = data.get("target")
-            
+
             # LOGIQUE DE ROUTAGE
             if target and target in manager.active_connections:
                 # Si une cible est spécifiée (ex: Valkyrie), on lui envoie directement
                 await manager.send_to_target(data, target)
             else:
-                # Si aucune cible ou cible inconnue, on envoie au Dashboard 
+                # Si aucune cible ou cible inconnue, on envoie au Dashboard
                 # (Pour que l'utilisateur voie les logs/réponses)
                 await manager.send_to_target(data, "dashboard")
-                
+
     except WebSocketDisconnect:
         manager.disconnect(client_id)
-

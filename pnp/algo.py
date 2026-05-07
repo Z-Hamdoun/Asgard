@@ -60,11 +60,6 @@ class PnPLandingSystem:
         # On définit les 5 points dans l'espace (X, Y, Z) en mètres.
         self.object_points = np.array(
             [
-                [
-                    0,
-                    0,
-                    net_depth,
-                ],  # Point 1 : Le centre (enfoncé de 20cm, donc Z est positif)
                 [-half, -half, 0],  # Point 2 : Coin Haut-Gauche
                 [half, -half, 0],  # Point 3 : Coin Haut-Droit
                 [half, half, 0],  # Point 4 : Coin Bas-Droit
@@ -197,7 +192,7 @@ class PnPLandingSystem:
         # Étape 1 : On récupère les 5 taches roses sur l'image
         a, b, Taches, d = self.get_contours(frame)
 
-        if len(Taches) != 5:
+        if len(Taches) != 4:
             return None, (a, b, Taches, d), time.time() - t
         points_2d = [tache["center"] for tache in Taches]
 
@@ -237,22 +232,18 @@ class PnPLandingSystem:
 
     def _order_points(self, pts):
         """
-        Trie les points pour savoir qui est qui (centre, haut-gauche, etc.).
+        Trie les 4 points dans l'ordre : Haut-Gauche, Haut-Droit, Bas-Droit, Bas-Gauche.
         """
-        # Le point le plus proche du milieu de tous les autres est forcément notre point Central
-        mean = np.mean(pts, axis=0)
-        dists = np.linalg.norm(pts - mean, axis=1)
-        center_idx = np.argmin(dists)
-        center = pts[center_idx]
+        rect = np.zeros((4, 2), dtype="float32")
 
-        # Les 4 autres sont les coins
-        corners = np.delete(pts, center_idx, axis=0)
+        # Somme des coordonnées : x + y
+        s = pts.sum(axis=1)
+        rect[0] = pts[np.argmin(s)]  # Haut-Gauche
+        rect[2] = pts[np.argmax(s)]  # Bas-Droit
 
-        # On trie les coins en tournant autour du centre (comme les aiguilles d'une montre)
-        def angle_sort(p):
-            return math.atan2(p[1] - center[1], p[0] - center[0])
+        # Différence des coordonnées : y - x
+        diff = np.diff(pts, axis=1)
+        rect[1] = pts[np.argmin(diff)]  # Haut-Droit
+        rect[3] = pts[np.argmax(diff)]  # Bas-Gauche
 
-        corners = sorted(corners, key=angle_sort)
-
-        # On renvoie la liste rangée : Centre en premier, suivi des 4 coins
-        return np.array([center] + corners, dtype=np.float32)
+        return rect
