@@ -194,6 +194,14 @@ VALHALLA_ARMED = CGM(
     potential_sender="valhalla"
 )
 
+VALHALLA_LANDING = CGM(
+    value=103,
+    name="VALHALLA_LANDING",
+    short_description="",
+    long_description="",
+    potential_sender="valhalla"
+)
+
 
 
 VALHALLA_ARM_FAIL = CGM(
@@ -215,6 +223,14 @@ VALHALLA_MODE_CHANGE_FAIL = CGM(
 VALHALLA_TAKEOFF_FAIL = CGM(
     value=402,
     name="VALHALLA_TAKEOFF_FAIL",
+    short_description="",
+    long_description="",
+    potential_sender="valhalla"
+)
+
+VALHALLA_NO_TARGET_FOUND = CGM(
+    value=403,
+    name="VALHALLA_NO_TARGET_FOUND",
     short_description="",
     long_description="",
     potential_sender="valhalla"

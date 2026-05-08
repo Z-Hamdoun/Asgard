@@ -456,7 +456,7 @@ mainBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
         const command = {
             command: "main_mission",
-            target: "Valkyrie"
+            target: "Valhalla"
         };
 
         intern_log("requête d'execution envoyé");
@@ -605,8 +605,8 @@ sendCoordsBTN.onclick = function() {
     if (marker) {
         const position = marker.getLatLng();
         const configData = {
-            "lat":position.lat,
-            "lng":position.lng
+            "lat_mission":position.lat,
+            "lng_mission":position.lng
         };
         
         const messagevalh = {

@@ -66,51 +66,60 @@ class Valhalla(Drone):
         self.send_cgm(CGM.VALHALLA_TOOKOFF)
         return True
 
-    def wait_goto_gps(self, radius_acceptance: float = 2.0) -> bool:
+    def execute_goto_from_config(self, radius_acceptance: float = 2.0) -> bool:
         """
-        Attend de recevoir un STATUSTEXT contenant les coordonnées de la cible,
-        puis effectue un GOTO vers ce point et attend d'y être arrivé.
+        Effectue un GOTO en utilisant les coordonnées sauvegardées dans le fichier config
         """
-        print("[Valhalla] En attente d'un point GPS depuis la carte Web...")
-        lat_dest, lon_dest, alt_dest = None, None, None
-        
-        # Boucle d'attente des coordonnees
-        while lat_dest is None:
-            if self.fin_mission:
-                return False
-                
-            # On ecoute les messages STATUSTEXT venant de la GCS
-            m = self.get_msg("STATUSTEXT")
-            
-            if m and m.text.startswith("valhalla,"):
-                try:
-                    # On s'attend a un format : "valhalla,lat,lon,alt"
-                    parts = m.text.split(',')
-                    lat_dest = float(parts[1])
-                    lon_dest = float(parts[2])
-                    alt_dest = float(parts[3])
-                except (IndexError, ValueError):
-                    print(f"[Valhalla] Erreur de lecture des coordonnées : {m.text}")
-                    
-            time.sleep(0.1)
-            
-        print(f"[Valhalla] Cible reçue ! -> Lat: {lat_dest}, Lon: {lon_dest}, Alt: {alt_dest}m")
+        # Vérification que la configuration a bien été attachée au drone
+        if not hasattr(self, 'config') or not self.config:
+            print("[Valhalla] Erreur : Aucune configuration (self.config) n'a été attachée au drone.")
+            return False
+
+        # Lecture des coordonnées depuis l'attribut config
+        lat_dest = self.config.get("lat_mission")
+        lon_dest = self.config.get("lng_mission")
+        alt_dest = self.config.get("alt_quadrillage", 10.0)
+
+        if lat_dest is None or lon_dest is None:
+            print("[Valhalla] Erreur : Coordonnées GPS absentes de la configuration.")
+            self.send_cgm(CGM.VALHALLA_NO_TARGET_FOUND)
+            return False
+
+        print(f"[Valhalla] Cible chargée depuis self.config -> Lat: {lat_dest}, Lon: {lon_dest}, Alt: {alt_dest}m")
         
         # GOTO
         self.goto(lat_dest, lon_dest, alt_dest)
         
-        # Envoi d'un message a Valkyrie une fois proche
-        
-        # Attente de l'arrivee
+        # Attente de l'arrivée
         print("[Valhalla] En route vers la destination...")
         arrived = self.wait_proximity(lat_dest, lon_dest, alt_dest, radius_acceptance, timeout=None)
         
-        
-        if not arrived or self.fin_mission:
-            print("[Valhalla] Échec du GOTO ou mission annulée en vol.")
+        if arrived == False:
+            print("[Valhalla] Échec du GOTO")
             return False
             
         print("[Valhalla] Destination atteinte ! Maintien de la position.")
         self.send_cgm(CGM.VALHALLA_POINT_ATTEINT)
         
         return True
+
+    def land_and_wait_valkyrie(self):
+        # Envoi message vers valhalla pour qu'il commence sa mission (VIA ESP32)
+        # A implementer apres ...
+        
+        # Atterissage
+        for _ in range(5):
+            if self.land():
+                self.send_cgm(CGM.VALHALLA_LANDING)
+                break
+            time.sleep(1)
+        
+        while True:
+            if self.fin_mission: 
+                return False
+            
+            # Ici valhalla attend le signal de valkyrie (VIA ESP32)
+            # Quand valkyrie lance son signal, valhalla transmet sa position GPS en 10Hz pour que valkyrie
+            # passe en follow
+            
+            time.sleep(0.05)
