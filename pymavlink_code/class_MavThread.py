@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from threading import Event, Thread
 from pymavlink import mavutil
 
-from divers.class_Logger import Logger
+from utils.class_Logger import Logger
 
 
 class MavThread:

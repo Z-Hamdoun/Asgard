@@ -1,51 +1,63 @@
-import threading
 import time
-import sys, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-from Valhalla.src.class_Valhalla import Valhalla 
+from pymavlink_code.class_MAVLinCS import MAVLinCS
 import pymavlink_code.code_de_gestion_de_missions as CGM
 
-
 class GroundStation:
-    """Orchestrateur Radio de la mission ASGARD"""
+    """
+    Orchestrateur radio pour ASGARD.
+    """
     
-    def __init__(self, addr_valhalla: str, baudrate_valhalla: int = 57600):
+    def __init__(self, use_simu: bool = False):
         print("[GCS] Initialisation de l'antenne radio...")
         
-        # Instanciation de la connexion radio MAVLink vers Valhalla
-        self.valhalla = Valhalla(
-            system_type="pc",
-            fc_adress=addr_valhalla,
-            baudrate=baudrate_valhalla
+        # Adresse locale UDP générée par MAVProxy
+        addr_valhalla = "udp:127.0.0.1:14550"
+
+        # Connexion a Valhalla
+        print(f"[GCS] Tentative de connexion à Valhalla sur {addr_valhalla}")
+        self.valhalla = MAVLinCS(
+            address=addr_valhalla,
+            target_system=1,   
+            source_system=10, 
+            baud=57600
         )
-        # Plus tard, on ajoutera self.valkyrie ici !
         
-        print("[GCS] Connecté à Valhalla.")
+        print("[GCS] Connexion MAVLink (UDP) établie avec succès.")
 
     # ==========================================
-    # COMMANDES DESCENDANTES (PC -> DRONE)
+    # COMMANDES RADIO DESCENDANTES (PC -> VALHALLA)
     # ==========================================
-    def lancer_mission_valhalla(self):
-        """Déclenche la séquence de décollage de Valhalla."""
-        print("[GCS] Envoi de l'ordre de décollage (CGM 208)...")
-        # On envoie le CGM correspondant à PC_DEMANDE_TAKEOFF_VALHALLA
-        self.valhalla.send_named_value_int(CGM.PC_DEMANDE_TAKEOFF_VALHALLA.value)
 
-    def envoyer_goto_valhalla(self, lat: float, lon: float, alt: float = 5.0):
-        """Envoie des coordonnées GPS cibles à Valhalla."""
-        print(f"[GCS] Ordre GOTO envoyé vers {lat}, {lon} à {alt}m.")
-        # On utilise un Statustext pour envoyer de la data pure (les coordonnées)
-        self.valhalla.send_statustext(f"valhalla,{lat},{lon},{alt}", severity=7)
+    def lancer_mission(self):
+        """Envoie l'ordre de décollage (Takeoff) à Valhalla."""
+        code = CGM.PC_DEMANDE_TAKEOFF_VALHALLA.value
+        print(f"[GCS-RADIO] Envoi ordre de mission ({code}) à Valhalla...")
+        self.valhalla.send_named_value_int(code)
 
-    def arret_urgence_valhalla(self):
-        """Désarme les moteurs de Valhalla immédiatement."""
-        print("[GCS] ARRÊT D'URGENCE VALHALLA !")
-        self.valhalla.send_named_value_int(CGM.PC_A_DISARM_FORCE_VALHALLA.value)
+    def envoyer_goto_gps(self, lat: float, lon: float, alt: float):
+        """
+        Envoie des coordonnées GPS cibles via un message STATUSTEXT.
+        Valhalla les réceptionnera avec self.get_msg("STATUSTEXT").
+        """
+        # Format string reconnu par le script de Valhalla : "valhalla,lat,lon,alt"
+        msg_text = f"valhalla,{lat},{lon},{alt}"
+        
+        print(f"[GCS-RADIO] Envoi GOTO à Valhalla -> Lat: {lat}, Lon: {lon}, Alt: {alt}")
+        self.valhalla.send_statustext(msg_text, severity=7)
 
-    # ==========================================
-    # FERMETURE
-    # ==========================================
+    def arret_urgence(self):
+        """Ordonne le désarmement immédiat de Valhalla."""
+        code = CGM.PC_A_DISARM_FORCE_VALHALLA.value
+        print("[GCS-RADIO] !!! ARRÊT D'URGENCE ENVOYÉ À VALHALLA !!!")
+        self.valhalla.send_named_value_int(code)
+
+    def force_rtl(self):
+        """Force Valhalla à rentrer à la base, sans lui couper les moteurs."""
+        self.valhalla.change_mode("RTL")
+        print("[GCS-RADIO] RTL forcé envoyé à Valhalla.")
+
     def close(self):
-        print("[GCS] Fermeture des connexions radio.")
+        """Coupe proprement la connexion MAVLink."""
+        print("[GCS] Fermeture du port MAVLink.")
         if self.valhalla:
             self.valhalla.close()

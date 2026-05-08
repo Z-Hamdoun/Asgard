@@ -2,7 +2,7 @@ import sys
 import os
 import time
 from pymavlink import mavutil
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import pymavlink_code.code_de_gestion_de_missions as CGM
 
 from class_Drone import Drone
@@ -99,9 +99,12 @@ class Valhalla(Drone):
         # GOTO
         self.goto(lat_dest, lon_dest, alt_dest)
         
+        # Envoi d'un message a Valkyrie une fois proche
+        
         # Attente de l'arrivee
         print("[Valhalla] En route vers la destination...")
         arrived = self.wait_proximity(lat_dest, lon_dest, alt_dest, radius_acceptance, timeout=None)
+        
         
         if not arrived or self.fin_mission:
             print("[Valhalla] Échec du GOTO ou mission annulée en vol.")

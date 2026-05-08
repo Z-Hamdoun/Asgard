@@ -605,8 +605,8 @@ sendCoordsBTN.onclick = function() {
     if (marker) {
         const position = marker.getLatLng();
         const configData = {
-            "lat_mission":position.lat,
-            "lng_mission":position.lng
+            "lat":position.lat,
+            "lng":position.lng
         };
         
         const messagevalh = {
@@ -614,21 +614,16 @@ sendCoordsBTN.onclick = function() {
             "target": "Valhalla",
             "data": configData // On intègre nos paramètres ici
         };
-        const messagevalk = {
-            "command": "update_coords",
-            "target": "Valkyrie",
-            "data": configData // On intègre nos paramètres ici
-        };
+
         if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify(messagevalh));
-            ws.send(JSON.stringify(messagevalk));
             intern_log("Destination envoyée : " + position.lat + ", " + position.lng);
     
         } else {
             intern_log("site offline");
         }
     } else {
-        intern_log("Aucun point à envoyer");
+        intern_log("Aucun point sélectionné. Cliquez sur la carte d'abord.");
     }
 }
 
