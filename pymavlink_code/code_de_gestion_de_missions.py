@@ -44,6 +44,7 @@ class CGM:
         self.short_description_str = short_description
         self.long_description_str = long_description
         self.potential_sender = potential_sender
+        self.description = self.short_description
         self.level: Level = None
 
         # Déterminer le niveau et le sous-niveau en fonction de la valeur du CGM
@@ -93,6 +94,14 @@ class CGM:
         elif isinstance(other, int):
             return self.value == other
         return False
+    
+    def __hash__(self) -> int:
+        """
+        Rend l'objet hashable pour pouvoir l'insérer dans des set (comme self.cgm sur MAVLinCS).
+        On utilise la valeur (qui est unique) comme empreinte.
+        """
+        return hash(self.value)
+    # ----------------------------
 
     def header(self) -> str:
         """
@@ -194,8 +203,16 @@ VALHALLA_ARMED = CGM(
     potential_sender="valhalla"
 )
 
-VALHALLA_LANDING = CGM(
+VALHALLA_TOOKOFF = CGM(
     value=103,
+    name="VALHALLA_TOOKOFF",
+    short_description="",
+    long_description="",
+    potential_sender="valhalla"
+)
+
+VALHALLA_LANDING = CGM(
+    value=104,
     name="VALHALLA_LANDING",
     short_description="",
     long_description="",

@@ -6,7 +6,7 @@ import sys
 import subprocess
 from class_Valhalla import Valhalla
 
-CONFIG_FILE = "mission_config.json"
+CONFIG_FILE = "Valhalla/mission_config.json"
 
 def read_config():
     """Lit le fichier JSON unique. S'il n'existe pas, renvoie un dico vide."""
@@ -149,9 +149,11 @@ if __name__ == "__main__":
     # Lancement de la mission
     # ---------------------------------------------------------
     print("[MISSION] Initialisation de Valhalla ...")
-    valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1)
+    # valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1)
+    valhalla = Valhalla(address="127.0.0.1:14550", target_system=1)
+    valhalla.config = config
     
-    if valhalla.takeoff_pc(altitude=15):
+    if valhalla.takeoff_pc(altitude=3):
         print(f"[MISSION] Départ vers {lat}, {lng}...")
         valhalla.goto(lat, lng, alt)
     else:

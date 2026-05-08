@@ -1,5 +1,6 @@
 from pymavlink_code.class_MAVLinCS import MAVLinCS
 from pymavlink import mavutil
+from utils.class_Logger import Logger
 import time
 
 
@@ -18,10 +19,11 @@ class Drone(MAVLinCS):
         sysid_to_request_home = None,
         pos_rate = 4,
         dialect = "ardupilotmega",
-        logger = None,
+        logger = Logger(),
         camera_topic="/world/iris_runway/model/iris_with_gimbal/model/gimbal/link/pitch_link/sensor/camera/image"):
         
-        super().__init__(address, source_system, source_component, target_system, baud, timeout_heartbeat, send_automatic_timesync, timesync_delay, send_automatic_home_request, home_request_delay, sysid_to_request_home, pos_rate, dialect, logger, camera_topic)
+        super().__init__(address, source_system, source_component, target_system, baud, timeout_heartbeat, send_automatic_timesync, timesync_delay, send_automatic_home_request, home_request_delay, sysid_to_request_home, pos_rate, dialect, logger)
+        self.camera_topic = camera_topic
     
         
 #    def loiter_pnp(self):
