@@ -66,11 +66,11 @@ La commande suivante est utilisée pour lancer la simulation du contrôleur de v
 ssh asgard@valhalla.local
 ```
 
-**hostname**: `valhalla`
+**Hostname**: `valhalla`
 
-**username**: `asgard`
+**Username**: `asgard`
 
-**password**: `opensesame`
+**Password**: `opensesame`
 
 
 ## Valkyrie
@@ -81,11 +81,11 @@ Raspberry Pi OS Lite (64-bit)
 ssh helics@valkyrie.local
 ```
 
-**hostname**: `valkyrie`
+**Hostname**: `valkyrie`
 
-**username**: `helics`
+**Username**: `helics`
 
-**password**: `opensesame`
+**Password**: `opensesame`
 
 # Mavproxy
 

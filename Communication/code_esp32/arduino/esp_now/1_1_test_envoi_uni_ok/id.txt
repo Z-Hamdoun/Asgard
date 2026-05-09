@@ -1,4 +1,0 @@
-C'est pour tester un réseau ESP-NOW le plus simple possible.
-Un envoyeur, un récepteur
-
-Ce code est valité
