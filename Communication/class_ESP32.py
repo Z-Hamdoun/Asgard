@@ -4,79 +4,114 @@ import threading
 
 class ESP32_Link:
     """
-    Gère la communication série avec l'ESP32.
-    L'ESP32 est programmé pour relayer de manière transparente les messages
-    UART vers le protocole radio ESP-NOW, et inversement.
+    Gère la communication UART avec l'ESP32.
+    Format du protocole texte :
+    - CFG:lat:lng:alt   -> Envoi de configuration
+    - CMD:START         -> Ordre de démarrage
+    - GPS:lat:lng:alt   -> Télémétrie en vol
     """
-    def __init__(self, port: str = "/dev/ttyACM0", baudrate: int = 115200):
+    def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 115200, mock_simulation: bool = False):
         self.port = port
         self.baudrate = baudrate
         self.serial_conn = None
         self.connected = False
+        self.mock = mock_simulation
         
-        self.dernier_message_recu = ""
-        self.lock = threading.Lock()
-        
-        # Coordonnées GPS de Valhalla mises à jour en direct pendant le Follow
+        # Variables de stockage des réceptions
+        self.derniere_commande = None
+        self.derniere_config = None
         self.valhalla_lat = None
         self.valhalla_lon = None
         self.valhalla_alt = None
+        
+        self.lock = threading.Lock()
 
     def connect(self) -> bool:
-        """Tente d'ouvrir le port série vers l'ESP32."""
+        if self.mock:
+            print(f"[ESP32] Mode SIMULATION activé (Fausse connexion)")
+            self.connected = True
+            return True
+            
         try:
             self.serial_conn = serial.Serial(self.port, self.baudrate, timeout=1)
             self.connected = True
             print(f"[ESP32] Connecté avec succès sur {self.port}")
             
-            # Lancement du thread d'écoute continue
             t = threading.Thread(target=self._ecoute_continue, daemon=True)
             t.start()
             return True
         except serial.SerialException as e:
-            print(f"[ESP32] Erreur de connexion sur {self.port}: {e}")
+            print(f"[ESP32] ERREUR de connexion sur {self.port}: {e}")
             self.connected = False
             return False
 
-    def send_message(self, message: str):
-        """Envoie un message texte à l'ESP32 (qui le crachera via ESP-NOW)."""
-        if self.connected and self.serial_conn:
-            msg_bytes = (message + "\n").encode('utf-8')
-            self.serial_conn.write(msg_bytes)
+    # Methodes d'envoi
+    def send_config(self, lat: float, lng: float, alt: float):
+        msg = f"CFG:{lat}:{lng}:{alt}\n"
+        self._write_serial(msg)
+        print(f"[ESP32-TX] Config envoyée : {msg.strip()}")
 
-    def get_last_message(self) -> str:
-        """Récupère le dernier message et vide le buffer."""
-        with self.lock:
-            msg = self.dernier_message_recu
-            self.dernier_message_recu = ""
-            return msg
+    def send_start_mission(self):
+        msg = "CMD:START\n"
+        self._write_serial(msg)
+        print("[ESP32-TX] Ordre de démarrage envoyé !")
 
+    def send_telemetry(self, lat: float, lng: float, alt: float):
+        msg = f"GPS:{lat}:{lng}:{alt}\n"
+        self._write_serial(msg)
+
+    def _write_serial(self, message: str):
+        if self.connected and not self.mock and self.serial_conn:
+            self.serial_conn.write(message.encode('utf-8'))
+
+    # Methodes de reception 
     def _ecoute_continue(self):
-        """Thread tournant en tâche de fond pour écouter l'ESP32."""
         while self.connected:
             try:
                 if self.serial_conn.in_waiting > 0:
-                    ligne = self.serial_conn.readline().decode('utf-8').strip()
+                    ligne = self.serial_conn.readline().decode('utf-8', errors='ignore').strip()
                     if ligne:
                         self._traiter_message(ligne)
             except Exception as e:
-                print(f"[ESP32] Erreur de lecture : {e}")
-                time.sleep(1)
-            time.sleep(0.01) # Petite pause pour ne pas surcharger le CPU
+                pass
+            time.sleep(0.01)
 
     def _traiter_message(self, message: str):
-        """Analyse le contenu du message reçu via ESP-NOW."""
-        # Si c'est un message de commande système (ex: START_MISSION)
-        if message.startswith("CMD:"):
-            with self.lock:
-                self.dernier_message_recu = message.replace("CMD:", "")
+        with self.lock:
+            if message.startswith("CFG:"):
+                parts = message.split(":")
+                try:
+                    self.derniere_config = {
+                        "lat_mission": float(parts[1]),
+                        "lng_mission": float(parts[2]),
+                        "alt_quadrillage": float(parts[3])
+                    }
+                    print(f"[ESP32-RX] Configuration reçue : {self.derniere_config}")
+                except (IndexError, ValueError):
+                    pass
+                    
+            elif message.startswith("CMD:"):
+                self.derniere_commande = message.replace("CMD:", "")
+                print(f"[ESP32-RX] Commande reçue : {self.derniere_commande}")
                 
-        # Si c'est un flux télémétrique GPS (ex: GPS:48.7,-2.1,15)
-        elif message.startswith("GPS:"):
-            try:
-                parts = message.replace("GPS:", "").split(",")
-                self.valhalla_lat = float(parts[0])
-                self.valhalla_lon = float(parts[1])
-                self.valhalla_alt = float(parts[2])
-            except (IndexError, ValueError):
-                pass
+            elif message.startswith("GPS:"):
+                parts = message.split(":")
+                try:
+                    self.valhalla_lat = float(parts[1])
+                    self.valhalla_lon = float(parts[2])
+                    self.valhalla_alt = float(parts[3])
+                except (IndexError, ValueError):
+                    pass
+
+    # Consommation des messages
+    def get_and_clear_command(self):
+        with self.lock:
+            cmd = self.derniere_commande
+            self.derniere_commande = None
+            return cmd
+
+    def get_and_clear_config(self):
+        with self.lock:
+            cfg = self.derniere_config
+            self.derniere_config = None
+            return cfg
