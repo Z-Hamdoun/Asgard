@@ -11,15 +11,13 @@ class GroundStation:
         print("[GCS] Initialisation de l'antenne radio...")
         
         # Adresse locale UDP générée par MAVProxy
-        addr_valhalla = "udp:127.0.0.1:14550"
+        addr_valhalla = "127.0.0.1:14554"
 
         # Connexion a Valhalla
         print(f"[GCS] Tentative de connexion à Valhalla sur {addr_valhalla}")
         self.valhalla = MAVLinCS(
             address=addr_valhalla,
-            target_system=1,   
-            source_system=10, 
-            baud=57600
+            target_system=1, 
         )
         
         print("[GCS] Connexion MAVLink (UDP) établie avec succès.")
@@ -30,9 +28,9 @@ class GroundStation:
 
     def lancer_mission(self):
         """Envoie l'ordre de décollage (Takeoff) à Valhalla."""
-        code = CGM.PC_DEMANDE_TAKEOFF_VALHALLA.value
-        print(f"[GCS-RADIO] Envoi ordre de mission ({code}) à Valhalla...")
-        self.valhalla.send_named_value_int(code)
+        cgm = CGM.PC_DEMANDE_TAKEOFF_VALHALLA
+        print(f"[GCS-RADIO] Envoi ordre de mission ({cgm}) à Valhalla...")
+        self.valhalla.send_cgm(cgm)
 
     def envoyer_goto_gps(self, lat: float, lon: float, alt: float):
         """
