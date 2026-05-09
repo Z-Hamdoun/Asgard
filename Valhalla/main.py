@@ -1,14 +1,12 @@
-import os
+import os, sys, threading, time
 import asyncio
 import websockets
 import json
-import sys
 import subprocess
-import time
-import threading
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
+from Communication.class_ESP32_Link import ESP32_Link
 from class_Valhalla import Valhalla
 import pymavlink_code.code_de_gestion_de_missions as CGM
 
@@ -58,7 +56,7 @@ async def sendlog(socket, command, result):
 # ==============================================================================
 # Thread wifi
 # ==============================================================================
-async def wait_for_mission_start(ip_ordi):
+async def wait_for_mission_start(ip_ordi, esp32_link):
     uri = f"ws://{ip_ordi}:8000/ws/Valhalla"
 
     while not demarrage_mission_event.is_set():
@@ -93,8 +91,13 @@ async def wait_for_mission_start(ip_ordi):
                         elif data.get("command") in ["update_config", "update_coords"]:
                             nouveaux_parametres = data.get("data")
                             if nouveaux_parametres:
+                                # Savgarde locale
                                 update_config(nouveaux_parametres)
                                 await sendack(websocket, "config_ack")
+                                
+                                # Relai vers valkyrie via esp32
+                                esp32_link.send_config_json(nouveaux_parametres)
+                                
 
 
                     except asyncio.TimeoutError:
@@ -105,17 +108,17 @@ async def wait_for_mission_start(ip_ordi):
                 print(f"[WIFI] Déconnecté. Nouvelle tentative dans 1s... ({e})")
                 await asyncio.sleep(1)
 
-def run_wifi_thread(ip_ordi):
+def run_wifi_thread(ip_ordi, esp32_link):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(wait_for_mission_start(ip_ordi))
+    loop.run_until_complete(wait_for_mission_start(ip_ordi, esp32_link))
     loop.close()
     print("[WIFI] THREAD SITE WEB TERMINÉ ET DÉTRUIT. La Radio prend le relais ")
 
 # ==============================================================================
 # Thread Mission
 # ==============================================================================
-def run_pilot_thread(drone):
+def run_pilot_thread(drone, esp32_link):
     print("[MISSION] Mission démarrée. En attente d'un CGM...")
     
     # boucle d'ecoute
@@ -126,6 +129,8 @@ def run_pilot_thread(drone):
             if drone.check_cgm(cgm_declencheur):
                 drone.delete_cgm(cgm_declencheur)
                 print(f"\n[MISSION] CGM DE DÉMARRAGE REÇU VIA RADIO : {cgm_declencheur.name} !")
+                
+                esp32_link.send_start_mission() # Demande a valkyrie de se preparer!
                 demarrage_mission_event.set() # tue le wifi !
                 break
                 
@@ -174,8 +179,11 @@ if __name__ == "__main__":
     # valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1) # REEL
     valhalla = Valhalla(address="127.0.0.1:14550", target_system=1) # SITL
     
-    thread_wifi = threading.Thread(target=run_wifi_thread, args=(ip_ordi,))
-    thread_pilote = threading.Thread(target=run_pilot_thread, args=(valhalla,))
+    esp32 = ESP32_Link(port="/dev/ttyUSB0", baudrate=115200, mock_simulation=True)
+    esp32.connect()
+    
+    thread_wifi = threading.Thread(target=run_wifi_thread, args=(ip_ordi, esp32))
+    thread_pilote = threading.Thread(target=run_pilot_thread, args=(valhalla, esp32))
     
     thread_wifi.start()
     thread_pilote.start()

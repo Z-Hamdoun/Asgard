@@ -1,12 +1,13 @@
 import serial
 import time
 import threading
+import json
 
 class ESP32_Link:
     """
     Gère la communication UART avec l'ESP32.
     Format du protocole texte :
-    - CFG:lat:lng:alt   -> Envoi de configuration
+    - CFG:{"lat":48.1,"res":"1080p", ...}
     - CMD:START         -> Ordre de démarrage
     - GPS:lat:lng:alt   -> Télémétrie en vol
     """
@@ -20,6 +21,7 @@ class ESP32_Link:
         # Variables de stockage des réceptions
         self.derniere_commande = None
         self.derniere_config = None
+        # Parametres pour le mode follow
         self.valhalla_lat = None
         self.valhalla_lon = None
         self.valhalla_alt = None
@@ -46,10 +48,17 @@ class ESP32_Link:
             return False
 
     # Methodes d'envoi
-    def send_config(self, lat: float, lng: float, alt: float):
-        msg = f"CFG:{lat}:{lng}:{alt}\n"
+    def send_config(self, config_dict):
+        """Transforme le dictionnaire complet en texte compact et l'envoie"""
+        # separators=(',', ':') permet de retirer les espaces inutiles pour économiser des octets
+        json_str = json.dumps(config_dict, separators=(',', ':'))
+        msg = f"CFG:{json_str}\n"
+        
+        if len(msg) > 240:
+            print(f"[ESP32-TX] ATTENTION: Configuration trop lourde ({len(msg)} octets). Risque de coupure ESP-NOW.")
+            
         self._write_serial(msg)
-        print(f"[ESP32-TX] Config envoyée : {msg.strip()}")
+        print(f"[ESP32-TX] Config JSON envoyée : {json_str}")
 
     def send_start_mission(self):
         msg = "CMD:START\n"
@@ -78,17 +87,14 @@ class ESP32_Link:
 
     def _traiter_message(self, message: str):
         with self.lock:
+            # Si on recoit une config json
             if message.startswith("CFG:"):
-                parts = message.split(":")
+                json_str = message[4:] # On retire "CFG:"
                 try:
-                    self.derniere_config = {
-                        "lat_mission": float(parts[1]),
-                        "lng_mission": float(parts[2]),
-                        "alt_quadrillage": float(parts[3])
-                    }
-                    print(f"[ESP32-RX] Configuration reçue : {self.derniere_config}")
-                except (IndexError, ValueError):
-                    pass
+                    self.derniere_config = json.loads(json_str)
+                    print(f"[ESP32-RX] Configuration JSON reçue : {self.derniere_config}")
+                except json.JSONDecodeError:
+                    print(f"[ESP32-RX] Erreur : JSON corrompu reçu -> {json_str}")
                     
             elif message.startswith("CMD:"):
                 self.derniere_commande = message.replace("CMD:", "")
