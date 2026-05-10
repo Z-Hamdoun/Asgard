@@ -20,6 +20,31 @@ class Valkyrie(Drone):
         super().__init__(address, source_system, source_component, target_system, baud, timeout_heartbeat, send_automatic_timesync, timesync_delay, send_automatic_home_request, home_request_delay, sysid_to_request_home, pos_rate, dialect, logger, camera_topic)
     
         self.camera = Camera(simulation=None)
+
+        # Parametres de la mission
+        self.alt_quadrillage = 5.0
+        self.pas_quadrillage = 2.0  # m entre les bandes
+        self.taille_zone = 20.0     # taille totale du carré
+    
+    # =========================================================================
+    # LECTURE DE LA CONFIGURATION (VENANT DE VALHALLA VIA ESP32)
+    # =========================================================================
+    def load_config(self, config_dict: dict) -> bool:
+        """
+        Extrait les paramètres de la mission depuis le dictionnaire JSON
+        et les stocke comme attributs de la classe.
+        """
+        if not config_dict:
+            print("[VALKYRIE] Erreur : Dictionnaire de configuration vide.")
+            return False
+            
+        print(f"[VALKYRIE] Chargement des paramètres de mission : {config_dict}")
+        
+        self.alt_quadrillage = config_dict.get("alt_quadrillage", 5.0)
+        self.pas_quadrillage = config_dict.get("pas_quadrillage", 2.0)
+        self.taille_zone = config_dict.get("taille_zone", 20.0)
+            
+        return True
     
     def takeoff_autonome(self, altitude) -> bool:
         """
