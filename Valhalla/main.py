@@ -53,6 +53,31 @@ async def sendlog(socket, command, result):
     response = {"type": "log", "command": command, "source": "Valhalla", "output": result}
     return await socket.send(json.dumps(response))
 
+
+# ==============================================================================
+# THREAD RELAIS (Valhalla -> GCS)
+# ==============================================================================
+def run_relais_thread(drone, esp_link):
+    """
+    Ce thread tourne en permanence sur Valhalla.
+    Il écoute les messages de Valkyrie (ESP-NOW) et les transfert à la GCS (MAVLink).
+    """
+    print("[RELAIS] Thread de transfert ESP-NOW <-> MAVLink activé.")
+    
+    while True:
+        cgm_recu_int = esp_link.get_and_clear_cgm()
+        
+        if cgm_recu_int is not None:
+            objet_cgm = CGM.CGM.get(cgm_recu_int)
+            
+            if objet_cgm is not None and objet_cgm.name != "EMPTY":
+                print(f"[RELAIS] Transfert du CGM {objet_cgm.name} ({cgm_recu_int}) vers la GCS (PC)...")
+                drone.send_cgm(objet_cgm) 
+            else:
+                print(f"[RELAIS-ERREUR] Code CGM {cgm_recu_int} inconnu dans la bibliothèque locale !")
+            
+        time.sleep(0.1)
+
 # ==============================================================================
 # Thread wifi
 # ==============================================================================
@@ -189,8 +214,10 @@ if __name__ == "__main__":
     
     thread_wifi = threading.Thread(target=run_wifi_thread, args=(ip_ordi, esp32))
     thread_pilote = threading.Thread(target=run_pilot_thread, args=(valhalla, esp32))
+    thread_relais = threading.Thread(target=run_relais_thread, args=(valhalla, esp32), daemon=True)
     
     thread_wifi.start()
     thread_pilote.start()
+    thread_relais.start()
     
     thread_pilote.join()
