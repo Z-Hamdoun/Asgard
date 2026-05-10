@@ -1,86 +1,90 @@
 #include <esp_now.h>
 #include <WiFi.h>
+#include <esp_wifi.h>
 
 // Adresse de broadcast : FF:FF:FF:FF:FF:FF
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
+// Tampon de lecture USB manuel (Sécurité pour ESP32-C3)
+char rx_buffer[250];
+int rx_index = 0;
+
 // ============================================================================
-// CALLBACK : QUAND ON REÇOIT UNE ONDE RADIO
+// CALLBACK : RÉCEPTION RADIO -> ENVOI VERS RASPBERRY PI (USB)
 // ============================================================================
 void OnDataRecv(const esp_now_recv_info * info, const uint8_t *incomingData, int len) {
-    Serial.print("[RADIO-RX] J'ai recu par les airs : ");
+    // Mode transparent : on écrit directement les données brutes
     for(int i=0; i<len; i++) {
-        Serial.print((char)incomingData[i]);
+        Serial.write(incomingData[i]);
     }
-    Serial.println();
+    Serial.print('\n'); // Fin de message pour Python (readline)
 }
 
 // ============================================================================
-// CALLBACK : QUAND ON A FINI D'ENVOYER UNE ONDE RADIO
+// CALLBACK : ENVOI RADIO 
 // ============================================================================
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-    Serial.print("[RADIO-TX] Statut de l'envoi radio : ");
-    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "OK" : "ECHEC");
+
 }
 
 void setup() {
+    // Agrandissement des buffers pour l'USB Natif (Crucial !)
+    Serial.setRxBufferSize(1024);
+    Serial.setTxBufferSize(1024);
     Serial.begin(115200);
-    Serial.setTimeout(100); // Accélère la lecture USB
-    delay(2000); // On laisse le temps à l'USB de s'initialiser
     
-    Serial.println("\n=== BOOT ESP32-C3 ===");
+    delay(1000);
     
-    // Initialisation du Wi-Fi
+    // Initialisation du Wi-Fi sur le canal 1 explicitement
     WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
-    delay(100);
+    esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE);
 
     // Initialisation ESP-NOW
     if (esp_now_init() != ESP_OK) {
-        Serial.println("!!! ERREUR : Initialisation ESP-NOW impossible !!!");
-        return;
+        return; // Si échec, on s'arrête en silence
     }
-    Serial.println("- ESP-NOW Initialise avec succes");
 
     // Enregistrement des callbacks
     esp_now_register_recv_cb(OnDataRecv);
-    
-    // CORRECTION ICI : On force le cast (esp_now_send_cb_t) pour satisfaire le compilateur de la version 3.x
     esp_now_register_send_cb((esp_now_send_cb_t)OnDataSent);
 
-    // Configuration du "Peer" (Le destinataire)
+    // Configuration du "Peer" (Destinataire Broadcast)
     esp_now_peer_info_t peerInfo = {};
     memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-    peerInfo.channel = 0;  
+    peerInfo.channel = 1;  
     peerInfo.encrypt = false;
     
-    if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-        Serial.println("!!! ERREUR : Impossible d'ajouter l'adresse Broadcast !!!");
-        return;
-    }
-    Serial.println("- Adresse Broadcast ajoutee");
-    Serial.println("=== PRET A TRANSMETTRE ===");
+    esp_now_add_peer(&peerInfo);
 }
 
+// ============================================================================
+// LECTURE RASPBERRY PI (USB) -> ENVOI RADIO
+// ============================================================================
 void loop() {
-    // Si Python nous envoie quelque chose par le câble USB
-    if (Serial.available()) {
-        String msg = Serial.readStringUntil('\n');
-        msg.trim(); 
+    // LECTURE OCTET PAR OCTET (Plus sûr que readStringUntil sur C3)
+    while (Serial.available() > 0) {
+        char c = Serial.read();
         
-        if (msg.length() > 0) {
-            Serial.print("[USB-RX] J'ai lu sur le cable USB : ");
-            Serial.println(msg);
+        // Si on détecte la fin d'une ligne envoyée par Python
+        if (c == '\n') {
+            rx_buffer[rx_index] = '\0'; // Fermer la chaîne de caractères
+            String msg = String(rx_buffer);
+            msg.trim(); 
             
-            if(msg.length() > 240) {
-                msg = msg.substring(0, 240);
+            // S'il y a vraiment du texte, on l'envoie en radio
+            if (msg.length() > 0) {
+                esp_now_send(broadcastAddress, (uint8_t *)msg.c_str(), msg.length());
             }
             
-            // On tire l'onde radio !
-            esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)msg.c_str(), msg.length());
+            // Réinitialiser le buffer pour le prochain message
+            rx_index = 0;
             
-            if (result != ESP_OK) {
-                Serial.println("[RADIO-TX] ERREUR : La puce a refuse d'envoyer l'onde !");
+        } 
+        // Sinon, on ajoute la lettre au buffer (en ignorant les retours chariot Windows)
+        else if (c != '\r') {
+            if (rx_index < 248) {
+                rx_buffer[rx_index] = c;
+                rx_index++;
             }
         }
     }
