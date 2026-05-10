@@ -2,6 +2,7 @@ import serial
 import time
 import threading
 import json
+import socket
 
 class ESP32_Link:
     """
@@ -11,16 +12,23 @@ class ESP32_Link:
     - CMD:START         -> Ordre de démarrage
     - GPS:lat:lng:alt   -> Télémétrie en vol
     """
-    def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 115200, mock_simulation: bool = False):
+    def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 115200, mock_simulation: bool = False,
+                udp_rx_port: int = 5001, udp_tx_port: int = 5002):
         self.port = port
         self.baudrate = baudrate
         self.serial_conn = None
         self.connected = False
+        
+        # Paramètres de simulation
         self.mock = mock_simulation
+        self.udp_rx_port = udp_rx_port
+        self.udp_tx_port = udp_tx_port
+        self.sock = None
         
         # Variables de stockage des réceptions
         self.derniere_commande = None
         self.derniere_config = None
+        self.dernier_cgm = None
         # Parametres pour le mode follow
         self.valhalla_lat = None
         self.valhalla_lon = None
@@ -30,9 +38,19 @@ class ESP32_Link:
 
     def connect(self) -> bool:
         if self.mock:
-            print(f"[ESP32] Mode SIMULATION activé (Fausse connexion)")
-            self.connected = True
-            return True
+            # --- MODE SIMULATION (Radio Virtuelle UDP) ---
+            try:
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                self.sock.bind(("127.0.0.1", self.udp_rx_port))
+                self.sock.settimeout(1.0) # Pour ne pas bloquer le thread à la fermeture
+                self.connected = True
+                
+                t = threading.Thread(target=self._ecoute_continue_udp, daemon=True)
+                t.start()
+                return True
+            except Exception as e:
+                print(f"[ESP32 SIMU] Erreur de création du pont UDP : {e}")
+                return False
             
         try:
             self.serial_conn = serial.Serial(self.port, self.baudrate, timeout=1)
@@ -75,7 +93,14 @@ class ESP32_Link:
         print(f"[ESP32-TX] CGM envoyé vers Valhalla: {cgm_value}")
 
     def _write_serial(self, message: str):
-        if self.connected and not self.mock and self.serial_conn:
+        if not self.connected: 
+            return
+            
+        if self.mock and self.sock:
+            # Mode Simulation
+            self.sock.sendto(message.encode('utf-8'), ("127.0.0.1", self.udp_tx_port))
+        elif not self.mock and self.serial_conn:
+            # Mode Réel : Envoi par le câble physique UART
             self.serial_conn.write(message.encode('utf-8'))
     
     
@@ -91,6 +116,18 @@ class ESP32_Link:
             except Exception as e:
                 pass
             time.sleep(0.01)
+    
+    def _ecoute_continue_udp(self):
+        while self.connected:
+            try:
+                data, _ = self.sock.recvfrom(1024)
+                if data:
+                    ligne = data.decode('utf-8', errors='ignore').strip()
+                    if ligne: self._traiter_message(ligne)
+            except socket.timeout:
+                pass # Normal, permet de vérifier si on doit fermer le thread
+            except Exception:
+                pass
 
     def _traiter_message(self, message: str):
         with self.lock:

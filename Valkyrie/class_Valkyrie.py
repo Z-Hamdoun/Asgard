@@ -1,4 +1,4 @@
-import sys, os, math, time
+import sys, os, math, time, threading
 from pymavlink import mavutil
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import pymavlink_code.code_de_gestion_de_missions as CGM
@@ -14,15 +14,20 @@ from class_Drone import Drone
 
 
 class Valkyrie(Drone):
-    def __init__(self, address, source_system=255, source_component=mavutil.mavlink.MAV_COMP_ID_MISSIONPLANNER, target_system=None, baud=57600, timeout_heartbeat=None, send_automatic_timesync=True, timesync_delay=3, send_automatic_home_request=True, home_request_delay=3, sysid_to_request_home=None, pos_rate=4, dialect="ardupilotmega", logger = Logger(), camera_topic="/world/iris_runway/model/iris_with_gimbal/model/gimbal/link/pitch_link/sensor/camera/image"):
+    def __init__(self, address, source_system=255, source_component=mavutil.mavlink.MAV_COMP_ID_MISSIONPLANNER, target_system=None, baud=57600, timeout_heartbeat=None, send_automatic_timesync=True, timesync_delay=3, send_automatic_home_request=True, home_request_delay=3, sysid_to_request_home=None, pos_rate=4, dialect="ardupilotmega", logger = Logger(), camera_topic="/world/iris_runway/model/drone1/model/gimbal/link/pitch_link/sensor/camera/image"):
         super().__init__(address, source_system, source_component, target_system, baud, timeout_heartbeat, send_automatic_timesync, timesync_delay, send_automatic_home_request, home_request_delay, sysid_to_request_home, pos_rate, dialect, logger, camera_topic)
     
-        self.camera = Camera(simulation=None)
+        self.camera = Camera(simulation='SITL', camera_topic="/world/iris_runway/model/drone1/model/gimbal/link/pitch_link/sensor/camera/image")
 
         # Parametres de la mission
         self.alt_quadrillage = 5.0
         self.pas_quadrillage = 2.0  # m entre les bandes
         self.taille_zone = 20.0     # taille totale du carré
+        
+        # Gestion du thread RC
+        self._precision_active = False
+        self._rc_throttle_pwm = 0
+        self._rc_thread = None
     
     # =========================================================================
     # LECTURE DE LA CONFIGURATION (VENANT DE VALHALLA VIA ESP32)
@@ -120,17 +125,25 @@ class Valkyrie(Drone):
                 dx, dy, dz, info, frame = self.camera.analyse(affichage=False) 
                 
                 # Cible trouvee
-                if info is not None:
+                if dx or info is not None:
                     print("\n==================================================")
                     print(f"VALKYRIE] CIBLE ARUCO DÉTECTÉE (ID: {info}) !")
                     print("==================================================")
                     
+                    self._rc_throttle_pwm = 1500 # Maintien d'altitude en Loiter
+                    self._precision_active = True
+                            
+                    self._rc_thread = threading.Thread(target=self._rc_override_loop, daemon=True)
+                    self._rc_thread.start()
                     # Passage en loiter
                     #
                     # NOTE TO SELF : N OUBLIE SURTOUT PAS D AJOUTER RC 3 1500
                     #
-                    self.change_mode("LOITER") 
-                    return True
+                    for _ in range(5):
+                        if self.change_mode("LOITER"):
+                            return True
+                    self._precision_active = False
+                    return False
 
                 # VÉRIFICATION DISTANCE
                 current_lat, current_lon, _, _ = self.position()
@@ -153,13 +166,14 @@ class Valkyrie(Drone):
         """
         print("[VALKYRIE] Début du Precision Loiter...")
         
-        # On s'assure etre en LOITER
-        self.change_mode("LOITER")
-        
         # Phase 1 : Centrage en LOITER (On attend d'être stable)
         target_locked_frames = 0
         
         while True:
+            if getattr(self, 'fin_mission', False): 
+                self._precision_active = False
+                if self._rc_thread: self._rc_thread.join(timeout=1.0)
+                return False
             dx, dy, dz, info, frame = self.camera.analyse(affichage=False)
             
             if info is not None:
@@ -169,8 +183,11 @@ class Valkyrie(Drone):
                 
                 # Si on l'a vu pendant environ 3s (~30 frames à 20Hz)
                 if target_locked_frames > 60:
-                    print("[VALKYRIE] Centré ! Amorçage descente (LAND)...")
+                    self._is_loitering = False
+                    print("[VALKYRIE] Centré ! Debut de descente (LAND)...")
                     self.change_mode("LAND")
+                    
+                    self._rc_throttle_pwm = 0
                     break
             else:
                 # Si on le perd de vue, on tolère quelques frames avant de reset
@@ -180,7 +197,9 @@ class Valkyrie(Drone):
             
         # Phase 2 : Descente finale en mode LAND
         while True:
-            if self.fin_mission: return False
+            if getattr(self, 'fin_mission', False): 
+                self._precision_active = False
+                return False
             
             dx, dy, dz, info, frame = self.camera.analyse(affichage=False)
             
@@ -190,7 +209,33 @@ class Valkyrie(Drone):
             # Quand les moteurs sont coupés, l'atterrissage est terminé
             if self.motors_disarmed():
                 print("[VALKYRIE] Pose sur l'aruco avec succes!")
+                self._precision_active = False 
+                if self._rc_thread:
+                    self._rc_thread.join(timeout=1.0)
                 return True
                 
             time.sleep(0.05)
     
+    
+    # Utilitaire 
+    def _rc_override_loop(self):
+        """
+        Thread activé pendant le Precision Loiter et Precision land.
+        """
+        print("[VALKYRIE] Thread RC Override DÉMARRÉ.")
+        
+        while self._precision_active and not getattr(self, 'fin_mission', False):
+            # On controle le gaz selon si le drone est en loiter ounon
+            self.master.mav.rc_channels_override_send(
+                self.master.target_system, self.master.target_component,
+                0, 0, self._rc_throttle_pwm, 0,
+                0, 0, 0, 2000
+            )
+            time.sleep(0.1) # Boucle à 10Hz
+            
+        # Quand on sort de la boucle et on libère la radio
+        print("[VALKYRIE] Libération de la radio (Thread RC Override ARRÊTÉ).")
+        self.master.mav.rc_channels_override_send(
+            self.master.target_system, self.master.target_component,
+            0, 0, 0, 0, 0, 0, 0, 0
+        )

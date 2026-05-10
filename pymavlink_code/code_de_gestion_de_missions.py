@@ -228,7 +228,7 @@ VALHALLA_LANDING = CGM(
 )
 
 VALKYRIE_TOOKOFF = CGM(
-    value=103,
+    value=105,
     name="VALKYRIE_TOOKOFF",
     short_description="",
     long_description="",
