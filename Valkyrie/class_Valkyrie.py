@@ -1,6 +1,4 @@
-import sys
-import os
-import time
+import sys, os, math, time
 from pymavlink import mavutil
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import pymavlink_code.code_de_gestion_de_missions as CGM
@@ -88,64 +86,111 @@ class Valkyrie(Drone):
         self.send_cgm(CGM.VALKYRIE_TOOKOFF)
         return True
 
-    def executer_quadrillage(self, lat_center: float, lon_center: float, altitude: float, step_size=2.0, taille_zone=20.0) -> bool:
-        """
-        Exécute la trajectoire de recherche tout en scannant la caméra à 20Hz.
-        S'arrête et passe en LOITER dès que la cible est détectée.
-        
-        Args:
-            step_size: Distance entre les bandes de recherche en mètres.
-            taille_zone: La largeur totale de la zone à couvrir en mètres.
+    def executer_quadrillage(self) -> bool:
+        """Effectue un quadrillage sous forme de spirale, de centre la Position GPS actuelle.
+
         Returns:
-            True si l'ArUco est trouvé, False sinon.
+            bool: resultat de l'operation
         """
-        print(f"\n[VALKYRIE] Début du quadrillage (Spirale). Altitude: {altitude}m, Pas: {step_size}m")
+        print(f"\n[VALKYRIE] Début du quadrillage (Spirale).")
         
-        # Waypoints
-        offsets = spirale(taille_spirale=taille_zone, pas=step_size)
+        print("[VALKYRIE] Acquisition de la position GPS de départ...")
+        lat_depart, lon_depart, _, _ = self.position()
+        
+        while math.isnan(lat_depart) or math.isnan(lon_depart):
+            time.sleep(0.1)
+            lat_depart, lon_depart, _, _ = self.position()
+            
+        
+        offsets = spirale(taille_spirale=self.taille_zone, pas=self.pas_quadrillage)
         
         point_actuel = 1
         total_points = len(offsets)
         
         for d_north, d_east in offsets:
+            target_lat, target_lon = conv_cart_to_geo((lat_depart, lon_depart), (d_north, d_east))
             
-            # Conversion en coordonnees geographiques
-            target_lat, target_lon = conv_cart_to_geo((lat_center, lon_center), (d_north, d_east))
+            print(f"[VALKYRIE] -> Navigation Point {point_actuel}/{total_points}")
+            self.goto(target_lat, target_lon, self.alt_quadrillage)
             
-            print(f"[VALKYRIE] Navigation vers le Point {point_actuel}/{total_points}")
-            
-            # Envoi de la commande de déplacement
-            self.goto(target_lat, target_lon, altitude)
-            
-            # --- BOUCLE DE VÉRIFICATION ACTIVE ---
             while True:
-                # A. SCAN VISUEL
+                if self.fin_mission: return False
+                    
+                # Scan visuel
                 dx, dy, dz, info, frame = self.camera.analyse(affichage=False) 
                 
+                # Cible trouvee
                 if info is not None:
                     print("\n==================================================")
-                    print("[VALKYRIE] CIBLE ARUCO DÉTECTÉE EN VOL !")
+                    print(f"VALKYRIE] CIBLE ARUCO DÉTECTÉE (ID: {info}) !")
                     print("==================================================")
-                    self.change_mode("LOITER")
+                    
+                    # Passage en loiter
+                    #
+                    # NOTE TO SELF : N OUBLIE SURTOUT PAS D AJOUTER RC 3 1500
+                    #
+                    self.change_mode("LOITER") 
                     return True
 
-                # VÉRIFICATION DE L'AVANCÉE GPS
-                msg = self.get_msg("GLOBAL_POSITION_INT")
-                if msg:
-                    current_lat = msg.lat / 1e7
-                    current_lon = msg.lon / 1e7
-                    
-                    # Utilisation directe de GeoPy pour une précision redoutable
+                # VÉRIFICATION DISTANCE
+                current_lat, current_lon, _, _ = self.position()
+                
+                if not math.isnan(current_lat) and not math.isnan(current_lon):
                     dist = geodesic((current_lat, current_lon), (target_lat, target_lon)).meters
-                    
-                    # Si on est à moins de 2m du point visé, on passe au point suivant
-                    if dist < 2:
+                    if dist < 1.5:
                         break
                         
-                time.sleep(0.05)
+                time.sleep(0.05) # 20 Hz, NOTE: a revoir
                 
             point_actuel += 1
 
-        print("\n[FAIL][VALKYRIE] Quadrillage complet terminé. Cible non trouvée.")
+        print("\n[VALKYRIE] Quadrillage terminé. Cible non trouvée.")
         return False
+    
+    def precision_loiter_and_land(self) -> bool:
+        """
+        Precision loiter jusqu'a ce que la cible soit centree, puis precision LAND !!!
+        """
+        print("[VALKYRIE] Début du Precision Loiter...")
+        
+        # On s'assure etre en LOITER
+        self.change_mode("LOITER")
+        
+        # Phase 1 : Centrage en LOITER (On attend d'être stable)
+        target_locked_frames = 0
+        
+        while True:
+            dx, dy, dz, info, frame = self.camera.analyse(affichage=False)
+            
+            if info is not None:
+                # Precision loiter
+                self.send_landing_target(dx, dy, dz)
+                target_locked_frames += 1
+                
+                # Si on l'a vu pendant environ 3s (~30 frames à 20Hz)
+                if target_locked_frames > 60:
+                    print("[VALKYRIE] Centré ! Amorçage descente (LAND)...")
+                    self.change_mode("LAND")
+                    break
+            else:
+                # Si on le perd de vue, on tolère quelques frames avant de reset
+                target_locked_frames = max(0, target_locked_frames - 1)
+                
+            time.sleep(0.05)
+            
+        # Phase 2 : Descente finale en mode LAND
+        while True:
+            if self.fin_mission: return False
+            
+            dx, dy, dz, info, frame = self.camera.analyse(affichage=False)
+            
+            if info is not None:
+                self.send_landing_target(dx, dy, dz)
+                
+            # Quand les moteurs sont coupés, l'atterrissage est terminé
+            if self.motors_disarmed():
+                print("[VALKYRIE] Pose sur l'aruco avec succes!")
+                return True
+                
+            time.sleep(0.05)
     
