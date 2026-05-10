@@ -68,10 +68,17 @@ class ESP32_Link:
     def send_telemetry(self, lat: float, lng: float, alt: float):
         msg = f"GPS:{lat}:{lng}:{alt}\n"
         self._write_serial(msg)
+    
+    def send_cgm(self, cgm_value: int):
+        """Envoie un code de mission (CGM) via ESP-NOW"""
+        self._write_serial(f"CGM:{cgm_value}\n")
+        print(f"[ESP32-TX] CGM envoyé vers Valhalla: {cgm_value}")
 
     def _write_serial(self, message: str):
         if self.connected and not self.mock and self.serial_conn:
             self.serial_conn.write(message.encode('utf-8'))
+    
+    
 
     # Methodes de reception 
     def _ecoute_continue(self):
@@ -95,6 +102,13 @@ class ESP32_Link:
                     print(f"[ESP32-RX] Configuration JSON reçue : {self.derniere_config}")
                 except json.JSONDecodeError:
                     print(f"[ESP32-RX] Erreur : JSON corrompu reçu -> {json_str}")
+            
+            elif message.startswith("CGM:"): # Interception d'un CGM
+                try:
+                    self.dernier_cgm = int(message.split(":")[1])
+                    print(f"[ESP32-RX] CGM intercepté depuis l'essaim : {self.dernier_cgm}")
+                except ValueError:
+                    pass
                     
             elif message.startswith("CMD:"):
                 self.derniere_commande = message.replace("CMD:", "")
@@ -121,3 +135,10 @@ class ESP32_Link:
             cfg = self.derniere_config
             self.derniere_config = None
             return cfg
+    
+    def get_and_clear_cgm(self):
+        """Récupère le dernier CGM reçu et vide la variable"""
+        with self.lock:
+            cgm = self.dernier_cgm
+            self.dernier_cgm = None
+            return cgm

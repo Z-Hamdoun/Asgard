@@ -68,12 +68,11 @@ def run_pilot_thread(drone, esp_link):
     print("\n[VALKYRIE] LANCEMENT MISSION.")
     
     # On lit le fichier JSON que l'autre thread a écrit grâce à l'ESP32
-    config = read_config()
-    lat = config.get("lat_mission")
-    lng = config.get("lng_mission")
-    alt_quadrillage = config.get("alt_quadrillage", 5.0)
+    config_dict = read_config()
+    if not drone.load_config(config_dict):
+        print("[PILOTE VALKYRIE] Erreur: Configuration invalide ou vide. Arrêt de la mission.")
+        return
     
-    print(f"[PILOTE VALKYRIE] Objectif chargé -> Lat: {lat}, Lng: {lng}, Alt: {alt_quadrillage}m")
     
     """
     if drone.takeoff_autonome(altitude=alt_quadrillage):
@@ -94,7 +93,7 @@ if __name__ == "__main__":
     
     drone = Valkyrie(address="127.0.0.1:14560", target_system=2) 
     
-    # Mock=True pour tester le code sans brancher la vraie carte
+    # Mock=True 
     esp32 = ESP32_Link(port="/dev/ttyUSB0", baudrate=115200, mock_simulation=True)
     esp32.connect() 
     

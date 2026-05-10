@@ -53,6 +53,31 @@ async def sendlog(socket, command, result):
     response = {"type": "log", "command": command, "source": "Valhalla", "output": result}
     return await socket.send(json.dumps(response))
 
+
+# ==============================================================================
+# THREAD RELAIS (Valhalla -> GCS)
+# ==============================================================================
+def run_relais_thread(drone, esp_link):
+    """
+    Ce thread tourne en permanence sur Valhalla.
+    Il écoute les messages de Valkyrie (ESP-NOW) et les transfert à la GCS (MAVLink).
+    """
+    print("[RELAIS] Thread de transfert ESP-NOW <-> MAVLink activé.")
+    
+    while True:
+        cgm_recu_int = esp_link.get_and_clear_cgm()
+        
+        if cgm_recu_int is not None:
+            objet_cgm = CGM.CGM.get(cgm_recu_int)
+            
+            if objet_cgm is not None and objet_cgm.name != "EMPTY":
+                print(f"[RELAIS] Transfert du CGM {objet_cgm.name} ({cgm_recu_int}) vers la GCS (PC)...")
+                drone.send_cgm(objet_cgm) 
+            else:
+                print(f"[RELAIS-ERREUR] Code CGM {cgm_recu_int} inconnu dans la bibliothèque locale !")
+            
+        time.sleep(0.1)
+
 # ==============================================================================
 # Thread wifi
 # ==============================================================================
@@ -113,7 +138,7 @@ def run_wifi_thread(ip_ordi, esp32_link):
     asyncio.set_event_loop(loop)
     loop.run_until_complete(wait_for_mission_start(ip_ordi, esp32_link))
     loop.close()
-    print("[WIFI] THREAD SITE WEB TERMINÉ ET DÉTRUIT. La Radio prend le relais ")
+    print("[WIFI] Mode Vol actif, deconnexion Wifi...")
 
 # ==============================================================================
 # Thread Mission
@@ -130,7 +155,8 @@ def run_pilot_thread(drone, esp32_link):
                 drone.delete_cgm(cgm_declencheur)
                 print(f"\n[MISSION] CGM DE DÉMARRAGE REÇU VIA RADIO : {cgm_declencheur.name} !")
                 
-                esp32_link.send_start_mission() # Demande a valkyrie de se preparer!
+                # Essaye de communiquer avec valkyrie si possible
+                # esp32_link.send_start_mission() # Demande a valkyrie de se preparer!
                 demarrage_mission_event.set() # tue le wifi !
                 break
                 
@@ -159,6 +185,9 @@ def run_pilot_thread(drone, esp32_link):
         print(f"[MISSION] Départ vers {lat}, {lng}...")
         if drone.execute_goto_from_config(radius_acceptance=2.0):
             print("[PILOTE] Point atteint. Lancement de la procédure d'attente Valkyrie.")
+            
+            print("[ESP-NOW] Envoi de l'ordre de décollage à Valkyrie...")
+            esp32_link.send_start_mission()
             drone.land_and_wait_valkyrie()
     else:
         print("[MISSION] Échec du décollage.")
@@ -179,13 +208,16 @@ if __name__ == "__main__":
     # valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1) # REEL
     valhalla = Valhalla(address="127.0.0.1:14550", target_system=1) # SITL
     
+    port_esp32 = "/dev/ttyACM0" # ou "/dev/ttyUSB0", ou "/dev/ttyAMA0"
     esp32 = ESP32_Link(port="/dev/ttyUSB0", baudrate=115200, mock_simulation=True)
     esp32.connect()
     
     thread_wifi = threading.Thread(target=run_wifi_thread, args=(ip_ordi, esp32))
     thread_pilote = threading.Thread(target=run_pilot_thread, args=(valhalla, esp32))
+    thread_relais = threading.Thread(target=run_relais_thread, args=(valhalla, esp32), daemon=True)
     
     thread_wifi.start()
     thread_pilote.start()
+    thread_relais.start()
     
     thread_pilote.join()
