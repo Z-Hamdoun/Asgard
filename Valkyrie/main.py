@@ -94,7 +94,7 @@ if __name__ == "__main__":
     
     drone = Valkyrie(address="127.0.0.1:14560", target_system=2) 
     
-    # Mock=True pour tester le code sans brancher la vraie carte
+    # Mock=True 
     esp32 = ESP32_Link(port="/dev/ttyUSB0", baudrate=115200, mock_simulation=True)
     esp32.connect() 
     

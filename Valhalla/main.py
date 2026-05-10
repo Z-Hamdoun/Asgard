@@ -113,7 +113,7 @@ def run_wifi_thread(ip_ordi, esp32_link):
     asyncio.set_event_loop(loop)
     loop.run_until_complete(wait_for_mission_start(ip_ordi, esp32_link))
     loop.close()
-    print("[WIFI] THREAD SITE WEB TERMINÉ ET DÉTRUIT. La Radio prend le relais ")
+    print("[WIFI] Mode Vol actif, deconnexion Wifi...")
 
 # ==============================================================================
 # Thread Mission
@@ -130,7 +130,8 @@ def run_pilot_thread(drone, esp32_link):
                 drone.delete_cgm(cgm_declencheur)
                 print(f"\n[MISSION] CGM DE DÉMARRAGE REÇU VIA RADIO : {cgm_declencheur.name} !")
                 
-                esp32_link.send_start_mission() # Demande a valkyrie de se preparer!
+                # Essaye de communiquer avec valkyrie si possible
+                # esp32_link.send_start_mission() # Demande a valkyrie de se preparer!
                 demarrage_mission_event.set() # tue le wifi !
                 break
                 
@@ -159,6 +160,9 @@ def run_pilot_thread(drone, esp32_link):
         print(f"[MISSION] Départ vers {lat}, {lng}...")
         if drone.execute_goto_from_config(radius_acceptance=2.0):
             print("[PILOTE] Point atteint. Lancement de la procédure d'attente Valkyrie.")
+            
+            print("[ESP-NOW] Envoi de l'ordre de décollage à Valkyrie...")
+            esp32_link.send_start_mission()
             drone.land_and_wait_valkyrie()
     else:
         print("[MISSION] Échec du décollage.")
@@ -179,6 +183,7 @@ if __name__ == "__main__":
     # valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1) # REEL
     valhalla = Valhalla(address="127.0.0.1:14550", target_system=1) # SITL
     
+    port_esp32 = "/dev/ttyACM0" # ou "/dev/ttyUSB0", ou "/dev/ttyAMA0"
     esp32 = ESP32_Link(port="/dev/ttyUSB0", baudrate=115200, mock_simulation=True)
     esp32.connect()
     
