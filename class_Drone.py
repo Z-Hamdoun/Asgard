@@ -35,12 +35,12 @@ class Drone(MAVLinCS):
 #                self.send_landing_target(-vector[0], vector[1], vector[2])
 #            time.sleep(0.01)
     
-#    def loiter(self):
-#        while True:
-#            result = self.camera.analyse(affichage=False)
-#            if result[-2] is not None:
-#                print('[Aruco] Going to AruCo marker')
-#                print(result[0], result[1], result[2])
-#                self.send_landing_target(result[0], result[1], result[2])
-#            time.sleep(0.05)
+    def loiter(self):
+        while True:
+            result = self.camera.analyse(affichage=False)
+            if result[-2] is not None:
+                print('[Aruco] Going to AruCo marker')
+                print(result[0], result[1], result[2])
+                self.send_landing_target(result[0], result[1], result[2])
+            time.sleep(0.05)
     
