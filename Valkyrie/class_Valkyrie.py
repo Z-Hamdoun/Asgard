@@ -147,3 +147,50 @@ class Valkyrie(Drone):
         print("\n[VALKYRIE] Quadrillage terminé. Cible non trouvée.")
         return False
     
+    def precision_loiter_and_land(self) -> bool:
+        """
+        Precision loiter jusqu'a ce que la cible soit centree, puis precision LAND !!!
+        """
+        print("[VALKYRIE] Début du Precision Loiter...")
+        
+        # On s'assure etre en LOITER
+        self.change_mode("LOITER")
+        
+        # Phase 1 : Centrage en LOITER (On attend d'être stable)
+        target_locked_frames = 0
+        
+        while True:
+            dx, dy, dz, info, frame = self.camera.analyse(affichage=False)
+            
+            if info is not None:
+                # Precision loiter
+                self.send_landing_target(dx, dy, dz)
+                target_locked_frames += 1
+                
+                # Si on l'a vu pendant environ 3s (~30 frames à 20Hz)
+                if target_locked_frames > 60:
+                    print("[VALKYRIE] Centré ! Amorçage descente (LAND)...")
+                    self.change_mode("LAND")
+                    break
+            else:
+                # Si on le perd de vue, on tolère quelques frames avant de reset
+                target_locked_frames = max(0, target_locked_frames - 1)
+                
+            time.sleep(0.05)
+            
+        # Phase 2 : Descente finale en mode LAND
+        while True:
+            if self.fin_mission: return False
+            
+            dx, dy, dz, info, frame = self.camera.analyse(affichage=False)
+            
+            if info is not None:
+                self.send_landing_target(dx, dy, dz)
+                
+            # Quand les moteurs sont coupés, l'atterrissage est terminé
+            if self.motors_disarmed():
+                print("[VALKYRIE] Pose sur l'aruco avec succes!")
+                return True
+                
+            time.sleep(0.05)
+    
