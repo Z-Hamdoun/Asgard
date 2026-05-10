@@ -17,7 +17,7 @@ class Valkyrie(Drone):
     def __init__(self, address, source_system=255, source_component=mavutil.mavlink.MAV_COMP_ID_MISSIONPLANNER, target_system=None, baud=57600, timeout_heartbeat=None, send_automatic_timesync=True, timesync_delay=3, send_automatic_home_request=True, home_request_delay=3, sysid_to_request_home=None, pos_rate=4, dialect="ardupilotmega", logger = Logger(), camera_topic="/world/iris_runway/model/drone1/model/gimbal/link/pitch_link/sensor/camera/image"):
         super().__init__(address, source_system, source_component, target_system, baud, timeout_heartbeat, send_automatic_timesync, timesync_delay, send_automatic_home_request, home_request_delay, sysid_to_request_home, pos_rate, dialect, logger, camera_topic)
     
-        self.camera = Camera(simulation='SITL')
+        self.camera = Camera(simulation='SITL', camera_topic="/world/iris_runway/model/drone1/model/gimbal/link/pitch_link/sensor/camera/image")
 
         # Parametres de la mission
         self.alt_quadrillage = 5.0
@@ -125,23 +125,25 @@ class Valkyrie(Drone):
                 dx, dy, dz, info, frame = self.camera.analyse(affichage=False) 
                 
                 # Cible trouvee
-                if info is not None:
+                if dx or info is not None:
                     print("\n==================================================")
                     print(f"VALKYRIE] CIBLE ARUCO DÉTECTÉE (ID: {info}) !")
                     print("==================================================")
                     
+                    self._rc_throttle_pwm = 1500 # Maintien d'altitude en Loiter
+                    self._precision_active = True
+                            
+                    self._rc_thread = threading.Thread(target=self._rc_override_loop, daemon=True)
+                    self._rc_thread.start()
                     # Passage en loiter
                     #
                     # NOTE TO SELF : N OUBLIE SURTOUT PAS D AJOUTER RC 3 1500
                     #
                     for _ in range(5):
                         if self.change_mode("LOITER"):
-                            self._rc_throttle_pwm = 1500 # Maintien d'altitude en Loiter
-                            self._precision_active = True
-                            
-                            self._rc_thread = threading.Thread(target=self._rc_override_loop, daemon=True)
-                            self._rc_thread.start()
                             return True
+                    self._precision_active = False
+                    return False
 
                 # VÉRIFICATION DISTANCE
                 current_lat, current_lon, _, _ = self.position()

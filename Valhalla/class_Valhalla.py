@@ -29,6 +29,7 @@ class Valhalla(Drone):
         #     time.sleep(0.05)
         
         # Changement de mode
+        mode_changed = False
         for _ in range(5):
             if self.change_mode("GUIDED"):
                 mode_changed = True
@@ -40,6 +41,7 @@ class Valhalla(Drone):
             return False
 
         # Tentative d'armement
+        armed = False
         for _ in range(5):
             if self.arm():
                 armed = True
@@ -52,6 +54,7 @@ class Valhalla(Drone):
             return False
 
         # Tentative takeoff
+        took_off = False
         for _ in range(5):
             if self.takeoff(altitude):
                 took_off = True

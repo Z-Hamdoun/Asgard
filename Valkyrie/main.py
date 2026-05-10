@@ -74,12 +74,13 @@ def run_pilot_thread(drone, esp_link):
         return
     
     
-    if drone.takeoff_autonome(5):
-        print(f"[VALKYRIE] Altitude de {5}m atteinte.")
+    if drone.takeoff_autonome(2):
+        print(f"[VALKYRIE] Altitude de {2}m atteinte.")
         
         # Phase de Quadrillage sur la zone partagée par Valhalla !
         print("[VALKYRIE] Lancement du quadrillage...")
-        drone.executer_quadrillage()
+        if drone.executer_quadrillage():
+            drone.precision_loiter_and_land()
     else:
         print("[VALKYRIE] Échec du décollage.")
 
