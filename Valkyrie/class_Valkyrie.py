@@ -16,3 +16,45 @@ class Valkyrie(Drone):
     
         self.camera = Camera(simulation=None)
     
+    def takeoff_autonome(self, altitude) -> bool:
+        """
+        Attend le signal du PC pour s'armer et décoller.
+        """
+        for _ in range(5):
+            if self.change_mode("GUIDED"):
+                mode_changed = True
+                break
+            time.sleep(0.5)
+        
+        if not mode_changed:
+            self.send_cgm(CGM.VALKYRIE_MODE_CHANGE_FAIL)
+            return False
+
+        # Tentative d'armement
+        for _ in range(5):
+            if self.arm():
+                armed = True
+                break
+            time.sleep(1)
+        
+        # Echech armement
+        if not armed:
+            self.send_cgm(CGM.VALKYRIE_TAKEOFF_FAIL)
+            return False
+
+        # Tentative takeoff
+        for _ in range(5):
+            if self.takeoff(altitude):
+                took_off = True
+                break
+            time.sleep(1)
+        
+        # Echec takeoff
+        if not took_off:
+            self.send_cgm(CGM.VALKYRIE_TAKEOFF_FAIL)
+            return False
+        
+        # Success
+        self.send_cgm(CGM.VALKYRIE_TOOKOFF)
+        return True
+    

@@ -186,6 +186,14 @@ PC_DEMANDE_TAKEOFF_VALHALLA = CGM(
     potential_sender="pc"
 )
 
+DEMANDE_TAKEOFF_VALKYRIE = CGM(
+    value=202,
+    name="DEMANDE_TAKEOFF_VALKYRIE",
+    short_description="",
+    long_description="",
+    potential_sender="valhalla"
+)
+
 
 VALHALLA_POINT_ATTEINT = CGM(
     value=101,
@@ -217,6 +225,14 @@ VALHALLA_LANDING = CGM(
     short_description="",
     long_description="",
     potential_sender="valhalla"
+)
+
+VALKYRIE_TOOKOFF = CGM(
+    value=103,
+    name="VALKYRIE_TOOKOFF",
+    short_description="",
+    long_description="",
+    potential_sender="valkyrie"
 )
 
 
@@ -251,4 +267,28 @@ VALHALLA_NO_TARGET_FOUND = CGM(
     short_description="",
     long_description="",
     potential_sender="valhalla"
+)
+
+VALKYRIE_ARM_FAIL = CGM(
+    value=404,
+    name="VALKYRIE_ARM_FAIL",
+    short_description="",
+    long_description="",
+    potential_sender="valkyrie"
+)
+
+VALKYRIE_MODE_CHANGE_FAIL = CGM(
+    value=405,
+    name="VALKYRIE_MODE_CHANGE_FAIL",
+    short_description="",
+    long_description="",
+    potential_sender="valkyrie"
+)
+
+VALKYRIE_TAKEOFF_FAIL = CGM(
+    value=406,
+    name="VALKYRIE_TAKEOFF_FAIL",
+    short_description="",
+    long_description="",
+    potential_sender="valkyrie"
 )
