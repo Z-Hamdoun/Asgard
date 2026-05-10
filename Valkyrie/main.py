@@ -74,16 +74,15 @@ def run_pilot_thread(drone, esp_link):
         return
     
     
-    """
-    if drone.takeoff_autonome(altitude=alt_quadrillage):
-        print(f"[VALKYRIE] Altitude de {alt_quadrillage}m atteinte.")
+    if drone.takeoff_autonome(5):
+        print(f"[VALKYRIE] Altitude de {5}m atteinte.")
         
         # Phase de Quadrillage sur la zone partagée par Valhalla !
         print("[VALKYRIE] Lancement du quadrillage...")
-        # drone.executer_quadrillage(lat, lng)
+        drone.executer_quadrillage()
     else:
         print("[VALKYRIE] Échec du décollage.")
-    """
+
 
 # ==============================================================================
 # POINT D'ENTRÉE
@@ -94,7 +93,9 @@ if __name__ == "__main__":
     drone = Valkyrie(address="127.0.0.1:14560", target_system=2) 
     
     # Mock=True 
-    esp32 = ESP32_Link(port="/dev/ttyUSB0", baudrate=115200, mock_simulation=True)
+    esp32 = ESP32_Link(port="/dev/ttyACM1", baudrate=115200, mock_simulation=True,
+                       udp_rx_port=5002,
+                       udp_tx_port=5001)
     esp32.connect() 
     
     thread_esp = threading.Thread(target=run_esp32_listener, args=(esp32,))

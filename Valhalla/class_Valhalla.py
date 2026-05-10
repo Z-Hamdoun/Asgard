@@ -93,7 +93,7 @@ class Valhalla(Drone):
         
         # Attente de l'arrivée
         print("[Valhalla] En route vers la destination...")
-        arrived = self.wait_proximity(alt=lat_dest, lon=lon_dest, relative_alt=alt_dest, radius_acceptance=radius_acceptance, timeout=None)
+        arrived = self.wait_proximity(lat=lat_dest, lon=lon_dest, relative_alt=alt_dest, radius_acceptance=radius_acceptance, timeout=None)
         
         if arrived == False:
             print("[Valhalla] Échec du GOTO")

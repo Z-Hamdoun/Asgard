@@ -121,7 +121,7 @@ async def wait_for_mission_start(ip_ordi, esp32_link):
                                 await sendack(websocket, "config_ack")
                                 
                                 # Relai vers valkyrie via esp32
-                                esp32_link.send_config_json(nouveaux_parametres)
+                                esp32_link.send_config_json(read_config())
                                 
 
 
@@ -185,6 +185,8 @@ def run_pilot_thread(drone, esp32_link):
         print(f"[MISSION] Départ vers {lat}, {lng}...")
         if drone.execute_goto_from_config(radius_acceptance=2.0):
             print("[PILOTE] Point atteint. Lancement de la procédure d'attente Valkyrie.")
+            esp32.send_config(config)
+            time.sleep(1.0)
             
             print("[ESP-NOW] Envoi de l'ordre de décollage à Valkyrie...")
             esp32_link.send_start_mission()
@@ -209,7 +211,9 @@ if __name__ == "__main__":
     valhalla = Valhalla(address="127.0.0.1:14550", target_system=1) # SITL
     
     port_esp32 = "/dev/ttyACM0" # ou "/dev/ttyUSB0", ou "/dev/ttyAMA0"
-    esp32 = ESP32_Link(port="/dev/ttyUSB0", baudrate=115200, mock_simulation=True)
+    esp32 = ESP32_Link(port="/dev/ttyACM0", baudrate=115200, mock_simulation=True,
+                       udp_rx_port=5001,
+                       udp_tx_port=5002)
     esp32.connect()
     
     thread_wifi = threading.Thread(target=run_wifi_thread, args=(ip_ordi, esp32))
