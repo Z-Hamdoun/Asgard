@@ -24,7 +24,10 @@ class Valkyrie(Drone):
         self.pas_quadrillage = 2.0  # m entre les bandes
         self.taille_zone = 20.0     # taille totale du carré
         
-        self._is_loitering = False
+        # Gestion du thread RC
+        self._precision_active = False
+        self._rc_throttle_pwm = 0
+        self._rc_thread = None
     
     # =========================================================================
     # LECTURE DE LA CONFIGURATION (VENANT DE VALHALLA VIA ESP32)
@@ -133,7 +136,9 @@ class Valkyrie(Drone):
                     #
                     for _ in range(5):
                         if self.change_mode("LOITER"):
-                            self._is_loitering = True
+                            self._rc_throttle_pwm = 1500 # Maintien d'altitude en Loiter
+                            self._precision_active = True
+                            
                             self._rc_thread = threading.Thread(target=self._rc_override_loop, daemon=True)
                             self._rc_thread.start()
                             return True
@@ -164,7 +169,7 @@ class Valkyrie(Drone):
         
         while True:
             if getattr(self, 'fin_mission', False): 
-                self._is_loitering = False
+                self._precision_active = False
                 if self._rc_thread: self._rc_thread.join(timeout=1.0)
                 return False
             dx, dy, dz, info, frame = self.camera.analyse(affichage=False)
@@ -179,9 +184,8 @@ class Valkyrie(Drone):
                     self._is_loitering = False
                     print("[VALKYRIE] Centré ! Debut de descente (LAND)...")
                     self.change_mode("LAND")
-                    self._is_loitering = False
-                    if self._rc_thread:
-                        self._rc_thread.join(timeout=1.0) # On attend que le thread meure proprement
+                    
+                    self._rc_throttle_pwm = 0
                     break
             else:
                 # Si on le perd de vue, on tolère quelques frames avant de reset
@@ -191,7 +195,9 @@ class Valkyrie(Drone):
             
         # Phase 2 : Descente finale en mode LAND
         while True:
-            if self.fin_mission: return False
+            if getattr(self, 'fin_mission', False): 
+                self._precision_active = False
+                return False
             
             dx, dy, dz, info, frame = self.camera.analyse(affichage=False)
             
@@ -201,6 +207,9 @@ class Valkyrie(Drone):
             # Quand les moteurs sont coupés, l'atterrissage est terminé
             if self.motors_disarmed():
                 print("[VALKYRIE] Pose sur l'aruco avec succes!")
+                self._precision_active = False 
+                if self._rc_thread:
+                    self._rc_thread.join(timeout=1.0)
                 return True
                 
             time.sleep(0.05)
@@ -209,21 +218,20 @@ class Valkyrie(Drone):
     # Utilitaire 
     def _rc_override_loop(self):
         """
-        Thread activé dynamiquement uniquement pendant le Precision Loiter.
-        Maintient les gaz à 1500. Se termine proprement quand _is_loitering passe à False.
+        Thread activé pendant le Precision Loiter et Precision land.
         """
         print("[VALKYRIE] Thread RC Override DÉMARRÉ.")
         
-        while self._is_loitering and not getattr(self, 'fin_mission', False):
-            # On bloque les gaz à 1500 pour éviter la chute en LOITER, le reste (0) est libre
+        while self._precision_active and not getattr(self, 'fin_mission', False):
+            # On controle le gaz selon si le drone est en loiter ounon
             self.master.mav.rc_channels_override_send(
                 self.master.target_system, self.master.target_component,
-                0, 0, 1500, 0,
+                0, 0, self._rc_throttle_pwm, 0,
                 0, 0, 0, 2000
             )
-            time.sleep(0.5) # Boucle à 2Hz
+            time.sleep(0.1) # Boucle à 10Hz
             
-        # Quand on sort de la boucle (_is_loitering = False), on libère la radio
+        # Quand on sort de la boucle et on libère la radio
         print("[VALKYRIE] Libération de la radio (Thread RC Override ARRÊTÉ).")
         self.master.mav.rc_channels_override_send(
             self.master.target_system, self.master.target_component,
