@@ -99,7 +99,7 @@ async def wait_for_mission_start(ip_ordi, esp32_link):
 
                         elif data.get("command") == "print_log" and data.get("target") == "Valhalla":
                             try:
-                                with open("log_test_valh.txt", "r") as f:
+                                with open("logs.txt", "r") as f:
                                     log_txt = f.read()
                                 await sendlog(websocket, "log_ack", log_txt)
                             except Exception as e:
