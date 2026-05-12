@@ -4,100 +4,167 @@ import numpy as np
 from picamera2 import Picamera2
 
 # ==========================================================
-# CONFIGURATION
+# CONFIG
 # ==========================================================
-CHESSBOARD_SIZE = (9, 6) 
+CHESSBOARD_SIZE = (9, 6)
 SAVE_DIR = "images_calib"
-MAX_PHOTOS = 30        
+MAX_PHOTOS = 30
 
-def main():
-    if not os.path.exists(SAVE_DIR):
-        os.makedirs(SAVE_DIR)
-        print(f"[INFO] Dossier {SAVE_DIR}/ créé.")
+# ==========================================================
+# INIT DOSSIER
+# ==========================================================
+os.makedirs(SAVE_DIR, exist_ok=True)
 
-    print("[INFO] Démarrage de la caméra (Forçage du FOV Wide 120°)...")
-    picam2 = Picamera2()
-    
-    # Configuration avec le hack "lores" pour le plein FOV
-    config = picam2.create_video_configuration(
-        main={"size": (848, 480), "format": "RGB888"},
-        lores={"format": "YUV420"} 
-    )
-    
-    picam2.configure(config)
-    picam2.start()
-    
-    picam2.set_controls({
-        "AeEnable": True, 
-        "ExposureValue": 0,
-        "FrameRate": 30
-    })
+# ==========================================================
+# CAMERA INIT
+# ==========================================================
+picam2 = Picamera2()
 
-    print("\n" + "="*50)
-    print("📸 ASSISTANT DE CALIBRATION (VUE GRAND ANGLE)")
-    print("="*50)
-    print("-> La fenêtre vidéo va s'ouvrir.")
-    print("-> APPUYEZ SUR [ESPACE] pour prendre une photo.")
-    print("-> APPUYEZ SUR [Q] pour quitter le programme.")
-    print("="*50 + "\n")
+# IMPORTANT :
+# use full sensor mode to maximize FOV
+config = picam2.create_preview_configuration(
+    main={
+        "size": (2304, 1296),   # Full wide mode
+        "format": "RGB888"
+    },
+    buffer_count=4
+)
 
-    photos_taken = 0
+picam2.configure(config)
 
-    try:
-        while photos_taken < MAX_PHOTOS:
-            # Capture sur le flux "lores" pour le 848x480 non rogné
-            frame_rgb = picam2.capture_array("lores")
-            frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
-            gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
-            
-            # Copie pour l'affichage (afin de ne pas sauvegarder les dessins)
-            display_frame = frame_bgr.copy()
+# Disable digital crop
+picam2.set_controls({
+    "ScalerCrop": (0, 0, 4608, 2592),
+    "FrameRate": 30,
+    "AeEnable": True
+})
 
-            # Recherche du damier
-            ret, corners = cv2.findChessboardCorners(gray, CHESSBOARD_SIZE, None)
+picam2.start()
+
+print("\n======================================")
+print(" PiCamera 3 Wide Calibration Capture ")
+print("======================================")
+print("SPACE -> save image")
+print("Q     -> quit")
+print("======================================\n")
+
+photos_taken = 0
+
+try:
+
+    while photos_taken < MAX_PHOTOS:
+
+        frame = picam2.capture_array()
+
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        display = frame.copy()
+
+        # Better detection for fisheye lenses
+        flags = (
+            cv2.CALIB_CB_ADAPTIVE_THRESH
+            + cv2.CALIB_CB_NORMALIZE_IMAGE
+            + cv2.CALIB_CB_FAST_CHECK
+        )
+
+        ret, corners = cv2.findChessboardCorners(
+            gray,
+            CHESSBOARD_SIZE,
+            flags
+        )
+
+        if ret:
+
+            # Refine corners
+            criteria = (
+                cv2.TERM_CRITERIA_EPS +
+                cv2.TERM_CRITERIA_MAX_ITER,
+                30,
+                0.001
+            )
+
+            corners2 = cv2.cornerSubPix(
+                gray,
+                corners,
+                (11, 11),
+                (-1, -1),
+                criteria
+            )
+
+            cv2.drawChessboardCorners(
+                display,
+                CHESSBOARD_SIZE,
+                corners2,
+                ret
+            )
+
+            cv2.putText(
+                display,
+                "DAMIER DETECTE - SPACE",
+                (20, 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                (0, 255, 0),
+                2
+            )
+
+        else:
+
+            cv2.putText(
+                display,
+                "RECHERCHE DU DAMIER",
+                (20, 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                (0, 0, 255),
+                2
+            )
+
+        cv2.putText(
+            display,
+            f"{photos_taken}/{MAX_PHOTOS}",
+            (20, 80),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (255, 255, 255),
+            2
+        )
+
+        cv2.imshow("Calibration PiCam3 Wide", display)
+
+        key = cv2.waitKey(1) & 0xFF
+
+        # SAVE
+        if key == ord(" "):
 
             if ret:
-                # Dessin du motif arc-en-ciel
-                cv2.drawChessboardCorners(display_frame, CHESSBOARD_SIZE, corners, ret)
-                cv2.putText(display_frame, "DAMIER DETECTE -> ESPACE", (10, 30), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+
+                filename = os.path.join(
+                    SAVE_DIR,
+                    f"calib_{photos_taken:02d}.png"
+                )
+
+                cv2.imwrite(filename, frame)
+
+                photos_taken += 1
+
+                print(f"[OK] Saved {filename}")
+
+                flash = np.ones_like(display) * 255
+                cv2.imshow("Calibration PiCam3 Wide", flash)
+                cv2.waitKey(100)
+
             else:
-                cv2.putText(display_frame, "RECHERCHE DU DAMIER...", (10, 30), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+                print("[WARN] Damier non détecté")
 
-            cv2.putText(display_frame, f"Photos : {photos_taken}/{MAX_PHOTOS}", (10, 460), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        # QUIT
+        elif key == ord("q"):
+            break
 
-            cv2.imshow("Calibration Camera - FOV 120", display_frame)
+finally:
 
-            key = cv2.waitKey(1) & 0xFF
-            
-            if key == ord(' '): 
-                if ret:
-                    filepath = os.path.join(SAVE_DIR, f"calib_{photos_taken+1:02d}.jpg")
-                    cv2.imwrite(filepath, frame_bgr)
-                    photos_taken += 1
-                    print(f"✅ Photo {photos_taken}/{MAX_PHOTOS} sauvegardée !")
-                    
-                    # Flash blanc de confirmation
-                    flash = np.ones_like(display_frame) * 255
-                    cv2.imshow("Calibration Camera - FOV 120", flash)
-                    cv2.waitKey(100)
-                else:
-                    print("⚠️ Impossible de capturer : le damier est flou ou caché.")
-                    
-            elif key == ord('q'):
-                print("\n[INFO] Arrêt demandé par l'utilisateur.")
-                break
+    picam2.stop()
+    picam2.close()
+    cv2.destroyAllWindows()
 
-    except KeyboardInterrupt:
-        print("\n\n[INFO] Capture interrompue (Ctrl+C).")
-    
-    finally:
-        picam2.stop()
-        picam2.close()
-        cv2.destroyAllWindows()
-        print("\n[INFO] Fin de capture. Relancez calibrate.py")
-
-if __name__ == "__main__":
-    main()
+    print("\nCapture terminée.")
