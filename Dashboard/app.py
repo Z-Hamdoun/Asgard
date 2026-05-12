@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 import sys, os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
+
 from utils.class_GCS import GroundStation
 
 import asyncio
@@ -61,13 +62,12 @@ class ConnectionManager:
 # --- INITIALISATION DE L'APPLICATION ---
 app = FastAPI()
 manager = ConnectionManager()
-gcs = GroundStation(use_simu=False)
+# gcs = GroundStation(use_simu=False)
 
-# 1. On "monte" le dossier static pour qu'il soit accessible via /static
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="Dashboard/static"), name="static")
 
 # 2. On configure le moteur de templates
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="Dashboard/templates")
 
 
 # --- ROUTES ---

@@ -277,6 +277,7 @@ function changelog() {
     }
 }
 
+document.getElementById("choix").addEventListener("change", changelog);
 function intern_log(log){
         const line = document.createElement("div");
         line.style.color = "#5cb85c"
