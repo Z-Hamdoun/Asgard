@@ -19,10 +19,11 @@ def main():
     # 2. Initialisation de la Caméra (Résolution cible: 640x480)
     print("[INFO] Démarrage de la caméra...")
     picam2 = Picamera2()
-    picam2.preview_configuration.main.size = (848, 480)
-    picam2.preview_configuration.main.format = "RGB888"
-    picam2.preview_configuration.controls.FrameRate = 30
-    picam2.configure("preview")
+    # create_video_configuration force l'utilisation du FOV maximum !
+    config = picam2.create_video_configuration(main={"size": (848, 480), "format": "RGB888"})
+    config.controls.FrameRate = 30
+    
+    picam2.configure(config)
     picam2.start()
     picam2.set_controls({"AeEnable": True, "ExposureValue": 0})
 
