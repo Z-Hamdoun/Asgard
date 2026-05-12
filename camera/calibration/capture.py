@@ -21,11 +21,16 @@ def main():
     picam2 = Picamera2()
     # create_video_configuration force l'utilisation du FOV maximum !
     config = picam2.create_video_configuration(main={"size": (848, 480), "format": "RGB888"})
-    config.controls.FrameRate = 30
     
     picam2.configure(config)
     picam2.start()
-    picam2.set_controls({"AeEnable": True, "ExposureValue": 0})
+    
+    # Réglages
+    picam2.set_controls({
+        "AeEnable": True, 
+        "ExposureValue": 0,
+        "FrameRate": 30
+    })
 
     print("\n" + "="*50)
     print("📸 ASSISTANT DE CALIBRATION MANUEL (AVEC ÉCRAN)")
