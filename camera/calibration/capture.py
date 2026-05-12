@@ -11,8 +11,8 @@ CHESSBOARD_SIZE = (9, 6)
 SAVE_DIR = "images_calib"
 MAX_PHOTOS = 30
 
-WIDTH = 640
-HEIGHT = 360
+WIDTH = 848
+HEIGHT = 480
 
 os.makedirs(SAVE_DIR, exist_ok=True)
 
