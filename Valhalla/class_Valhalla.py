@@ -34,7 +34,7 @@ class Valhalla(Drone):
             if self.change_mode("GUIDED"):
                 mode_changed = True
                 break
-            time.sleep(0.5)
+            time.sleep(3)
         
         if not mode_changed:
             self.send_cgm(CGM.VALHALLA_MODE_CHANGE_FAIL)
@@ -46,7 +46,7 @@ class Valhalla(Drone):
             if self.arm():
                 armed = True
                 break
-            time.sleep(1)
+            time.sleep(3)
         
         # Echech armement
         if not armed:
@@ -59,7 +59,7 @@ class Valhalla(Drone):
             if self.takeoff(altitude):
                 took_off = True
                 break
-            time.sleep(1)
+            time.sleep(3)
         
         # Echec takeoff
         if not took_off:
