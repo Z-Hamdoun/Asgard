@@ -5,7 +5,7 @@ import time
 from picamera2 import Picamera2
 
 # ==========================================================
-# CONFIGURATION
+# CONFIGURATION 
 # ==========================================================
 CHESSBOARD_SIZE = (9, 6) 
 SAVE_DIR = "images_calib"
@@ -17,15 +17,16 @@ def main():
         os.makedirs(SAVE_DIR)
         print(f"[INFO] Dossier {SAVE_DIR}/ créé.")
 
-    print("[INFO] Démarrage de la caméra (Forçage du FOV Wide 120°)...")
+    print("[INFO] Démarrage de la caméra en mode FOV COMPLET (120°)...")
     picam2 = Picamera2()
     
-    # L'ASTUCE EST ICI : 
-    # On force le capteur à s'ouvrir en grand avec le main stream (1080p)
-    # Et on récupère l'image redimensionnée (sans crop !) via le lores stream
+    # =========================================================================
+    # LE CORRECTIF MAGIQUE EST ICI
+    # On force le plein capteur (Video) + RGB pour nous + YUV pour le système
+    # =========================================================================
     config = picam2.create_video_configuration(
-        main={"size": (1920, 1080), "format": "RGB888"},
-        lores={"size": (848, 480), "format": "RGB888"}
+        main={"size": (848, 480), "format": "RGB888"},
+        lores={"format": "YUV420"} 
     )
     
     picam2.configure(config)
@@ -38,9 +39,11 @@ def main():
     })
 
     print("\n" + "="*50)
-    print("📸 CAPTURE AUTOMATIQUE (MODE WIDE FORCE)")
+    print("📸 CAPTURE AUTOMATIQUE 120° (MODE SANS ÉCRAN)")
     print("="*50)
-    print("-> Bougez le damier entre chaque 'BIP !'")
+    print("-> L'algorithme cherche le damier en permanence.")
+    print(f"-> Dès qu'il le voit, il prend une photo et attend {COOLDOWN} secondes.")
+    print("-> Bougez le damier entre chaque 'BIP !' pour varier les angles.")
     print("="*50 + "\n")
 
     photos_taken = 0
@@ -48,8 +51,7 @@ def main():
 
     try:
         while photos_taken < MAX_PHOTOS:
-            # IMPORTANT : On capture le flux "lores" pour avoir notre 848x480 grand angle !
-            frame_rgb = picam2.capture_array("lores")
+            frame_rgb = picam2.capture_array("main")
             frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
             gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
 
@@ -59,19 +61,23 @@ def main():
             if ret and (current_time - last_capture_time > COOLDOWN):
                 filepath = os.path.join(SAVE_DIR, f"calib_{photos_taken+1:02d}.jpg")
                 cv2.imwrite(filepath, frame_bgr)
+                
                 photos_taken += 1
                 last_capture_time = current_time
-                print(f"✅ [BIP !] Photo {photos_taken}/{MAX_PHOTOS} sauvegardée.")
                 
+                print(f"✅ [BIP !] Photo {photos_taken}/{MAX_PHOTOS} sauvegardée.")
+            
             time.sleep(0.1)
 
     except KeyboardInterrupt:
-        print("\n\n[INFO] Capture interrompue par l'utilisateur.")
+        print("\n\n[INFO] Capture interrompue par l'utilisateur (Ctrl+C).")
     
     finally:
         picam2.stop()
         picam2.close()
-        print("\n[INFO] Fin de capture. Relancez calibrate.py")
+        print("\n" + "="*50)
+        print("📸 TERMINÉ ! Lancez la calibration pour voir votre nouvelle matrice FOV 120° !")
+        print("="*50)
 
 if __name__ == "__main__":
     main()
