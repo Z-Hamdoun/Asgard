@@ -11,7 +11,7 @@ class GroundStation:
         print("[GCS] Initialisation de l'antenne radio...")
         
         # Adresse locale UDP générée par MAVProxy
-        addr_valhalla = "127.0.0.1:14554"
+        addr_valhalla = "0.0.0.0:14550"
 
         # Connexion a Valhalla
         print(f"[GCS] Tentative de connexion à Valhalla sur {addr_valhalla}")
