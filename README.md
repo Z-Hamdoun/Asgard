@@ -1,6 +1,5 @@
-# Project Valkyrie
-
-## 🌍 Simulation
+# Project ASGARD
+# 🌍 Simulation
 
 Le script simulation.sh permet de lancer l'environnement complet de simulation :
 
@@ -55,34 +54,41 @@ La commande suivante est utilisée pour lancer la simulation du contrôleur de v
 ~/ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --console -I1 --sysid=2 --use-dir=$HOME/gz_ws/ardupilot_output/drone1  
 ```
 
-## RPI 1 (carte 32Gb)
+# Configuration wifi des deux RPI
 
-**hostname**: `...`
+**WiFi SSID:** `Asgard`
 
-**username**: `asgard`
+**WiFi pwd:** `wifisupelec`
 
-**password**: `Dassault2025`
+## Valhalla
 
-**WiFi SSID**: `Asgard`
+```sh
+ssh asgard@valhalla.local
+```
 
-**WiFi pwd**: `Dassault2025`
+**Hostname**: `valhalla`
 
-**SSH**: ...
+**Username**: `asgard`
 
-## RPI 2 (carte 64Gb)
+**Password**: `opensesame`
+
+
+## Valkyrie
 
 Raspberry Pi OS Lite (64-bit)
 
-**hostname**: `uav-companion`
+```sh
+ssh helics@valkyrie.local
+```
 
-**username**: `helics`
+**Hostname**: `valkyrie`
 
-**password**: `opensesame`
+**Username**: `helics`
 
-**WiFi SSID**: `Asgard`
+**Password**: `opensesame`
 
-**WiFi pwd**: `wifisupelec`
+# Mavproxy
 
-**SSH**: activated + using password authentification
-
-ssh helics@uav-companion.local
+```sh
+mavproxy.py --master=/dev/ttyAMA0 --baudrate 921600
+```

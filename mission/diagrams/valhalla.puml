@@ -2,32 +2,42 @@
 hide empty description
 
 ''' BASE STATES '''
-state LAND #ffb3b3
-state RTL #ffb3b3
+state LAND #ff6666
+state RTL #ff6666
 
 state start <<start>>
 note right of start : Valhalla
 
 ''' MISSION '''
-state STABILIZE {
-    state "WAIT" as stabilize_WAIT
-    start -down-> stabilize_WAIT
+state STABILIZE #ccffe5 {
+    state "grounded" as stabilize_FOLLOWING #ebfff4;line:ccffe5;text:99ffca {
+        state "WAIT" as stabilize_WAIT
+        start -down-> stabilize_WAIT
+    }
 }
 
+RTL --> [*]
 
+LAND -up[dashed]-> start
 
-state GUIDED {
-    ' state "WAIT" as guided_WAIT
-    state "DISARMED" as guided_DISARMED
-    state "ARMED" as guided_ARMED
+state GUIDED #ccccff;line:ccccff;line.bold {
     
-    stabilize_WAIT -down[#green]-> guided_DISARMED : mode_change_ok
-    guided_DISARMED -down[#green]-> guided_ARMED : <color:#green>arm + gps_ok</color>
-    guided_DISARMED -down[#red]-> guided_DISARMED : <color:#red>arm + gps_fail</color>
-    guided_ARMED -down[#red]-> guided_ARMED : <color:#red>takeoff_fail</color>
-    guided_ARMED -up[#red]-> guided_DISARMED : <color:#red>disarm</color>
+    state "grounded" as guided_GROUNDED #f5f5ff;line:e6e6ff;text:dbdbff {
 
-    state "FLYING" as guided_FLYING {
+        state "DISARMED" as guided_DISARMED
+        state "ARMED" as guided_ARMED
+
+        stabilize_WAIT -down[#green]-> guided_DISARMED : <color:#green>mode_change_ok</color>
+        stabilize_WAIT -down[#red]-> stabilize_WAIT : <color:#red>mode_change_fail</color>
+        guided_DISARMED -down[#green]-> guided_ARMED : <color:#green>arm + gps_ok</color>
+        guided_DISARMED -down[#red]-> guided_DISARMED : <color:#red>arm + gps_fail</color>
+        guided_ARMED -down[#red]-> guided_ARMED : <color:#red>takeoff_fail</color>
+        guided_ARMED -up[#red]-> guided_DISARMED : <color:#red>disarm</color>
+
+    }
+
+    state "flying" as guided_FLYING #f5f5ff;line:e6e6ff;text:dbdbff {
+        
         state "STANDBY" as flying_STANDBY : wait for ... time units
         guided_ARMED -down[#green]-> flying_STANDBY : <color:#green>takeoff_ok</color>
         flying_STANDBY -down[#green]-> MOVING : <color:#green>goto_ok</color>
@@ -38,7 +48,7 @@ state GUIDED {
         state ON_TARGET {
             state "FLYING" as on_target_AIR
             state "GROUNDED" as on_target_GROUND : waiting for Valkyrie
-            MOVING -down[#green]-> on_target_AIR
+            MOVING -down[#black]-> on_target_AIR
             on_target_AIR -left-> on_target_GROUND : standby
             on_target_GROUND -right-> on_target_AIR : valkyrie_finished
         }
@@ -47,15 +57,8 @@ state GUIDED {
 
     guided_FLYING x-[#red]-> LAND: <color:#red>no_gps</color>
     
-    on_target_AIR -down-> RTL
+    on_target_AIR -down[#green]-> RTL : <color:#green>mission_finish</color>
     
 }
-
-
-
-
-RTL --> [*]
-
-LAND -up[dashed]-> start
 
 @enduml

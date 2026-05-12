@@ -22,7 +22,7 @@ class Camera:
     """Crée une connection avec une caméra."""
     def __init__(self,
             simulation: str | None,
-            resolution_id: int = 2,
+            resolution_id: int = 1,
             do_crop: bool = True,
             camera_topic: str = "/world/iris_runway/model/iris_with_gimbal/model/gimbal/link/pitch_link/sensor/camera/image",
             gstream_port: int = 5600,
@@ -188,12 +188,20 @@ class Camera:
             """Matrice de distorsion de la caméra"""
 
             if simulation is None:
-                self._camera_matrix = np.array([ # C'est pas la bonne matrice
-                        [800,   0, 320],
-                        [  0, 800, 240],
-                        [  0,   0,   1]
-                    ], dtype=np.float64)
-                self._dist_coeffs = np.array([-0.1, 0.05, 0.001, 0.0005, 0], dtype=np.float64) # Celle-là non plus
+                # self._camera_matrix = np.array([
+                #     [600.0,   0.0, 320.0],  # Fx ~420, Cx = 320 (Largeur/2)
+                #     [  0.0, 600.0, 240.0],  # Fy ~420, Cy = 240 (Hauteur/2)
+                #     [  0.0,   0.0,   1.0]
+                # ], dtype=np.float64)
+                # self._dist_coeffs = np.array([0, 0, 0, 0, 0], dtype=np.float64) # Celle-là non plus
+                
+                self._camera_matrix = np.array([
+                    [961.20937, 0.00000, 327.96329],
+                    [0.00000, 963.93177, 239.74834],
+                    [0.00000, 0.00000, 1.00000]
+                ], dtype=np.float64)
+                
+                self._dist_coeffs = np.array([-0.02022, 1.12933, -0.00053, 0.00310, -5.27641], dtype=np.float64)
             else:
                 # Matrices de la caméra Gazebo (à vérifier)
                 # self._camera_matrix = np.array([
@@ -209,7 +217,7 @@ class Camera:
                 self._dist_coeffs = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
             # Créer le dictionnaire ArUco et les paramètres de détection
-            self._aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+            self._aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_250)
             """Dictionnaire ArUco."""
 
             self._aruco_params = aruco.DetectorParameters()
@@ -225,7 +233,7 @@ class Camera:
                 self.aruco_size = 0.62 # Taille ArUco sur Gazebo
             else:
                 self.aruco_id = 4
-                self.aruco_size = 0.36
+                self.aruco_size = 0.1
 
             # Variables utilisées pour la détection ArUco
             self.DO_CROP: bool = do_crop
@@ -284,7 +292,8 @@ class Camera:
 
     def get_frame(self,
             affiche: bool = False,
-            timeout: float = 5
+            timeout: float = 5,
+            save = False
         ) -> np.ndarray:
         """
         Renvoie la dernière frame capturée, et affiche ou non celle-ci.
@@ -315,6 +324,8 @@ class Camera:
                 if self._simulation:
                     cv2.waitKey(50)
         # Attention à bien renvoyer la frame en RGB
+        if save:
+            cv2.imwrite("image.jpg", frame)
         return frame #cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
     def encode(self, img: np.ndarray, quality: int = 80) -> tuple[bytes, int, int]:
@@ -362,7 +373,7 @@ class Camera:
         """
         dx, dy, dz = float(tvec[0]), float(tvec[1]), float(tvec[2])
         if not self._simulation:
-            return dy, -dx, dz # A vérifier
+            return -dy, dx, dz # A vérifier   # combinaisons testees: - + / + + /
         else:
             return dx, dy, dz # A vérifier
 
@@ -409,8 +420,8 @@ class Camera:
 
         if ids is not None:
             for aruco_id, corner in zip(ids, corners):
-                if aruco_id != self.aruco_id:
-                    continue
+                #if aruco_id != self.aruco_id:
+                #    continue
 
                 if self._last_crop is not None and self.DO_CROP:
                     corner[:,:,0] *= self._last_scale_down
@@ -418,7 +429,7 @@ class Camera:
                     corner[:,:,0] += self._last_crop[1]
                     corner[:,:,1] += self._last_crop[0]
 
-                #cv2.aruco.drawDetectedMarkers(frame, corners, ids)
+                # cv2.aruco.drawDetectedMarkers(frame, corners, ids)
                 #self.save_image(image=frame)
 
                 _, tvec, _ = cv2.aruco.estimatePoseSingleMarkers([corner], self.aruco_size, self._camera_matrix, self._dist_coeffs)

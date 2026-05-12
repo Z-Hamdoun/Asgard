@@ -12,7 +12,6 @@ cache/
 venv/
 .venv/
 env/
-.env/
 
 ## Python Bytecode & Cache
 # Ignore the Python cache directory
@@ -30,3 +29,4 @@ __pycache__/
 # Ignore common cache directories
 .cache/
 pymavlink_code/__pycache__/class_MAVLinCS.cpython-310.pyc
+logs.txt

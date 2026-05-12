@@ -1,1 +1,0 @@
-L'objectif est de détecter la fin d'un message série par timeout pour les envoyer entiers dans des paquets ESP-NOW

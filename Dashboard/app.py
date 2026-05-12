@@ -1,9 +1,13 @@
-# --- IMPORTS ---
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.middleware.cors import CORSMiddleware
+
+import sys, os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
+from utils.class_GCS import GroundStation
+
 import asyncio
 import time
 import socket
@@ -57,13 +61,8 @@ class ConnectionManager:
 # --- INITIALISATION DE L'APPLICATION ---
 app = FastAPI()
 manager = ConnectionManager()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # En production, remplacez "*" par l'URL de votre site web
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+gcs = GroundStation(use_simu=False)
+
 # 1. On "monte" le dossier static pour qu'il soit accessible via /static
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -112,17 +111,45 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     try:
         while True:
             data = await websocket.receive_json()
-
+            command = data.get("command")
             target = data.get("target")
 
-            # LOGIQUE DE ROUTAGE
-            if target and target in manager.active_connections:
-                # Si une cible est spécifiée (ex: Valkyrie), on lui envoie directement
-                await manager.send_to_target(data, target)
+            # ======================================================
+            # Routage radio mavlink
+            # ======================================================
+            if command == "main_mission":
+                if target == "Valhalla":
+                    gcs.lancer_mission()  # Envoi du CGM 201 par l'antenne
+                await manager.send_to_target(
+                    {"type": "status", "command": "mission_starting", "source": "GCS"},
+                    "dashboard",
+                )
+
+            elif command == "urgency_stop":
+                if target == "Valhalla":
+                    gcs.arret_urgence()
+                await manager.send_to_target(
+                    {"type": "status", "command": "stopped", "source": "GCS"},
+                    "dashboard",
+                )
+
+            elif command == "urgency_landing":
+                if target == "Valhalla":
+                    gcs.force_rtl()
+                await manager.send_to_target(
+                    {"type": "status", "command": "landing", "source": "GCS"},
+                    "dashboard",
+                )
+
+            # ======================================================
+            # routage wifi websocket
+            # ======================================================
             else:
-                # Si aucune cible ou cible inconnue, on envoie au Dashboard
-                # (Pour que l'utilisateur voie les logs/réponses)
-                await manager.send_to_target(data, "dashboard")
+                if target and target in manager.active_connections:
+                    # Pour update_config, update_coords, git_pull, etc.
+                    await manager.send_to_target(data, target)
+                else:
+                    await manager.send_to_target(data, "dashboard")
 
     except WebSocketDisconnect:
         manager.disconnect(client_id)

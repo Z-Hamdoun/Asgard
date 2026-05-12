@@ -2,18 +2,132 @@
 hide empty description
 
 ''' BASE STATES '''
-state LAND #ffb3b3
-state RTL #ffb3b3
-
-''' MISSION '''
-state STABILIZE {
-    state "WAIT" as stabilize_WAIT
-    STABILIZE --> stabilize_WAIT
-}
+state LAND #ff6666
+state RTL #ff6666
 
 state start <<start>>
 note right of start : Valkyrie
-start --> STABILIZE
 
+''' MISSION '''
+state STABILIZE #ccffe5;line:ccffe5;line.bold {
+    state "grounded" as stabilize_FOLLOWING #ebfff4;line:ccffe5;text:99ffca {
+        state "WAIT" as stabilize_WAIT : waiting for mission_start from Valhalla
+        start -down-> stabilize_WAIT
+        stabilize_WAIT -down[#red]-> stabilize_WAIT : <color:#red>mode_change_fail</color>
+    }
+}
+
+RTL --> [*]
+
+LAND -up[dashed]-> start
+
+state fork <<fork>>
+stabilize_WAIT -down[#green]-> fork : <color:#green>mode_change_ok</color>
+state "Valhalla" as Valhalla1 #ffffe6
+Valhalla1 -[dashed]-> fork : mission_start
+
+state GUIDED #ccccff;line:ccccff;line.bold {
+
+    state "grounded" as guided_GROUNDED1 #f5f5ff;line:e6e6ff;text:dbdbff {
+
+        state "DISARMED" as guided_DISARMED
+        state "ARMED" as guided_ARMED
+
+        fork -down[#black]-> guided_DISARMED
+        guided_DISARMED -down[#green]-> guided_ARMED : <color:#green>arm + gps_ok</color>
+        guided_DISARMED -down[#red]-> guided_DISARMED : <color:#red>arm + gps_fail</color>
+        guided_ARMED -down[#red]-> guided_ARMED : <color:#red>takeoff_fail</color>
+        guided_ARMED -up[#red]-> guided_DISARMED : <color:#red>disarm</color>
+    }
+
+    state "flying" as guided_FLYING #f5f5ff;line:e6e6ff;text:dbdbff {
+
+        state "STANDBY" as flying_STANDBY : wait for ... time units
+        guided_ARMED -down[#green]-> flying_STANDBY : <color:#green>takeoff_ok</color>
+        
+        state SEARCHING {
+            state "LOOKING" as searching_LOOKING
+            state "FOUND" as searching_FOUND
+            flying_STANDBY -down[#black]-> searching_LOOKING
+            searching_LOOKING -[#red]-> searching_LOOKING : <color:#red>found_False</color>
+            searching_LOOKING -down[#green]-> searching_FOUND : <color:#green>found_True</color>
+        }
+
+        state "LANDING" as searching_LAND
+        state "TAKEOFF" as searching_TAKEOFF
+        searching_FOUND -down[#green]-> searching_LAND : <color:#green>precision_landing</color>
+        searching_TAKEOFF -up[#red]-> searching_LOOKING
+        searching_LAND -right[#red]-> searching_TAKEOFF : <color:#red>landed_fail</color>
+    }
+
+    guided_FLYING x-[#red]-> LAND: <color:#red>no_gps</color>
+
+    state "grounded" as guided_GROUNDED2 #f5f5ff;line:e6e6ff;text:dbdbff {
+        state GRASPING {
+            state "EMPTY" as grasping_EMPTY
+            state "FULL" as grasping_FULL
+            searching_LAND -down[#green]-> grasping_EMPTY : <color:#green>landed_ok</color>
+            grasping_EMPTY -up[#red]-> searching_TAKEOFF : <color:#red>claw_Empty</color>
+            grasping_EMPTY -down[#green]-> grasping_FULL : <color:#green>claw_Full</color>
+        }
+        
+    }
+
+    state "flying" as guided_LEAVING #f5f5ff;line:e6e6ff;text:dbdbff {
+        
+        state "TAKEOFF" as leaving_TAKEOFF
+        grasping_FULL -down[#black]-> leaving_TAKEOFF
+
+        state "STANDBY" as leaving_STANDBY : wait for ... time units
+        leaving_TAKEOFF -down[#green]-> leaving_STANDBY : <color:#green>takeoff_ok</color>
+        leaving_TAKEOFF -[#red]-> leaving_TAKEOFF : <color:#red>takeoff_fail</color>
+
+    
+        leaving_STANDBY -down[#green]-> MOVING : <color:#green>goto_ok</color>
+        flying_STANDBY -[#red]-> flying_STANDBY : <color:#red>goto_fail</color>
+        MOVING : - manual takeover if infinite
+        MOVING : - tell Valhalla when above
+        MOVING : - when close by, switch from GPS to CV
+
+        state HOVERING {
+            
+            state "CENTERED" as hovering_CENTERED
+            state "CLOSE" as hovering_CLOSE
+            MOVING -down[#black]-> hovering_CLOSE : <color:#black>approach</color>
+            hovering_CENTERED -[#red]-> hovering_CENTERED : <color:#red>centered_False</color>
+            hovering_CLOSE -down[#green]-> hovering_CENTERED : <color:#green>close_True</color>
+            hovering_CLOSE -[#red]-> hovering_CLOSE : <color:#red>close_False</color>
+            
+            state PLACING
+            hovering_CENTERED -down[#green]-> PLACING : <color:#green>centered_True</color>
+            
+            state RETREATED
+            PLACING -down[#black]-> RETREATED : <color:#black>retreat</color>
+            RETREATED -[#red]-> RETREATED  : <color:#red>retreated_False</color>
+            
+            state "WAIT" as guided_WAIT
+            guided_WAIT -[#red]-> guided_WAIT : <color:#red>change_mode_fail</color>
+        }
+        
+
+    }
+    guided_LEAVING x-[#red]-> LAND: <color:#red>no_gps</color>
+}
+
+state FOLLOW #ffb3d9;line:ffb3d9;line.bold {
+
+    state "flying" as follow_FOLLOWING #fff0f7;line:ffdbed;text:ffcce6 {
+        state FOLLOWING
+        guided_WAIT -down[#green]-> FOLLOWING : <color:#green>mode_change_ok</color>
+    }
+    follow_FOLLOWING x-[#red]-> LAND: <color:#red>no_gps</color>
+}
+
+
+state "Valhalla" as Valhalla2 #ffffe6
+RETREATED -down[#green]-> guided_WAIT : <color:#green>retreated_True</color>
+FOLLOWING -[dashed]-> Valhalla2 : mission_end
+
+FOLLOWING --> [*]
 
 @enduml

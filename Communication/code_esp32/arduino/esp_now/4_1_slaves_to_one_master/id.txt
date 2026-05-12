@@ -1,2 +1,0 @@
-Basé sur 3_2 : parsing manuel
-Cette version permet de renvoyer à la station au sol l'information de RSSI de chaque lien

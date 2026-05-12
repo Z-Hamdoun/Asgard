@@ -1,9 +1,0 @@
-@startuml
-[*] ---> INIT
-INIT --> TAKEOFF
-TAKEOFF --> RENDEZVOUS
-RENDEZVOUS --> MISSION
-MISSION --> RETURN_HOME
-RETURN_HOME --> LAND
-LAND --> [*]
-@enduml

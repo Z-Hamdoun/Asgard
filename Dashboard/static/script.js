@@ -371,18 +371,21 @@ updateBtnValh.onclick = function() {
     }
 };
 
-mainBtn.onclick = function () {
-    fetch('http://localhost:8000/start-mission')
-        .then(response => response.json())
-        .then(data => {
-            if(data.statut === 'succes') {
-                intern_log(`${data.resultat}`);
-            } else {
-                intern_log(`Erreur serveur : ${data.message}`);
-            }
-        })
-        .catch(error => console.error(`Site offline`));
-}
+mainBtn.onclick = function() {
+    if (ws.readyState === WebSocket.OPEN) {
+        const command = {
+            command: "main_mission",
+            target: "Valhalla"
+        };
+
+        intern_log("requête d'execution envoyé");
+        ws.send(JSON.stringify(command));
+        
+
+    } else {
+        intern_log("site offline");
+    }
+};
 
 landBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
@@ -530,21 +533,16 @@ sendCoordsBTN.onclick = function() {
             "target": "Valhalla",
             "data": configData // On intègre nos paramètres ici
         };
-        const messagevalk = {
-            "command": "update_coords",
-            "target": "Valkyrie",
-            "data": configData // On intègre nos paramètres ici
-        };
+
         if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify(messagevalh));
-            ws.send(JSON.stringify(messagevalk));
             intern_log("Destination envoyée : " + position.lat + ", " + position.lng);
     
         } else {
             intern_log("site offline");
         }
     } else {
-        intern_log("Aucun point à envoyer");
+        intern_log("Aucun point sélectionné. Cliquez sur la carte d'abord.");
     }
 }
 
