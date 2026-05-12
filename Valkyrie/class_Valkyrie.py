@@ -126,7 +126,7 @@ class Valkyrie(Drone):
                 if self.fin_mission: return False
                     
                 # Scan visuel
-                dx, dy, dz, info, frame = self.camera.analyse_e_aruco(affichage=False) 
+                dx, dy, dz, info, frame = self.camera.analyse(affichage=False) 
                 
                 # Cible trouvee
                 if dx is not None or info is not None:
@@ -178,7 +178,7 @@ class Valkyrie(Drone):
                 self._precision_active = False
                 if self._rc_thread: self._rc_thread.join(timeout=1.0)
                 return False
-            dx, dy, dz, info, frame = self.camera.analyse_e_aruco(affichage=False)
+            dx, dy, dz, info, frame = self.camera.analyse(affichage=False)
             
             if info is not None:
                 # Precision loiter
@@ -205,7 +205,7 @@ class Valkyrie(Drone):
                 self._precision_active = False
                 return False
             
-            dx, dy, dz, info, frame = self.camera.analyse_e_aruco(affichage=False)
+            dx, dy, dz, info, frame = self.camera.analyse(affichage=False)
             
             if info is not None:
                 self.send_landing_target(dx, dy, dz)
