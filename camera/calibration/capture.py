@@ -1,32 +1,27 @@
 import os
 import cv2
 import numpy as np
-import time
 from picamera2 import Picamera2
 
 # ==========================================================
-# CONFIGURATION 
+# CONFIGURATION
 # ==========================================================
 CHESSBOARD_SIZE = (9, 6) 
 SAVE_DIR = "images_calib"
 MAX_PHOTOS = 30        
-COOLDOWN = 2.0         
 
 def main():
     if not os.path.exists(SAVE_DIR):
         os.makedirs(SAVE_DIR)
         print(f"[INFO] Dossier {SAVE_DIR}/ créé.")
 
-    print("[INFO] Démarrage de la caméra en mode FOV COMPLET (120°)...")
+    print("[INFO] Démarrage de la caméra (Forçage du FOV Wide 120°)...")
     picam2 = Picamera2()
     
-    # =========================================================================
-    # LE CORRECTIF MAGIQUE EST ICI
-    # On force le plein capteur (Video) + RGB pour nous + YUV pour le système
-    # =========================================================================
+    # Configuration avec le hack "lores" pour le plein FOV
     config = picam2.create_video_configuration(
-        main={"size": (848, 480), "format": "RGB888"},
-        lores={"format": "YUV420"} 
+        main={"size": (1920, 1080), "format": "RGB888"},
+        lores={"size": (848, 480), "format": "RGB888"}
     )
     
     picam2.configure(config)
@@ -39,45 +34,70 @@ def main():
     })
 
     print("\n" + "="*50)
-    print("📸 CAPTURE AUTOMATIQUE 120° (MODE SANS ÉCRAN)")
+    print("📸 ASSISTANT DE CALIBRATION (VUE GRAND ANGLE)")
     print("="*50)
-    print("-> L'algorithme cherche le damier en permanence.")
-    print(f"-> Dès qu'il le voit, il prend une photo et attend {COOLDOWN} secondes.")
-    print("-> Bougez le damier entre chaque 'BIP !' pour varier les angles.")
+    print("-> La fenêtre vidéo va s'ouvrir.")
+    print("-> APPUYEZ SUR [ESPACE] pour prendre une photo.")
+    print("-> APPUYEZ SUR [Q] pour quitter le programme.")
     print("="*50 + "\n")
 
     photos_taken = 0
-    last_capture_time = 0
 
     try:
         while photos_taken < MAX_PHOTOS:
-            frame_rgb = picam2.capture_array("main")
+            # Capture sur le flux "lores" pour le 848x480 non rogné
+            frame_rgb = picam2.capture_array("lores")
             frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
             gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
+            
+            # Copie pour l'affichage (afin de ne pas sauvegarder les dessins)
+            display_frame = frame_bgr.copy()
 
+            # Recherche du damier
             ret, corners = cv2.findChessboardCorners(gray, CHESSBOARD_SIZE, None)
-            current_time = time.time()
+
+            if ret:
+                # Dessin du motif arc-en-ciel
+                cv2.drawChessboardCorners(display_frame, CHESSBOARD_SIZE, corners, ret)
+                cv2.putText(display_frame, "DAMIER DETECTE -> ESPACE", (10, 30), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+            else:
+                cv2.putText(display_frame, "RECHERCHE DU DAMIER...", (10, 30), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
+            cv2.putText(display_frame, f"Photos : {photos_taken}/{MAX_PHOTOS}", (10, 460), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+
+            cv2.imshow("Calibration Camera - FOV 120", display_frame)
+
+            key = cv2.waitKey(1) & 0xFF
             
-            if ret and (current_time - last_capture_time > COOLDOWN):
-                filepath = os.path.join(SAVE_DIR, f"calib_{photos_taken+1:02d}.jpg")
-                cv2.imwrite(filepath, frame_bgr)
-                
-                photos_taken += 1
-                last_capture_time = current_time
-                
-                print(f"✅ [BIP !] Photo {photos_taken}/{MAX_PHOTOS} sauvegardée.")
-            
-            time.sleep(0.1)
+            if key == ord(' '): 
+                if ret:
+                    filepath = os.path.join(SAVE_DIR, f"calib_{photos_taken+1:02d}.jpg")
+                    cv2.imwrite(filepath, frame_bgr)
+                    photos_taken += 1
+                    print(f"✅ Photo {photos_taken}/{MAX_PHOTOS} sauvegardée !")
+                    
+                    # Flash blanc de confirmation
+                    flash = np.ones_like(display_frame) * 255
+                    cv2.imshow("Calibration Camera - FOV 120", flash)
+                    cv2.waitKey(100)
+                else:
+                    print("⚠️ Impossible de capturer : le damier est flou ou caché.")
+                    
+            elif key == ord('q'):
+                print("\n[INFO] Arrêt demandé par l'utilisateur.")
+                break
 
     except KeyboardInterrupt:
-        print("\n\n[INFO] Capture interrompue par l'utilisateur (Ctrl+C).")
+        print("\n\n[INFO] Capture interrompue (Ctrl+C).")
     
     finally:
         picam2.stop()
         picam2.close()
-        print("\n" + "="*50)
-        print("📸 TERMINÉ ! Lancez la calibration pour voir votre nouvelle matrice FOV 120° !")
-        print("="*50)
+        cv2.destroyAllWindows()
+        print("\n[INFO] Fin de capture. Relancez calibrate.py")
 
 if __name__ == "__main__":
     main()
