@@ -217,13 +217,19 @@ class Camera:
                 # ], dtype=np.float64)
                 # self._dist_coeffs = np.array([0, 0, 0, 0, 0], dtype=np.float64) # Celle-là non plus
                 
+                #self._camera_matrix = np.array([
+                #    [961.20937, 0.00000, 327.96329],
+                #    [0.00000, 963.93177, 239.74834], NOTE : c est bien
+                #    [0.00000, 0.00000, 1.00000]
+                #], dtype=np.float64)
+                # 
+                # self._dist_coeffs = np.array([-0.02022, 1.12933, -0.00053, 0.00310, -5.27641], dtype=np.float64)
                 self._camera_matrix = np.array([
-                    [961.20937, 0.00000, 327.96329],
-                    [0.00000, 963.93177, 239.74834],
+                    [376.91194, 0.00000, 425.07994],
+                    [0.00000, 380.07917, 245.66015],
                     [0.00000, 0.00000, 1.00000]
                 ], dtype=np.float64)
-                
-                self._dist_coeffs = np.array([-0.02022, 1.12933, -0.00053, 0.00310, -5.27641], dtype=np.float64)
+                self._dist_coeffs = np.array([-0.00284, 0.09082, 0.00265, -0.00063, -0.07958], dtype=np.float64)
             else:
                 # Matrices de la caméra Gazebo (à vérifier)
                 # self._camera_matrix = np.array([
