@@ -7,5 +7,5 @@ camera = Camera(simulation=None)
 
 while True:
     result = camera.analyse()
-    print(result)
-    time.sleep(0.05)
+    print(result[0], result[1], result[2])
+    time.sleep(0.5)
