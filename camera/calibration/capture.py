@@ -20,8 +20,8 @@ def main():
     
     # Configuration avec le hack "lores" pour le plein FOV
     config = picam2.create_video_configuration(
-        main={"size": (1920, 1080), "format": "RGB888"},
-        lores={"size": (848, 480), "format": "RGB888"}
+        main={"size": (848, 480), "format": "RGB888"},
+        lores={"format": "YUV420"} 
     )
     
     picam2.configure(config)
