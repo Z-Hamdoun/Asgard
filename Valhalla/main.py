@@ -121,7 +121,7 @@ async def wait_for_mission_start(ip_ordi, esp32_link):
                                 await sendack(websocket, "config_ack")
                                 
                                 # Relai vers valkyrie via esp32
-                                esp32_link.send_config_json(read_config())
+                                esp32_link.send_config(read_config())
                                 
 
 
@@ -185,7 +185,7 @@ def run_pilot_thread(drone, esp32_link):
         print(f"[MISSION] Départ vers {lat}, {lng}...")
         if drone.execute_goto_from_config(radius_acceptance=2.0):
             print("[PILOTE] Point atteint. Lancement de la procédure d'attente Valkyrie.")
-            esp32.send_config(config)
+            esp32_link.send_config(config)
             time.sleep(1.0)
             
             print("[ESP-NOW] Envoi de l'ordre de décollage à Valkyrie...")
