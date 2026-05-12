@@ -129,7 +129,7 @@ class Valkyrie(Drone):
                 dx, dy, dz, info, frame = self.camera.analyse_e_aruco(affichage=False) 
                 
                 # Cible trouvee
-                if dx or info is not None:
+                if dx is not None or info is not None:
                     print("\n==================================================")
                     print(f"VALKYRIE] CIBLE ARUCO DÉTECTÉE (ID: {info}) !")
                     print("==================================================")
