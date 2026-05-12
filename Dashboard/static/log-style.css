@@ -38,7 +38,6 @@
   padding: 10px 40px;
   font-weight: 700;
   border-radius: 15px;
-  margin-bottom: 20px;
 }
 
 .log-select:hover{
@@ -76,12 +75,14 @@
 .drone-log-container.full{
   display:flex;
   flex-direction: column;
-  height: 765px;
+  height: 360px;
+  width: 775px;
 }
 .drone-log-container.demi{
   display:flex;
   flex-direction: column;
   height: 360px;
+  width: 365px;
 }
 
 .console {
@@ -94,10 +95,8 @@
   background: #000;
   border-radius: 20px;
   border: 2px solid #fff;
-  margin-bottom: 10px;
-  height: 300px;
+  height: 400px;
   width: 650px;
-  
   overflow-y: auto; 
   overflow-x: hidden; 
   word-wrap: break-word; 

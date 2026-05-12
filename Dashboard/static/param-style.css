@@ -2,26 +2,29 @@
     display: flex;
     gap: 10px;
     margin-bottom: 0px;
+    
 }
 
-#param-container{
-    border-left: 2px solid #ffffff;
-    padding-left: 20px;
-}
 #mission-container{
     padding-right: 20px;
+}
+#mission-container form{
+    padding-right: 20px;
+    margin-right: 0px;
+    border-right: 2px solid #ffffff;
+    border-bottom: 2px solid #ffffff;
 }
 
 .parametre-groupe {
     display: flex;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 13px;
 }
 
 .parametre-groupe label {
     flex: 1;
     font-size: 1.1rem;
-    text-align: end;
+    text-align: start;
     margin-right: 10px;
     color: #ffffff;
 }
