@@ -62,11 +62,10 @@ class ConnectionManager:
 # --- INITIALISATION DE L'APPLICATION ---
 app = FastAPI()
 manager = ConnectionManager()
-# gcs = GroundStation(use_simu=False)
+gcs = GroundStation(use_simu=False)
 
 app.mount("/static", StaticFiles(directory="Dashboard/static"), name="static")
 
-# 2. On configure le moteur de templates
 templates = Jinja2Templates(directory="Dashboard/templates")
 
 
@@ -77,32 +76,6 @@ async def get_index(request: Request):
     return templates.TemplateResponse(
         request=request, name="index.html", context={"local_ip": local_ip}
     )
-
-
-@app.get("/start-mission")
-async def executer_python():
-    try:
-        # Lancement du script de manière asynchrone
-        process = await asyncio.create_subprocess_exec(
-            "python",
-            "start_mission.py",  # Remplacez par le nom ou le chemin de votre script
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-
-        # On attend que le script termine et on récupère la sortie (stdout) et les erreurs (stderr)
-        stdout, stderr = await process.communicate()
-
-        if process.returncode == 0:
-            # Succès : on renvoie ce que le script a affiché, en décodant les bytes en texte
-            return {"statut": "succes", "resultat": stdout.decode("utf-8")}
-        else:
-            # Erreur lors de l'exécution du script
-            return {"statut": "erreur", "message": stderr.decode("utf-8")}
-
-    except Exception as e:
-        # Erreur si le script est introuvable ou autre plantage serveur
-        return {"statut": "erreur", "message": str(e)}
 
 
 @app.websocket("/ws/{client_id}")
