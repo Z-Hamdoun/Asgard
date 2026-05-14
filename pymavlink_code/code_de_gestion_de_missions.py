@@ -292,3 +292,35 @@ VALKYRIE_TAKEOFF_FAIL = CGM(
     long_description="",
     potential_sender="valkyrie"
 )
+
+PC_CONFIGURE_VALHALLA = CGM(
+    value=203,
+    name="PC_CONFIGURE_VALHALLA",
+    short_description="Le Dashboard demande à Valhalla de se connecter en WiFi pour récupérer la config",
+    long_description="Déclenche une connexion WebSocket ponctuelle entre Valhalla et le Dashboard",
+    potential_sender="pc"
+)
+
+VALHALLA_CONFIG_OK = CGM(
+    value=106,
+    name="VALHALLA_CONFIG_OK",
+    short_description="Valhalla a bien reçu et enregistré la configuration",
+    long_description="La configuration JSON a été sauvegardée et relayée à Valkyrie via ESP32",
+    potential_sender="valhalla"
+)
+
+VALHALLA_CONFIG_FAIL = CGM(
+    value=407,
+    name="VALHALLA_CONFIG_FAIL",
+    short_description="Valhalla n'a pas pu récupérer la configuration (timeout WiFi ou erreur)",
+    long_description="",
+    potential_sender="valhalla"
+)
+
+PC_A_DISARM_FORCE_VALHALLA = CGM(
+    value=204,
+    name="PC_A_DISARM_FORCE_VALHALLA",
+    short_description="",
+    long_description="",
+    potential_sender="pc"
+)
