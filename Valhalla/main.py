@@ -81,147 +81,164 @@ def run_relais_thread(drone, esp_link):
 # ==============================================================================
 # Thread wifi
 # ==============================================================================
-async def wait_for_mission_start(ip_ordi, esp32_link):
+async def _fetch_config_async(ip_ordi: str, timeout_s: float = 60.0) -> bool:
+    """
+    Se connecte au Dashboard, attend une config ou des commandes,
+    puis se déconnecte proprement.
+    Retourne True si une config a bien été reçue.
+    """
     uri = f"ws://{ip_ordi}:8000/ws/Valhalla"
+    print(f"[WIFI] Connexion ponctuelle à {uri}...")
+    config_received = False
+    deadline = time.time() + timeout_s
 
-    while not demarrage_mission_event.is_set():
-        try:
-            async with websockets.connect(uri, close_timeout=0.5) as websocket:
-                print(f"[WIFI] Connecté à {ip_ordi}")
-                
-                while not demarrage_mission_event.is_set():
-                    try:
-                        message = await asyncio.wait_for(websocket.recv(), timeout=0.5)
-                        data = json.loads(message)
+    try:
+        async with websockets.connect(uri, close_timeout=2) as ws:
+            print("[WIFI] Connecté. En attente de la configuration...")
+            # Signale au Dashboard que Valhalla est pret
+            await ws.send(json.dumps({"type": "status", "command": "valhalla_ready", "source": "Valhalla"}))
 
-                        if data.get("type") == "ping":
-                            await websocket.send(json.dumps({"type": "pong", "source": "Valhalla", "sent_at": data.get("sent_at")}))
+            while time.time() < deadline:
+                try:
+                    raw = await asyncio.wait_for(ws.recv(), timeout=1.0)
+                    data = json.loads(raw)
+                    command = data.get("command")
 
-                        elif data.get("command") == "print_log" and data.get("target") == "Valhalla":
-                            try:
-                                with open("logs.txt", "r") as f:
-                                    log_txt = f.read()
-                                await sendlog(websocket, "log_ack", log_txt)
-                            except Exception as e:
-                                await sendfail(websocket, "log_fail", str(e))
+                    if data.get("type") == "ping":
+                        await ws.send(json.dumps({"type": "pong", "source": "Valhalla",
+                                                   "sent_at": data.get("sent_at")}))
 
-                        elif data.get("command") == "git_pull" and data.get("target") == "Valhalla":
-                            try:
-                                repo_path = "/home/asgard/Desktop/dassault-helics-2026"
-                                result = subprocess.check_output(["git", "pull"], cwd=repo_path).decode("utf-8")
-                                await sendlog(websocket, "pull_ack", result)
-                            except Exception as e:
-                                await sendfail(websocket, "pull_fail", str(e))
+                    elif command in ("update_config", "update_coords"):
+                        new_params = data.get("data", {})
+                        if new_params:
+                            update_config(new_params)
+                            await ws.send(json.dumps({"type": "status", "command": "config_ack", "source": "Valhalla"}))
+                            config_received = True
+                            print("[WIFI] Config reçue. Déconnexion.")
+                            break  # Config obtenue --> on sort
 
-                        elif data.get("command") in ["update_config", "update_coords"]:
-                            nouveaux_parametres = data.get("data")
-                            if nouveaux_parametres:
-                                # Savgarde locale
-                                update_config(nouveaux_parametres)
-                                await sendack(websocket, "config_ack")
-                                
-                                # Relai vers valkyrie via esp32
-                                esp32_link.send_config(read_config())
-                                
+                    elif command == "git_pull":
+                        try:
+                            repo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+                            result = subprocess.check_output(["git", "pull"], cwd=repo_path).decode("utf-8")
+                            await ws.send(json.dumps({"type": "log", "command": "pull_ack",
+                                                      "source": "Valhalla", "output": result}))
+                        except Exception as e:
+                            await ws.send(json.dumps({"type": "status", "command": "pull_fail",
+                                                      "source": "Valhalla", "output": str(e)}))
 
+                    elif command == "disconnect":
+                        print("[WIFI] Déconnexion demandée par le Dashboard.")
+                        break
 
-                    except asyncio.TimeoutError:
-                        pass 
+                except asyncio.TimeoutError:
+                    pass  # Normal, on reboucle
 
-        except Exception as e:
-            if not demarrage_mission_event.is_set():
-                print(f"[WIFI] Déconnecté. Nouvelle tentative dans 1s... ({e})")
-                await asyncio.sleep(1)
+    except Exception as e:
+        print(f"[WIFI] Erreur de connexion : {e}")
 
-def run_wifi_thread(ip_ordi, esp32_link):
+    return config_received
+
+def fetch_config_from_dashboard(ip_ordi: str, timeout_s: float = 60.0) -> bool:
+    """Wrapper synchrone pour fetch_config_async."""
     loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(wait_for_mission_start(ip_ordi, esp32_link))
-    loop.close()
-    print("[WIFI] Mode Vol actif, deconnexion Wifi...")
+    try:
+        return loop.run_until_complete(_fetch_config_async(ip_ordi, timeout_s))
+    finally:
+        loop.close()
 
 # ==============================================================================
-# Thread Mission
+# EXÉCUTION DE LA MISSION DE VOL
 # ==============================================================================
-def run_pilot_thread(drone, esp32_link):
-    print("[MISSION] Mission démarrée. En attente d'un CGM...")
-    
-    # boucle d'ecoute
-    while not demarrage_mission_event.is_set():
-        
-        # Le pilote écoute la radio pour recevoir le feu vert de la GCS
-        for cgm_declencheur in LISTE_CGMS_DEMARRAGE:
-            if drone.check_cgm(cgm_declencheur):
-                drone.delete_cgm(cgm_declencheur)
-                print(f"\n[MISSION] CGM DE DÉMARRAGE REÇU VIA RADIO : {cgm_declencheur.name} !")
-                
-                # Essaye de communiquer avec valkyrie si possible
-                # esp32_link.send_start_mission() # Demande a valkyrie de se preparer!
-                demarrage_mission_event.set() # tue le wifi !
-                break
-                
-        time.sleep(0.1) 
-
-    # ==========================================
-    # EXÉCUTION DE LA MISSION DE VOL
-    # ==========================================
-    time.sleep(0.5) 
-    
-    print("\n[MISSION] DÉBUT DE LA MISSION AUTONOME.")
+def run_mission(drone: Valhalla, esp32: ESP32_Link):
     config = read_config()
     lat = config.get("lat_mission")
     lng = config.get("lng_mission")
     alt = config.get("alt_quadrillage", 5)
-    
+
     if lat is None or lng is None:
-        print("[ERREUR] Aucune coordonnée GPS ! Avez-vous configuré le JSON ?")
+        print("[MISSION] Aucune coordonnée GPS ! Configurez d'abord via CGM.")
         drone.send_cgm(CGM.VALHALLA_NO_TARGET_FOUND)
         return
-        
-    print(f"[MISSION] Cible chargée -> Lat: {lat}, Lng: {lng}, Alt: {alt}m")
+
+    print(f"[MISSION] Cible -> Lat: {lat}, Lng: {lng}, Alt: {alt}m")
     drone.config = config
-    
+
     if drone.takeoff_pc(altitude=3):
-        print(f"[MISSION] Départ vers {lat}, {lng}...")
+        print(f"[MISSION] Décollage OK. En route vers {lat}, {lng}...")
         if drone.execute_goto_from_config(radius_acceptance=2.0):
-            print("[PILOTE] Point atteint. Lancement de la procédure d'attente Valkyrie.")
-            esp32_link.send_config(config)
+            print("[MISSION] Point atteint. Envoi config à Valkyrie...")
+            esp32.send_config(config)
             time.sleep(1.0)
-            
-            print("[ESP-NOW] Envoi de l'ordre de décollage à Valkyrie...")
-            esp32_link.send_start_mission()
+            print("[MISSION] Ordre décollage Valkyrie...")
+            esp32.send_start_mission()
             drone.land_and_wait_valkyrie()
     else:
         print("[MISSION] Échec du décollage.")
-        
-    print("\n[MISSION] MISSION TERMINÉE.")
+
+    print("[MISSION] Mission terminée. Retour à la boucle d'attente.")
+
+# ==============================================================================
+# BOUCLE PRINCIPALE CGM
+# ==============================================================================
+def main_loop(drone: Valhalla, esp32: ESP32_Link, ip_ordi: str):
+    """
+    Boucle infinie d'écoute des CGMs radio.
+    Chaque CGM déclenche une action puis retourne ici.
+    """
+    print("\n[MAIN] Boucle CGM active. En attente d'ordres radio...\n")
+
+    while True:
+
+        # --- Configurer Valhalla (connexion WiFi ponctuelle) ---
+        if drone.check_cgm(CGM.PC_CONFIGURE_VALHALLA):
+            drone.delete_cgm(CGM.PC_CONFIGURE_VALHALLA)
+            print("[CGM] PC_CONFIGURE_VALHALLA reçu. Connexion WiFi...")
+            success = fetch_config_from_dashboard(ip_ordi, timeout_s=60.0)
+            if success:
+                esp32.send_config(read_config())  # Relai immédiat vers Valkyrie
+                drone.send_cgm(CGM.VALHALLA_CONFIG_OK)
+                print("[CGM] Configuration OK. Retour à l'attente.")
+            else:
+                drone.send_cgm(CGM.VALHALLA_CONFIG_FAIL)
+                print("[CGM] Échec configuration. Retour à l'attente.")
+
+        # --- Lancer la mission ---
+        elif drone.check_cgm(CGM.PC_DEMANDE_TAKEOFF_VALHALLA):
+            drone.delete_cgm(CGM.PC_DEMANDE_TAKEOFF_VALHALLA)
+            print("[CGM] PC_DEMANDE_TAKEOFF_VALHALLA reçu. Lancement mission...")
+            run_mission(drone, esp32)
+
+        # --- Arrêt d'urgence ---
+        elif drone.check_cgm(CGM.PC_A_DISARM_FORCE_VALHALLA):
+            drone.delete_cgm(CGM.PC_A_DISARM_FORCE_VALHALLA)
+            print("[CGM] ARRÊT D'URGENCE reçu !")
+            drone.disarm_force()
+
+        time.sleep(0.1)
 
 
-
-
+# ==============================================================================
+# POINT D'ENTRÉE
+# ==============================================================================
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python main.py <IP_PC>")
         sys.exit(1)
-        
+
     ip_ordi = sys.argv[1]
 
-    # Connexion au drone
-    # valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1) # REEL
-    valhalla = Valhalla(address="127.0.0.1:14550", target_system=1) # SITL
-    
-    port_esp32 = "/dev/ttyACM0" # ou "/dev/ttyUSB0", ou "/dev/ttyAMA0"
+    print("[MAIN] Connexion MAVLink à Valhalla...")
+    # valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1)  # RÉEL
+    valhalla = Valhalla(address="127.0.0.1:14550", target_system=1)  # SITL
+
+    print("[MAIN] Connexion ESP32...")
     esp32 = ESP32_Link(port="/dev/ttyACM0", baudrate=115200, mock_simulation=True,
-                       udp_rx_port=5001,
-                       udp_tx_port=5002)
+                       udp_rx_port=5001, udp_tx_port=5002)
     esp32.connect()
-    
-    thread_wifi = threading.Thread(target=run_wifi_thread, args=(ip_ordi, esp32))
-    thread_pilote = threading.Thread(target=run_pilot_thread, args=(valhalla, esp32))
-    thread_relais = threading.Thread(target=run_relais_thread, args=(valhalla, esp32), daemon=True)
-    
-    thread_wifi.start()
-    thread_pilote.start()
-    thread_relais.start()
-    
-    thread_pilote.join()
+
+    # Thread relais permanent (daemon → meurt avec le process principal)
+    threading.Thread(target=run_relais_thread, args=(valhalla, esp32), daemon=True).start()
+
+    # Boucle principale (bloquante)
+    main_loop(valhalla, esp32, ip_ordi)
