@@ -199,9 +199,14 @@ def run_mission_2(drone: Valhalla, esp32: ESP32_Link, config: dict):
 
 
 def run_mission_3(drone: Valhalla, esp32: ESP32_Link, config: dict):
-    """Mission 3 : à implémenter."""
-    print("[MISSION 3] Non implémentée.")
-    drone.send_cgm(CGM.VALHALLA_NO_TARGET_FOUND)
+    """Mission 3 : Valkyrie takeoff, Fait un Quadrillage spiral, Cherche code aruco puis precision land sur lui"""
+    print("[MISSION 3] Valkyrie quadrillage et Aruco Precision Land")
+    esp32.send_config(config)
+    time.sleep(1)
+    print("[MISSION 3] Ordre décollage Valkyrie...")
+    esp32.send_start_mission(num_mission=3)
+    # Apres Valhalla doit ecouter valkyrie et attendre la fin de sa mission ou un failsafe.
+    # A IMPLEMENTER
 
 
 def run_mission_4(drone: Valhalla, esp32: ESP32_Link, config: dict):
