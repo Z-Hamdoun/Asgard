@@ -186,7 +186,7 @@ def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
             esp32.send_config(config)
             time.sleep(1.0)
             print("[MISSION 1] Ordre décollage Valkyrie...")
-            esp32.send_start_mission()
+            esp32.send_start_mission(num_mission=1)
             drone.land_and_wait_valkyrie()
     else:
         print("[MISSION 1] Échec du décollage.")
