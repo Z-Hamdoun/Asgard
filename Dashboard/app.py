@@ -114,7 +114,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 if target == "Valhalla":
                     gcs = await get_gcs()
                     if gcs:
-                        gcs.lancer_mission()
+                        num_mission = int(data.get("num_mission", 1))
+                        gcs.lancer_mission(num_mission)
                 await manager.send_to_target(
                     {"type": "status", "command": "mission_starting", "source": "GCS"},
                     "dashboard",
