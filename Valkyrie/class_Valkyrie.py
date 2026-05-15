@@ -40,13 +40,19 @@ class Valkyrie(Drone):
         if not config_dict:
             print("[VALKYRIE] Erreur : Dictionnaire de configuration vide.")
             return False
-            
-        print(f"[VALKYRIE] Chargement des paramètres de mission : {config_dict}")
-        
-        self.alt_quadrillage = config_dict.get("alt_quadrillage", 5.0)
-        self.pas_quadrillage = config_dict.get("pas_quadrillage", 2.0)
-        self.taille_zone = config_dict.get("taille_zone", 20.0)
-            
+
+        print("[VALKYRIE] Chargement des paramètres de mission...")
+
+        self.alt_quadrillage   = config_dict.get("alt_quadrillage", 5.0)
+        self.pas_quadrillage   = config_dict.get("pas_quadrillage", 2.0)
+        self.taille_zone       = config_dict.get("taille_quadrillage", 20.0)  # clé corrigée
+        self.camera_resolution = config_dict.get("camera_resolution", [848, 480])
+        self.square_pnp_size   = config_dict.get("square_pnp_size", 40)
+        self.taille_aruco      = config_dict.get("taille_aruco", [40, 10])
+        self.id_aruco          = config_dict.get("id_aruco", [1, 1])
+
+        print(f"  alt={self.alt_quadrillage}m  pas={self.pas_quadrillage}m  "
+              f"taille={self.taille_zone}m  aruco_id={self.id_aruco}")
         return True
     
     def takeoff_autonome(self, altitude) -> bool:
