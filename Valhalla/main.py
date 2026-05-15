@@ -14,7 +14,6 @@ CONFIG_FILE = "Valhalla/mission_config.json"
 
 # Valeurs par défaut appliquees si un paramètre est absent ou null
 CONFIG_DEFAULTS = {
-    "num_mission":        1,
     "alt_quadrillage":    5,
     "taille_quadrillage": 10,
     "pas_quadrillage":    2,
