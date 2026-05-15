@@ -324,3 +324,35 @@ PC_A_DISARM_FORCE_VALHALLA = CGM(
     long_description="",
     potential_sender="pc"
 )
+
+PC_DEMANDE_MISSION_2_VALHALLA = CGM(
+    value=205,
+    name="PC_DEMANDE_MISSION_2_VALHALLA",
+    short_description="Lancement mission 2 sur Valhalla",
+    long_description="",
+    potential_sender="pc"
+)
+
+PC_DEMANDE_MISSION_3_VALHALLA = CGM(
+    value=206,
+    name="PC_DEMANDE_MISSION_3_VALHALLA",
+    short_description="Lancement mission 3 sur Valhalla",
+    long_description="",
+    potential_sender="pc"
+)
+
+PC_DEMANDE_MISSION_4_VALHALLA = CGM(
+    value=207,
+    name="PC_DEMANDE_MISSION_4_VALHALLA",
+    short_description="Lancement mission 4 sur Valhalla",
+    long_description="",
+    potential_sender="pc"
+)
+
+PC_DEMANDE_MISSION_5_VALHALLA = CGM(
+    value=208,
+    name="PC_DEMANDE_MISSION_5_VALHALLA",
+    short_description="Lancement mission 5 sur Valhalla",
+    long_description="",
+    potential_sender="pc"
+)
