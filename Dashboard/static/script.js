@@ -402,15 +402,15 @@ updateBtnValh.onclick = function() {
 
 mainBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
-        const command = {
+        const selectedMission = document.querySelector('input[name="mission"]:checked')?.value ?? "mission1";
+        const numMission = parseInt(selectedMission.replace("mission", ""), 10);
+
+        ws.send(JSON.stringify({
             command: "main_mission",
-            target: "Valhalla"
-        };
-
-        intern_log("requête d'execution envoyé");
-        ws.send(JSON.stringify(command));
-        
-
+            target: "Valhalla",
+            num_mission: numMission
+        }));
+        intern_log(`Requête d'exécution mission ${numMission} envoyée.`);
     } else {
         intern_log("site offline");
     }
