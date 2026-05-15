@@ -618,8 +618,8 @@ class Camera:
 
         if ids is not None:
             for aruco_id, corner in zip(ids, corners):
-                if aruco_id != self.aruco_id:
-                    continue
+                # if aruco_id != self.aruco_id:
+                #     continue
 
                 if self._last_crop is not None and self.DO_CROP:
                     corner[:,:,0] *= self._last_scale_down

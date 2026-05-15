@@ -89,6 +89,9 @@ ssh helics@valkyrie.local
 
 ## Commandes systemd
 ```sh
+# Met à jour systemd avec le nouveau fichier
+sudo systemctl daemon-reload
+
 # Active le lancement automatique au démarrage de la carte
 sudo systemctl enable valkyrie.service
 
