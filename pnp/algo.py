@@ -67,7 +67,7 @@ class PnPLandingSystem:
             ],
             dtype=np.float32,
         )
-        self._camera_matrix = np.array(
+        self.camera_matrix = np.array(
             [
                 [376.91194, 0.00000, 425.07994],
                 [0.00000, 380.07917, 245.66015],
@@ -76,7 +76,7 @@ class PnPLandingSystem:
             dtype=np.float64,
         )
 
-        self._dist_coeffs = np.array(
+        self.dist_coeffs = np.array(
             [-0.00284, 0.09082, 0.00265, -0.00063, -0.07958], dtype=np.float64
         )
 
