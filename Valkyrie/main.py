@@ -4,105 +4,143 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 from class_Valkyrie import Valkyrie
 from Communication.class_ESP32_Link import ESP32_Link
+import pymavlink_code.code_de_gestion_de_missions as CGM
 
 CONFIG_FILE = "Valkyrie/mission_config.json"
 
-demarrage_valkyrie_event = threading.Event()
+# Valeurs par défaut appliquées si un paramètre est absent ou null
+CONFIG_DEFAULTS = {
+    "alt_quadrillage":    5,
+    "taille_quadrillage": 10,
+    "pas_quadrillage":    2,
+    "camera_resolution":  [848, 480],
+    "square_pnp_size":    40,
+    "taille_aruco":       [40, 10],
+    "id_aruco":           [1, 1],
+}
 
 # ==============================================================================
-# GESTION JSON LOCALE VALKYRIE
+# GESTION JSON
 # ==============================================================================
-def update_config(new_data):
-    config = {}
+def read_config() -> dict:
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                config = json.load(f)
+                return json.load(f)
         except json.JSONDecodeError:
-            pass
-            
+            return {}
+    return {}
+
+def read_config_safe() -> dict:
+    """Lit la config et substitue les valeurs par défaut pour les clés absentes ou nulles."""
+    config = read_config()
+    for key, default_val in CONFIG_DEFAULTS.items():
+        if config.get(key) is None:
+            config[key] = default_val
+            print(f"[JSON] '{key}' manquant — valeur par défaut : {default_val}")
+    return config
+
+def update_config(new_data: dict):
+    config = read_config()
     config.update(new_data)
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=4)
-    print(f"[JSON] Fichier Valkyrie mis à jour avec : {new_data}")
+    print(f"[JSON] Config Valkyrie mise à jour.")
 
-def read_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
 
 # ==============================================================================
-# Thread ecoute de l ESP32
+# MISSIONS
 # ==============================================================================
-def run_esp32_listener(esp_link):
-    print("[LIEN ESP32] En attente de l'ordre ou de la config de Valhalla...")
-    
-    while not demarrage_valkyrie_event.is_set():
-        
-        # Vérification des nouvelles configurations
-        new_config = esp_link.get_and_clear_config()
-        if new_config:
-            print("[LIEN ESP32] Configuration reçue du porteur ! Sauvegarde...")
-            update_config(new_config)
-            
-        # Vérification de l'ordre de décollage
-        cmd = esp_link.get_and_clear_command()
-        if cmd == "START":
-            print("\n[LIEN ESP32] ORDRE DE DÉMARRAGE REÇU DE VALHALLA !")
-            demarrage_valkyrie_event.set()
-            break
-            
-        time.sleep(0.1)
-
-# ==============================================================================
-# Thread mission
-# ==============================================================================
-def run_pilot_thread(drone, esp_link):
-    print("[VALKYRIE] En attente du feu vert ESP-NOW...")
-    
-    # Bloque ici jusqu'à réception de "START"
-    demarrage_valkyrie_event.wait() 
-    
-    time.sleep(0.5)
-    print("\n[VALKYRIE] LANCEMENT MISSION.")
-    
-    # On lit le fichier JSON que l'autre thread a écrit grâce à l'ESP32
-    config_dict = read_config()
-    if not drone.load_config(config_dict):
-        print("[PILOTE VALKYRIE] Erreur: Configuration invalide ou vide. Arrêt de la mission.")
+def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict):
+    """Mission 1 : quadrillage spirale et atterrissage de précision sur ArUco."""
+    if not drone.load_config(config):
+        print("[MISSION 1] Configuration invalide. Abandon.")
         return
-    
-    
+
     if drone.takeoff_autonome(2):
-        print(f"[VALKYRIE] Altitude de {2}m atteinte.")
-        
-        # Phase de Quadrillage sur la zone partagée par Valhalla !
-        print("[VALKYRIE] Lancement du quadrillage...")
+        print("[MISSION 1] Décollage OK.")
         if drone.executer_quadrillage():
             drone.precision_loiter_and_land()
     else:
-        print("[VALKYRIE] Échec du décollage.")
+        print("[MISSION 1] Échec du décollage.")
+
+
+def run_mission_2(drone: Valkyrie, esp32: ESP32_Link, config: dict):
+    """Mission 2 : à implémenter."""
+    print("[MISSION 2] Non implémentée.")
+
+
+def run_mission_3(drone: Valkyrie, esp32: ESP32_Link, config: dict):
+    """Mission 3 : à implémenter."""
+    print("[MISSION 3] Non implémentée.")
+
+
+def run_mission_4(drone: Valkyrie, esp32: ESP32_Link, config: dict):
+    """Mission 4 : à implémenter."""
+    print("[MISSION 4] Non implémentée.")
+
+
+def run_mission_5(drone: Valkyrie, esp32: ESP32_Link, config: dict):
+    """Mission 5 : à implémenter."""
+    print("[MISSION 5] Non implémentée.")
+
+
+_MISSION_RUNNERS = {
+    1: run_mission_1,
+    2: run_mission_2,
+    3: run_mission_3,
+    4: run_mission_4,
+    5: run_mission_5,
+}
+
+
+def run_mission(drone: Valkyrie, esp32: ESP32_Link, num_mission: int):
+    """Charge la config sécurisée et dispatche vers la bonne mission."""
+    config = read_config_safe()
+    runner = _MISSION_RUNNERS.get(num_mission, run_mission_1)
+    print(f"[MISSION] Lancement mission {num_mission}...")
+    runner(drone, esp32, config)
+    print(f"[MISSION] Mission {num_mission} terminée. En attente du prochain ordre.")
+
+
+# ==============================================================================
+# BOUCLE PRINCIPALE (attente ordres ESP32 de Valhalla)
+# ==============================================================================
+def main_loop(drone: Valkyrie, esp32: ESP32_Link):
+    """
+    Boucle infinie d'écoute des messages ESP-NOW de Valhalla.
+    - CFG:json      → mise à jour de la config locale
+    - CMD:START:N   → lancement de la mission N
+    """
+    print("\n[MAIN] Valkyrie en attente d'ordres de Valhalla (ESP-NOW)...\n")
+
+    while True:
+        # Mise à jour de la configuration
+        new_config = esp32.get_and_clear_config()
+        if new_config:
+            print("[MAIN] Config reçue de Valhalla. Sauvegarde...")
+            update_config(new_config)
+
+        # Ordre de lancement de mission
+        num_mission = esp32.get_and_clear_mission_start()
+        if num_mission is not None:
+            run_mission(drone, esp32, num_mission)
+
+        time.sleep(0.1)
 
 
 # ==============================================================================
 # POINT D'ENTRÉE
 # ==============================================================================
 if __name__ == "__main__":
-    print("Connexion a Valkyrie...")
-    
-    drone = Valkyrie(address="127.0.0.1:14560", target_system=2) 
-    
-    # Mock=True 
+    print("[MAIN] Connexion MAVLink à Valkyrie...")
+    # drone = Valkyrie(address="/dev/ttyAMA0", target_system=2)  # REEL
+    drone = Valkyrie(address="127.0.0.1:14560", target_system=2)  # SITL
+
+    print("[MAIN] Connexion ESP32...")
     esp32 = ESP32_Link(port="/dev/ttyACM1", baudrate=115200, mock_simulation=True,
                        udp_rx_port=5002,
                        udp_tx_port=5001)
-    esp32.connect() 
-    
-    thread_esp = threading.Thread(target=run_esp32_listener, args=(esp32,))
-    thread_pilote = threading.Thread(target=run_pilot_thread, args=(drone, esp32))
-    
-    thread_esp.start()
-    thread_pilote.start()
-    
-    thread_pilote.join()
+    esp32.connect()
+
+    main_loop(drone, esp32)
