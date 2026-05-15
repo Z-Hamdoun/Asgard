@@ -11,7 +11,7 @@ class GroundStation:
         print("[GCS] Initialisation de l'antenne radio...")
         
         # Adresse locale UDP générée par MAVProxy
-        addr_valhalla = "0.0.0.0:14550"
+        addr_valhalla = "127.0.0.1:14554" # ATTENTION UDP
 
         # Connexion a Valhalla
         print(f"[GCS] Tentative de connexion à Valhalla sur {addr_valhalla}")
@@ -53,6 +53,13 @@ class GroundStation:
         """Force Valhalla à rentrer à la base, sans lui couper les moteurs."""
         self.valhalla.change_mode("RTL")
         print("[GCS-RADIO] RTL forcé envoyé à Valhalla.")
+    
+    def connect_valhalla(self):
+        """Tente de connecter Valhalla au Dashboard.
+        """
+        print("[GCS-RADIO] Demande de configuer Valhalla.")
+        cgm = CGM.PC_CONFIGURE_VALHALLA
+        self.valhalla.send_cgm(cgm)
 
     def close(self):
         """Coupe proprement la connexion MAVLink."""

@@ -229,7 +229,7 @@ if __name__ == "__main__":
     ip_ordi = sys.argv[1]
 
     print("[MAIN] Connexion MAVLink à Valhalla...")
-    # valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1)  # RÉEL
+    # valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1)  # REEL
     valhalla = Valhalla(address="127.0.0.1:14550", target_system=1)  # SITL
 
     print("[MAIN] Connexion ESP32...")
@@ -237,7 +237,7 @@ if __name__ == "__main__":
                        udp_rx_port=5001, udp_tx_port=5002)
     esp32.connect()
 
-    # Thread relais permanent (daemon → meurt avec le process principal)
+    # Thread relais permanent (meurt avec le process principal)
     threading.Thread(target=run_relais_thread, args=(valhalla, esp32), daemon=True).start()
 
     # Boucle principale (bloquante)
