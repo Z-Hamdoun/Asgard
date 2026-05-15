@@ -356,3 +356,11 @@ PC_DEMANDE_MISSION_5_VALHALLA = CGM(
     long_description="",
     potential_sender="pc"
 )
+
+VALKYRIE_MISSION_INVALID = CGM(
+    value=408,
+    name="VALKYRIE_MISSION_INVALID",
+    short_description="Numéro de mission invalide reçu par Valkyrie via ESP32",
+    long_description="CMD:START:N reçu mais N est absent, non entier ou hors limite [1-5]",
+    potential_sender="valkyrie"
+)
