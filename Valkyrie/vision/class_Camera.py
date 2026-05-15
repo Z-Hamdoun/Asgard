@@ -590,8 +590,10 @@ class Camera:
         """
         #Image à un instant t
         t_begin = self.time_boot_ms
-        frame = cv2.cvtColor(self.get_frame(affiche=affichage, timeout=2), cv2.COLOR_RGB2GRAY)
-        #threading.Thread(target=self.save_image, args=(frame,)).start()
+        raw = self.get_frame(affiche=affichage, timeout=2)
+        if raw is None:
+            return 0, 0, 0, None, None
+        frame = cv2.cvtColor(raw, cv2.COLOR_RGB2GRAY)
         last_aruco_time = self.time_boot_ms
 
         if self._last_scale_down is not None and self._last_crop is not None and self.DO_CROP:
@@ -616,8 +618,8 @@ class Camera:
 
         if ids is not None:
             for aruco_id, corner in zip(ids, corners):
-                #if aruco_id != self.aruco_id:
-                #    continue
+                if aruco_id != self.aruco_id:
+                    continue
 
                 if self._last_crop is not None and self.DO_CROP:
                     corner[:,:,0] *= self._last_scale_down
