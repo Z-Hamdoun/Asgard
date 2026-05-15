@@ -201,7 +201,7 @@ class PnPLandingSystem:
         a, b, Taches, d = self.get_contours(frame)
 
         if len(Taches) != 4:
-            return None, (a, b, Taches, d), time.time() - t
+            return (None, "no 4 point"), (a, b, Taches, d), time.time() - t
         points_2d = [tache["center"] for tache in Taches]
 
         try:
@@ -220,7 +220,7 @@ class PnPLandingSystem:
             )
 
             if not success:
-                return None, (a, b, Taches, d), time.time() - t
+                return (None, "nosuccess"), (a, b, Taches, d), time.time() - t
 
             # tvec contient notre position par rapport à la caméra
             x_cam = tvec[0][0]  # Décalage gauche/droite
@@ -236,7 +236,7 @@ class PnPLandingSystem:
 
         except Exception as e:
 
-            return None, (a, b, Taches, d), time.time() - t
+            return (None, str(e)), (a, b, Taches, d), time.time() - t
 
     def _order_points(self, pts):
         """
