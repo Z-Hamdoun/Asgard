@@ -57,7 +57,7 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict):
         print("[MISSION 1] Configuration invalide. Abandon.")
         return
 
-    if drone.takeoff_autonome(2):
+    if drone.takeoff_autonome(config["alt_quadrillage"]):
         print("[MISSION 1] Décollage OK.")
         if drone.executer_quadrillage():
             drone.precision_loiter_and_land()
@@ -71,8 +71,34 @@ def run_mission_2(drone: Valkyrie, esp32: ESP32_Link, config: dict):
 
 
 def run_mission_3(drone: Valkyrie, esp32: ESP32_Link, config: dict):
-    """Mission 3 : à implémenter."""
-    print("[MISSION 3] Non implémentée.")
+    """Mission 3 : Valkyrie takeoff, Quadrillage spiral, Precision Land sur ArUco avec failsafes."""
+    if not drone.load_config(config):
+        print("[MISSION 3] Configuration invalide. Abandon.")
+        return
+
+    if not drone.takeoff_autonome(config["alt_quadrillage"]):
+        print("[MISSION 3] Échec du décollage.")
+        return
+
+    print("[MISSION 3] Décollage OK.")
+
+    # Boucle requadrillage : on retente si la cible est perdue en LOITER
+    while True:
+        cible_trouvee = drone.executer_quadrillage()
+        if not cible_trouvee:
+            print("[MISSION 3] Quadrillage terminé sans trouver la cible.")
+            return
+
+        resultat = drone.precision_loiter_and_land()
+
+        if resultat is True:
+            print("[MISSION 3] Atterrissage de précision réussi.")
+            return
+        elif resultat is False:
+            print("[MISSION 3] Mission interrompue (fin_mission).")
+            return
+        else:  # None --> cible perdue en LOITER --> requadrillage
+            print("[MISSION 3] Cible perdue. Relance du quadrillage...")
 
 
 def run_mission_4(drone: Valkyrie, esp32: ESP32_Link, config: dict):
@@ -109,8 +135,8 @@ def run_mission(drone: Valkyrie, esp32: ESP32_Link, num_mission: int):
 def main_loop(drone: Valkyrie, esp32: ESP32_Link):
     """
     Boucle infinie d'écoute des messages ESP-NOW de Valhalla.
-    - CFG:json      → mise à jour de la config locale
-    - CMD:START:N   → lancement de la mission N
+    - CFG:json      --> mise à jour de la config locale
+    - CMD:START:N   --> lancement de la mission N
     """
     print("\n[MAIN] Valkyrie en attente d'ordres de Valhalla (ESP-NOW)...\n")
 
@@ -142,5 +168,7 @@ if __name__ == "__main__":
                        udp_rx_port=5002,
                        udp_tx_port=5001)
     esp32.connect()
+
+    drone.set_esp32_link(esp32)
 
     main_loop(drone, esp32)
