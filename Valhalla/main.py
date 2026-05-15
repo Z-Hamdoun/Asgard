@@ -311,8 +311,8 @@ if __name__ == "__main__":
     ip_ordi = sys.argv[1]
 
     print("[MAIN] Connexion MAVLink à Valhalla...")
-    # valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1)  # REEL
-    valhalla = Valhalla(address="127.0.0.1:14550", target_system=1)  # SITL
+    valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1)  # REEL
+    # valhalla = Valhalla(address="127.0.0.1:14550", target_system=1)  # SITL
 
     print("[MAIN] Connexion ESP32...")
     esp32 = ESP32_Link(port="/dev/ttyACM0", baudrate=115200, mock_simulation=True,
