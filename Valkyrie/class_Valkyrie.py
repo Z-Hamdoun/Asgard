@@ -194,6 +194,7 @@ class Valkyrie(Drone):
             point_actuel += 1
 
         print("\n[VALKYRIE] Quadrillage terminé. Cible non trouvée.")
+        self.return_to_launch()
         return False
 
     def precision_loiter_and_land(self) -> "bool | None":
