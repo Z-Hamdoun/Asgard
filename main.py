@@ -47,7 +47,6 @@ def activate_prec(drone, val):
 try:
     drone = Drone(
         address="/dev/ttyAMA0",
-        source_component=mavutil.mavlink.MAV_COMP_ID_ONBOARD_COMPUTER,
         target_system=1,
         baud=921600,
     )
