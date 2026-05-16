@@ -216,7 +216,7 @@ class PnPLandingSystem:
             )
 
             if not success:
-                return (666, 666, 666)
+                return (666, 666, "erreur pnp")
                 # return (None, "nosuccess"), (a, b, Taches, d), time.time() - t
 
             # tvec contient notre position par rapport à la caméra

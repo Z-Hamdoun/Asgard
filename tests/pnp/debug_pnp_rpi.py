@@ -130,8 +130,12 @@ def generate_vector():
         # On récupère les contours ET le masque (thresh)
         vector = detector.get_landing_vector(frame)
         if not isinstance(vector[2], str):
-            vector = (round(vector[0], 3), round(vector[1], 3), round(vector[2], 3))
-        print(vector, 1 / (time.time() - t))
+            print(
+                f"{vector[0]:.3f},{vector[1]:.3f},{vector[2]:.3f}",
+                1 / (time.time() - t),
+            )
+        else:
+            print(vector[2])
 
 
 @app.route("/video")
