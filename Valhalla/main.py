@@ -24,6 +24,10 @@ _VALKYRIE_TERMINAL_CGMS = frozenset({
 _valkyrie_done   = threading.Event()
 _valkyrie_result = [None]  # liste pour etre mutable depuis le thread relais
 
+# Ping-pong ESP32 : timestamp d'envoi et event de réception du pong
+_esp32_ping_sent_at = [0.0]
+_esp32_pong_event   = threading.Event()
+
 # Valeurs par défaut appliquees si un paramètre est absent ou null
 CONFIG_DEFAULTS = {
     "alt_quadrillage":    5,
@@ -91,25 +95,30 @@ def run_relais_thread(drone, esp_link):
         cgm_recu_int = esp_link.get_and_clear_cgm()
 
         if cgm_recu_int is not None:
-            objet_cgm = CGM.CGM.get(cgm_recu_int)
-
-            if objet_cgm is not None and objet_cgm.name != "EMPTY":
-                print(f"[RELAIS] Transfert du CGM {objet_cgm.name} ({cgm_recu_int}) vers la GCS (PC)...")
-                drone.send_cgm(objet_cgm)
+            # Pong ESP32 : consommé localement, pas relayé vers la GCS
+            if cgm_recu_int == CGM.ESP32_PONG.value:
+                print(f"[RELAIS] ESP32_PONG reçu.")
+                _esp32_pong_event.set()
             else:
-                print(f"[RELAIS-ERREUR] Code CGM {cgm_recu_int} inconnu dans la bibliothèque locale !")
+                objet_cgm = CGM.CGM.get(cgm_recu_int)
 
-            # Signal de fin de mission Valkyrie pour débloquer run_mission_3
-            if cgm_recu_int in _VALKYRIE_TERMINAL_CGMS:
-                _valkyrie_result[0] = cgm_recu_int
-                _valkyrie_done.set()
+                if objet_cgm is not None and objet_cgm.name != "EMPTY":
+                    print(f"[RELAIS] Transfert du CGM {objet_cgm.name} ({cgm_recu_int}) vers la GCS (PC)...")
+                    drone.send_cgm(objet_cgm)
+                else:
+                    print(f"[RELAIS-ERREUR] Code CGM {cgm_recu_int} inconnu dans la bibliothèque locale !")
+
+                # Signal de fin de mission Valkyrie pour débloquer run_mission_3
+                if cgm_recu_int in _VALKYRIE_TERMINAL_CGMS:
+                    _valkyrie_result[0] = cgm_recu_int
+                    _valkyrie_done.set()
 
         time.sleep(0.1)
 
 # ==============================================================================
 # Thread wifi
 # ==============================================================================
-async def _fetch_config_async(ip_ordi: str, timeout_s: float = 60.0) -> bool:
+async def _fetch_config_async(ip_ordi: str, esp32: ESP32_Link, timeout_s: float = 60.0) -> bool:
     """
     Se connecte au Dashboard, attend une config ou des commandes,
     puis se déconnecte proprement.
@@ -155,6 +164,30 @@ async def _fetch_config_async(ip_ordi: str, timeout_s: float = 60.0) -> bool:
                             await ws.send(json.dumps({"type": "status", "command": "pull_fail",
                                                       "source": "Valhalla", "output": str(e)}))
 
+                    elif command == "esp32-btn":
+                        print("[WIFI] Test de connectivité ESP32 demandé...")
+                        _esp32_pong_event.clear()
+                        _esp32_ping_sent_at[0] = time.time()
+                        esp32.send_cgm(CGM.ESP32_PING.value)
+                        # Attente asynchrone du pong (timeout 5s)
+                        pong_ok = False
+                        for _ in range(50):
+                            await asyncio.sleep(0.1)
+                            if _esp32_pong_event.is_set():
+                                pong_ok = True
+                                break
+                        if pong_ok:
+                            latency_ms = int((time.time() - _esp32_ping_sent_at[0]) * 1000)
+                            print(f"[WIFI] ESP32 PONG reçu ! Latence : {latency_ms}ms")
+                            await ws.send(json.dumps({"type": "status", "command": "esp32_pong",
+                                                      "source": "Valhalla",
+                                                      "output": f"ESP32 Link OK : {latency_ms}ms"}))
+                        else:
+                            print("[WIFI] ESP32 PONG timeout (5s).")
+                            await ws.send(json.dumps({"type": "status", "command": "esp32_timeout",
+                                                      "source": "Valhalla",
+                                                      "output": "ESP32 Link TIMEOUT (>5s)"}))
+
                     elif command == "disconnect":
                         print("[WIFI] Déconnexion demandée par le Dashboard.")
                         break
@@ -167,11 +200,11 @@ async def _fetch_config_async(ip_ordi: str, timeout_s: float = 60.0) -> bool:
 
     return config_received
 
-def fetch_config_from_dashboard(ip_ordi: str, timeout_s: float = 60.0) -> bool:
+def fetch_config_from_dashboard(ip_ordi: str, esp32: ESP32_Link, timeout_s: float = 60.0) -> bool:
     """Wrapper synchrone pour fetch_config_async."""
     loop = asyncio.new_event_loop()
     try:
-        return loop.run_until_complete(_fetch_config_async(ip_ordi, timeout_s))
+        return loop.run_until_complete(_fetch_config_async(ip_ordi, esp32, timeout_s))
     finally:
         loop.close()
 
@@ -307,7 +340,7 @@ def main_loop(drone: Valhalla, esp32: ESP32_Link, ip_ordi: str):
         if drone.check_cgm(CGM.PC_CONFIGURE_VALHALLA):
             drone.delete_cgm(CGM.PC_CONFIGURE_VALHALLA)
             print("[CGM] PC_CONFIGURE_VALHALLA reçu. Connexion WiFi...")
-            success = fetch_config_from_dashboard(ip_ordi, timeout_s=60.0)
+            success = fetch_config_from_dashboard(ip_ordi, esp32, timeout_s=60.0)
             if success:
                 esp32.send_config(read_config())  # Relai immediat vers Valkyrie
                 drone.send_cgm(CGM.VALHALLA_CONFIG_OK)

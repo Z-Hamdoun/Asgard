@@ -172,6 +172,12 @@ def main_loop(drone: Valkyrie, esp32: ESP32_Link):
         if num_mission is not None:
             run_mission(drone, esp32, num_mission)
 
+        # Ping-pong ESP32 : réponse automatique
+        cgm_recu = esp32.get_and_clear_cgm()
+        if cgm_recu == CGM.ESP32_PING.value:
+            print("[MAIN] ESP32_PING reçu. Envoi du PONG...")
+            esp32.send_cgm(CGM.ESP32_PONG.value)
+
         time.sleep(0.1)
 
 
