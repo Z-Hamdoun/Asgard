@@ -189,7 +189,7 @@ def _check_coords(config: dict, drone: Valhalla) -> bool:
 
 
 def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
-    """Mission 1 : aller au point GPS, larguer Valkyrie, atterrir et attendre."""
+    """Mission 1 : aller au point GPS, larguer Valkyrie, atterrir et attendre sa fin."""
     lat = config["lat_mission"]
     lng = config["lng_mission"]
     alt = config["alt_quadrillage"]
@@ -201,11 +201,25 @@ def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
         print(f"[MISSION 1] Décollage OK. En route vers {lat}, {lng}...")
         if drone.execute_goto_from_config(radius_acceptance=2.0):
             print("[MISSION 1] Point atteint. Envoi config à Valkyrie...")
+            _valkyrie_done.clear()
+            _valkyrie_result[0] = None
             esp32.send_config(config)
             time.sleep(1.0)
             print("[MISSION 1] Ordre décollage Valkyrie...")
             esp32.send_start_mission(num_mission=1)
             drone.land_and_wait_valkyrie()
+
+            print("[MISSION 1] En attente de la fin de mission Valkyrie (max 15min)...")
+            completed = _valkyrie_done.wait(timeout=900.0)
+            if not completed:
+                print("[MISSION 1] Timeout — aucune réponse de Valkyrie. Retour à l'attente.")
+            else:
+                cgm = _valkyrie_result[0]
+                if cgm == CGM.VALKYRIE_LANDED.value:
+                    print("[MISSION 1] Valkyrie a atterri avec succès sur l'ArUco !")
+                else:
+                    obj = CGM.CGM.get(cgm)
+                    print(f"[MISSION 1] Mission Valkyrie terminée en échec : {obj.name if obj else cgm}")
     else:
         print("[MISSION 1] Échec du décollage.")
 

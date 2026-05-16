@@ -57,12 +57,30 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict):
         print("[MISSION 1] Configuration invalide. Abandon.")
         return
 
-    if drone.takeoff_autonome(config["alt_quadrillage"]):
-        print("[MISSION 1] Décollage OK.")
-        if drone.executer_quadrillage():
-            drone.precision_loiter_and_land()
-    else:
+    if not drone.takeoff_autonome(config["alt_quadrillage"]):
         print("[MISSION 1] Échec du décollage.")
+        return
+
+    print("[MISSION 1] Décollage OK.")
+
+    while True:
+        cible_trouvee = drone.executer_quadrillage()
+        if not cible_trouvee:
+            print("[MISSION 1] Quadrillage terminé sans trouver la cible.")
+            drone.send_cgm(CGM.VALKYRIE_NO_TARGET_FOUND)
+            return
+
+        resultat = drone.precision_loiter_and_land()
+
+        if resultat is True:
+            print("[MISSION 1] Atterrissage de précision réussi.")
+            drone.send_cgm(CGM.VALKYRIE_LANDED)
+            return
+        elif resultat is False:
+            print("[MISSION 1] Mission interrompue (fin_mission).")
+            return
+        else:  # None --> cible perdue en LOITER --> requadrillage
+            print("[MISSION 1] Cible perdue. Relance du quadrillage...")
 
 
 def run_mission_2(drone: Valkyrie, esp32: ESP32_Link, config: dict):
