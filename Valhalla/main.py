@@ -132,113 +132,124 @@ def run_relais_thread(drone, esp_link):
 # ==============================================================================
 # Thread wifi
 # ==============================================================================
-async def _fetch_config_async(ip_ordi: str, timeout_s: float = 60.0) -> bool:
+async def _fetch_config_async(ip_ordis: list[str], timeout_s: float = 60.0) -> bool:
     """
-    Se connecte au Dashboard, attend une config ou des commandes,
-    puis se déconnecte proprement.
-    Retourne True si une config a bien été reçue.
+    Se connecte au Dashboard en essayant les IPs de la liste, attend une config
+    ou des commandes, puis se déconnecte proprement.
     """
-    uri = f"ws://{ip_ordi}:8000/ws/Valhalla"
-    print(f"[WIFI] Connexion ponctuelle à {uri}...")
     config_received = False
     deadline = time.time() + timeout_s
 
-    try:
-        async with websockets.connect(uri, close_timeout=2) as ws:
-            print("[WIFI] Connecté. En attente de la configuration...")
-            # Signale au Dashboard que Valhalla est pret
-            await ws.send(
-                json.dumps(
-                    {
-                        "type": "status",
-                        "command": "valhalla_ready",
-                        "source": "Valhalla",
-                    }
+    # MODIFICATION : On parcourt la liste des IPs tant qu'on n'a rien reçu
+    for ip_ordi in ip_ordis:
+        if config_received:
+            break
+
+        uri = f"ws://{ip_ordi}:8000/ws/Valhalla"
+        print(f"[WIFI] Connexion ponctuelle à {uri}...")
+
+        try:
+            # open_timeout évite de rester bloqué trop longtemps sur une IP injoignable
+            async with websockets.connect(uri, close_timeout=2, open_timeout=2) as ws:
+                print(f"[WIFI] Connecté à {ip_ordi}. En attente de la configuration...")
+                # Signale au Dashboard que Valhalla est pret
+                await ws.send(
+                    json.dumps(
+                        {
+                            "type": "status",
+                            "command": "valhalla_ready",
+                            "source": "Valhalla",
+                        }
+                    )
                 )
-            )
 
-            while time.time() < deadline:
-                try:
-                    raw = await asyncio.wait_for(ws.recv(), timeout=1.0)
-                    data = json.loads(raw)
-                    command = data.get("command")
+                while time.time() < deadline:
+                    try:
+                        raw = await asyncio.wait_for(ws.recv(), timeout=1.0)
+                        data = json.loads(raw)
+                        command = data.get("command")
 
-                    if data.get("type") == "ping":
-                        await ws.send(
-                            json.dumps(
-                                {
-                                    "type": "pong",
-                                    "source": "Valhalla",
-                                    "sent_at": data.get("sent_at"),
-                                }
-                            )
-                        )
-
-                    elif command in ("update_config", "update_coords"):
-                        new_params = data.get("data", {})
-                        if new_params:
-                            update_config(new_params)
+                        if data.get("type") == "ping":
                             await ws.send(
                                 json.dumps(
                                     {
-                                        "type": "status",
-                                        "command": "config_ack",
+                                        "type": "pong",
                                         "source": "Valhalla",
-                                    }
-                                )
-                            )
-                            config_received = True
-                            print("[WIFI] Config reçue. Déconnexion.")
-                            break  # Config obtenue --> on sort
-
-                    elif command == "git_pull":
-                        try:
-                            repo_path = os.path.abspath(
-                                os.path.join(os.path.dirname(__file__), "..")
-                            )
-                            result = subprocess.check_output(
-                                ["git", "pull"], cwd=repo_path
-                            ).decode("utf-8")
-                            await ws.send(
-                                json.dumps(
-                                    {
-                                        "type": "log",
-                                        "command": "pull_ack",
-                                        "source": "Valhalla",
-                                        "output": result,
-                                    }
-                                )
-                            )
-                        except Exception as e:
-                            await ws.send(
-                                json.dumps(
-                                    {
-                                        "type": "status",
-                                        "command": "pull_fail",
-                                        "source": "Valhalla",
-                                        "output": str(e),
+                                        "sent_at": data.get("sent_at"),
                                     }
                                 )
                             )
 
-                    elif command == "disconnect":
-                        print("[WIFI] Déconnexion demandée par le Dashboard.")
-                        break
+                        elif command in ("update_config", "update_coords"):
+                            new_params = data.get("data", {})
+                            if new_params:
+                                update_config(new_params)
+                                await ws.send(
+                                    json.dumps(
+                                        {
+                                            "type": "status",
+                                            "command": "config_ack",
+                                            "source": "Valhalla",
+                                        }
+                                    )
+                                )
+                                config_received = True
+                                print("[WIFI] Config reçue. Déconnexion.")
+                                break  # Config obtenue --> on sort du while
 
-                except asyncio.TimeoutError:
-                    pass  # Normal, on reboucle
+                        elif command == "git_pull":
+                            try:
+                                repo_path = os.path.abspath(
+                                    os.path.join(os.path.dirname(__file__), "..")
+                                )
+                                result = subprocess.check_output(
+                                    ["git", "pull"], cwd=repo_path
+                                ).decode("utf-8")
+                                await ws.send(
+                                    json.dumps(
+                                        {
+                                            "type": "log",
+                                            "command": "pull_ack",
+                                            "source": "Valhalla",
+                                            "output": result,
+                                        }
+                                    )
+                                )
+                            except Exception as e:
+                                await ws.send(
+                                    json.dumps(
+                                        {
+                                            "type": "status",
+                                            "command": "pull_fail",
+                                            "source": "Valhalla",
+                                            "output": str(e),
+                                        }
+                                    )
+                                )
 
-    except Exception as e:
-        print(f"[WIFI] Erreur de connexion : {e}")
+                        elif command == "disconnect":
+                            print("[WIFI] Déconnexion demandée par le Dashboard.")
+                            break
+
+                    except asyncio.TimeoutError:
+                        pass  # Normal, on reboucle
+
+                # Si on est sorti du while parce qu'on a eu la config, on coupe la boucle for des IPs
+                if config_received:
+                    break
+
+        except Exception as e:
+            # MODIFICATION : Si l'IP échoue, on l'affiche et le 'for' passe naturellement à la suivante
+            print(f"[WIFI] Erreur de connexion sur {ip_ordi} : {e}")
 
     return config_received
 
 
-def fetch_config_from_dashboard(ip_ordi: str, timeout_s: float = 60.0) -> bool:
+def fetch_config_from_dashboard(ip_ordis: list[str], timeout_s: float = 60.0) -> bool:
     """Wrapper synchrone pour fetch_config_async."""
     loop = asyncio.new_event_loop()
     try:
-        return loop.run_until_complete(_fetch_config_async(ip_ordi, timeout_s))
+        return loop.run_until_complete(_fetch_config_async(ip_ordis, timeout_s))
     finally:
         loop.close()
 
@@ -370,7 +381,7 @@ def run_mission(drone: Valhalla, esp32: ESP32_Link, num_mission: int):
 # ==============================================================================
 # BOUCLE PRINCIPALE CGM
 # ==============================================================================
-def main_loop(drone: Valhalla, esp32: ESP32_Link, ip_ordi: str):
+def main_loop(drone: Valhalla, esp32: ESP32_Link, ip_ordi: list[str]):
     """
     Boucle infinie d'écoute des CGMs radio.
     Chaque CGM déclenche une action puis retourne ici.
@@ -434,7 +445,7 @@ if __name__ == "__main__":
         print("Usage: python main.py <IP_PC>")
         sys.exit(1)
 
-    ip_ordi = sys.argv[1]
+    ip_ordis = sys.argv[1:]
 
     print("[MAIN] Connexion MAVLink à Valhalla...")
     # valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1)  # REEL
@@ -456,4 +467,4 @@ if __name__ == "__main__":
     ).start()
 
     # Boucle principale (bloquante)
-    main_loop(valhalla, esp32, ip_ordi)
+    main_loop(valhalla, esp32, ip_ordis)
