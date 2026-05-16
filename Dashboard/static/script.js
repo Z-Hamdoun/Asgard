@@ -114,6 +114,7 @@ ws.onmessage = function(event) {
         case "pull_ack":
             clearTimeout(timer);
             updateStatusDot(`git-dot-${sourceSuffix}`, 'online');
+            intern_log(data.output)
             break;
         
         case "check_ack":
@@ -128,7 +129,9 @@ ws.onmessage = function(event) {
         case "pull_fail":
             clearTimeout(timer);
             updateStatusDot(`git-dot-${sourceSuffix}`, 'noline');
+            intern_log(data.output)
             break;
+
 
         case "start_main_ack":
             addLog("console", "--- execution de main ---");

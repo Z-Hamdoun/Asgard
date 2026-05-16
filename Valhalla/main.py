@@ -198,31 +198,39 @@ async def _fetch_config_async(ip_ordis: list[str], timeout_s: float = 60.0) -> b
                                 break  # Config obtenue --> on sort du while
 
                         elif command == "git_pull":
-                            try:
-                                repo_path = os.path.abspath(
-                                    os.path.join(os.path.dirname(__file__), "..")
-                                )
-                                result = subprocess.check_output(
-                                    ["git", "pull"], cwd=repo_path
-                                ).decode("utf-8")
+                            repo_root = os.path.abspath(
+                                os.path.join(os.path.dirname(__file__), ".")
+                            )
+                            script = os.path.join(repo_root, "git_pull.sh")
+
+                            result = subprocess.run(
+                                [script],
+                                cwd=repo_root,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT,
+                                text=True,
+                            )
+
+                            output = result.stdout
+                            if result.returncode == 0:
                                 await ws.send(
                                     json.dumps(
                                         {
                                             "type": "log",
                                             "command": "pull_ack",
                                             "source": "Valhalla",
-                                            "output": result,
+                                            "output": output,
                                         }
                                     )
                                 )
-                            except Exception as e:
+                            else:
                                 await ws.send(
                                     json.dumps(
                                         {
                                             "type": "status",
                                             "command": "pull_fail",
                                             "source": "Valhalla",
-                                            "output": str(e),
+                                            "output": output,
                                         }
                                     )
                                 )
