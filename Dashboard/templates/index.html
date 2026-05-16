@@ -67,10 +67,22 @@
                                 <label for="mission5">Mission 5</label>
                             </div>
                         </form>
-                        <div class="parametre-groupe" style="margin-top: 10px;">
-                            <label for="id_aruco">id_aruco</label>
-                            <input type="text" id="id_aruco1" style="width: 35px; margin-right: 5px;" value="1">
-                            <input type="text" id="id_aruco2" style="width: 35px;" value="1">
+                        <div class="parametre-groupe"  style="margin-top: 10px;">
+                            <label>camera</label>
+
+                            
+                            <label class="custom-checkbox">
+                                <input type="radio" name="cam-choice" value="standard" checked>
+                                <span class="checkmark"></span>
+                                <p>Standard</p>
+                            </label>
+
+                            <label class="custom-checkbox">
+                                <input type="radio" name="cam-choice" value="wide">
+                                <span class="checkmark"></span>
+                                <p>Wide</p>
+                            </label>
+                       
                         </div>
                     </div>
                 
@@ -87,25 +99,40 @@
                             </div>
                             <div class="parametre-groupe">
                                 <label for="pas_quadrillage">pas_quadrillage</label>
-                                <input type="text" id="pas_quadrillage" value="1">
+                                <input type="text" id="pas_quadrillage" value="2">
                             </div>
                             <div class="parametre-groupe">
                                 <label for="alt_quadrillage">alt_quadrillage</label>
-                                <input type="text" id="alt_quadrillage" value="10">
-                            </div>
-                            <div class="parametre-groupe">
-                                <label for="camera_resolution">camera_resolution</label>
-                                <input type="text" id="camera_resolution1" style="width: 35px; margin-right: 5px;" value="848">
-                                <input type="text" id="camera_resolution2" style="width: 35px;" value="480">
+                                <input type="text" id="alt_quadrillage" value="8">
                             </div>
                             <div class="parametre-groupe">
                                 <label for="square_pnp_size">square_pnp_size</label>
-                                <input type="text" id="square_pnp_size" value="40">
+                                <input type="text" id="square_pnp_size" value="33">
                             </div>
                             <div class="parametre-groupe">
                                 <label for="taille_aruco">taille_aruco</label>
-                                <input type="text" id="taille_aruco1" style="width: 35px; margin-right: 5px;" value="40">
-                                <input type="text" id="taille_aruco2" style="width: 35px;" value="10">
+                                <input type="text" id="taille_aruco1" style="width: 40px; margin-right: 5px;" value="40">
+                                <input type="text" id="taille_aruco2" style="width: 40px;" value="10">
+                            </div>
+                            <div class="parametre-groupe">
+                                <label for="id_aruco">id_aruco</label>
+                                <input type="text" id="id_aruco1" style="width: 40px; margin-right: 5px;" value="1">
+                                <input type="text" id="id_aruco2" style="width: 40px;" value="1">
+                            </div>
+                            <div class="parametre-groupe"  style="margin-top: 10px;">
+                                <label style="margin-right: 100px;">resolution</label>
+                                <label class="custom-checkbox">
+                                    <input type="radio" name="reso-choice" value="low" checked>
+                                    <span class="checkmark"></span>
+                                    <p>Low</p>
+                                </label>
+
+                                <label class="custom-checkbox">
+                                    <input type="radio" name="reso-choice" value="high">
+                                    <span class="checkmark"></span>
+                                    <p>High</p>
+                                </label>
+                        
                             </div>
                         </form>
                     </div>
@@ -173,8 +200,12 @@
     </div>
     <div class="row">
         <div class="case">
-            <div style="display: flex; gap: 20px"><h2> Pince</h2> <div id="git-dot-valk"></div></div>
+            <div style="display: flex; gap: 20px"><h2> Tests</h2> </div>
 
+            <div>
+                <button class="git-button"> check ESP32</button>
+                <button class="git-button"> check qqc</button>
+            </div>
             <div>
                 <button class="git-button"> Ouvrir Pince</button>
                 <button class="git-button"> Fermé pince</button>

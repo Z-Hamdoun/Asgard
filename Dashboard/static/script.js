@@ -472,9 +472,7 @@ defaultBtn.onclick = function() {
         "taille_quadrillage": 10,
         "pas_quadrillage": 2,
         "alt_quadrillage": 8,
-        "camera_resolution1": 848,
-        "camera_resolution2": 480,
-        "square_pnp_size": 40,
+        "square_pnp_size": 33,
         "taille_aruco1": 40,
         "taille_aruco2": 10,
         "id_aruco1": 1,
@@ -489,7 +487,6 @@ defaultBtn.onclick = function() {
 requestBtn.onclick = function() {
     const champsConfig = [
         "taille_quadrillage", "pas_quadrillage", "alt_quadrillage",
-        "camera_resolution1", "camera_resolution2",
         "square_pnp_size", "taille_aruco1", "taille_aruco2",
         "id_aruco1", "id_aruco2"
     ];
@@ -507,17 +504,25 @@ requestBtn.onclick = function() {
 
 sendBtn.onclick = function() {
     const getInt = (id) => parseInt(document.getElementById(id)?.value ?? "0", 10);
+    const camBtn = document.querySelector('input[name="cam-choice"]:checked');
+    const resoBtn = document.querySelector('input[name="reso-choice"]:checked');
 
+    const dico_reso = {
+        "low": [848, 480],
+        "high": [1696, 960]
+    };
     const configData = {
         "taille_quadrillage": getInt("taille_quadrillage"),
         "pas_quadrillage":    getInt("pas_quadrillage"),
         "alt_quadrillage":    getInt("alt_quadrillage"),
-        "camera_resolution":  [getInt("camera_resolution1"), getInt("camera_resolution2")],
         "square_pnp_size":    getInt("square_pnp_size"),
         "taille_aruco":       [getInt("taille_aruco1"), getInt("taille_aruco2")],
         "id_aruco":           [getInt("id_aruco1"), getInt("id_aruco2")],
+        "camera_type": camBtn.value,
+        "camera_resolution": dico_reso[resoBtn.value],
     };
 
+    console.log(configData); 
     if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ command: "update_config", target: "Valhalla", data: configData }));
         ws.send(JSON.stringify({ command: "update_config", target: "Valkyrie", data: configData }));
