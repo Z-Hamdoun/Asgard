@@ -111,7 +111,7 @@ class PnPLandingSystem:
         for i, cnt in enumerate(contours):
             area = cv2.contourArea(cnt)
 
-            if area > 5000 or area < 20:
+            if area > 5000 or area < 10:
 
                 continue
             if not self._is_circular(cnt, area):
