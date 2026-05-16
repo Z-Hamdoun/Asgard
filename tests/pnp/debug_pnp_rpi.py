@@ -130,9 +130,7 @@ def generate_vector():
         # On récupère les contours ET le masque (thresh)
         vector = detector.get_landing_vector(frame)
         if not isinstance(vector[2], str):
-            vector[0] = round(vector[0], 3)
-            vector[1] = round(vector[1], 3)
-            vector[2] = round(vector[2], 3)
+            vector = (round(vector[0], 3), round(vector[1], 3), round(vector[2], 3))
         print(vector, 1 / (time.time() - t))
 
 
