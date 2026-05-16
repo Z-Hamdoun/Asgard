@@ -186,11 +186,11 @@ def main_loop(drone: Valkyrie, esp32: ESP32_Link):
 # ==============================================================================
 if __name__ == "__main__":
     print("[MAIN] Connexion MAVLink à Valkyrie...")
-    # drone = Valkyrie(address="/dev/ttyAMA0", target_system=2)  # REEL
-    drone = Valkyrie(address="127.0.0.1:14560", target_system=2)  # SITL
+    drone = Valkyrie(address="/dev/ttyAMA0", target_system=2, baud=921600)  # REEL
+    # drone = Valkyrie(address="127.0.0.1:14560", target_system=2)  # SITL
 
     print("[MAIN] Connexion ESP32...")
-    esp32 = ESP32_Link(port="/dev/ttyACM1", baudrate=115200, mock_simulation=True,
+    esp32 = ESP32_Link(port="/dev/ttyAMA1", baudrate=115200, mock_simulation=False,
                        udp_rx_port=5002,
                        udp_tx_port=5001)
     esp32.connect()

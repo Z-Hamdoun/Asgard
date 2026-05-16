@@ -3,7 +3,6 @@ import asyncio
 import websockets
 import json
 import subprocess
-from pymavlink import mavutil
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
@@ -395,11 +394,11 @@ if __name__ == "__main__":
     ip_ordi = sys.argv[1]
 
     print("[MAIN] Connexion MAVLink à Valhalla...")
-    valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1, baud=921600, source_component=mavutil.mavlink.MAV_COMP_ID_ONBOARD_COMPUTER)  # REEL
+    valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1, baud=921600)  # REEL
     # valhalla = Valhalla(address="127.0.0.1:14550", target_system=1)  # SITL
 
     print("[MAIN] Connexion ESP32...")
-    esp32 = ESP32_Link(port="/dev/ttyACM0", baudrate=115200, mock_simulation=True,
+    esp32 = ESP32_Link(port="/dev/ttyAMA1", baudrate=115200, mock_simulation=False,
                        udp_rx_port=5001, udp_tx_port=5002)
     esp32.connect()
 
