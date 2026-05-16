@@ -190,7 +190,7 @@ if __name__ == "__main__":
     # drone = Valkyrie(address="127.0.0.1:14560", target_system=2)  # SITL
 
     print("[MAIN] Connexion ESP32...")
-    esp32 = ESP32_Link(port="/dev/serial0", baudrate=115200, mock_simulation=False,
+    esp32 = ESP32_Link(port="/dev/AMA2", baudrate=115200, mock_simulation=False,
                        udp_rx_port=5002,
                        udp_tx_port=5001)
     esp32.connect()

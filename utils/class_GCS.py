@@ -1,4 +1,5 @@
 import time
+from pymavlink import mavutil
 from pymavlink_code.class_MAVLinCS import MAVLinCS
 import pymavlink_code.code_de_gestion_de_missions as CGM
 
@@ -11,7 +12,7 @@ class GroundStation:
         print("[GCS] Initialisation de l'antenne radio...")
         
         # Adresse locale UDP générée par MAVProxy
-        addr_valhalla = "127.0.0.1:14554" # ATTENTION UDP
+        addr_valhalla = "0.0.0.0:14550" # ATTENTION UDP
 
         # Connexion a Valhalla
         print(f"[GCS] Tentative de connexion à Valhalla sur {addr_valhalla}")
