@@ -206,6 +206,7 @@ def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
             esp32.send_config(config)
             time.sleep(1.0)
             print("[MISSION 1] Ordre décollage Valkyrie...")
+            drone.send_cgm(CGM.DEMANDE_TAKEOFF_VALKYRIE)
             esp32.send_start_mission(num_mission=1)
             drone.land_and_wait_valkyrie()
 
@@ -240,6 +241,7 @@ def run_mission_3(drone: Valhalla, esp32: ESP32_Link, config: dict):
     esp32.send_config(config)
     time.sleep(1)
     print("[MISSION 3] Ordre décollage Valkyrie...")
+    drone.send_cgm(CGM.DEMANDE_TAKEOFF_VALKYRIE)
     esp32.send_start_mission(num_mission=3)
 
     print("[MISSION 3] En attente de la fin de mission Valkyrie (max 10min)...")
@@ -315,8 +317,8 @@ def main_loop(drone: Valhalla, esp32: ESP32_Link, ip_ordi: str):
                 print("[CGM] Échec configuration. Retour à l'attente.")
 
         # --- Lancer mission 1 ---
-        elif drone.check_cgm(CGM.PC_DEMANDE_TAKEOFF_VALHALLA):
-            drone.delete_cgm(CGM.PC_DEMANDE_TAKEOFF_VALHALLA)
+        elif drone.check_cgm(CGM.PC_DEMANDE_MISSION_1_VALHALLA):
+            drone.delete_cgm(CGM.PC_DEMANDE_MISSION_1_VALHALLA)
             run_mission(drone, esp32, num_mission=1)
 
         # --- Lancer mission 2 ---

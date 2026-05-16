@@ -23,8 +23,8 @@ class Valhalla(Drone):
         # while True:
         #     if self.fin_mission: 
         #         return False
-        #     if self.check_cgm(CGM.PC_DEMANDE_TAKEOFF_VALHALLA):
-        #         self.delete_cgm(CGM.PC_DEMANDE_TAKEOFF_VALHALLA)
+        #     if self.check_cgm(CGM.PC_DEMANDE_MISSION_1_VALHALLA):
+        #         self.delete_cgm(CGM.PC_DEMANDE_MISSION_1_VALHALLA)
         #         break
         #     time.sleep(0.05)
         
@@ -48,10 +48,11 @@ class Valhalla(Drone):
                 break
             time.sleep(3)
         
-        # Echech armement
         if not armed:
-            self.send_cgm(CGM.VALHALLA_TAKEOFF_FAIL)
+            self.send_cgm(CGM.VALHALLA_ARM_FAIL)
             return False
+
+        self.send_cgm(CGM.VALHALLA_ARMED)
 
         # Tentative takeoff
         took_off = False

@@ -104,10 +104,11 @@ class Valkyrie(Drone):
                 break
             time.sleep(1)
 
-        # Echech armement
         if not armed:
-            self.send_cgm(CGM.VALKYRIE_TAKEOFF_FAIL)
+            self.send_cgm(CGM.VALKYRIE_ARM_FAIL)
             return False
+
+        self.send_cgm(CGM.VALKYRIE_ARMED)
 
         # Tentative takeoff
         took_off = False

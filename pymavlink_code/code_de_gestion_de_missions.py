@@ -152,9 +152,9 @@ PC_DEMANDE_MISSION = CGM(
     potential_sender="pc"
 )
 
-PC_DEMANDE_TAKEOFF_VALHALLA = CGM(
+PC_DEMANDE_MISSION_1_VALHALLA = CGM(
     value=201,
-    name="PC_DEMANDE_TAKEOFF_VALHALLA",
+    name="PC_DEMANDE_MISSION_1_VALHALLA",
     short_description="Lancement mission 1 sur Valhalla",
     long_description="",
     potential_sender="pc"
@@ -316,6 +316,14 @@ VALKYRIE_TOOKOFF = CGM(
     value=105,
     name="VALKYRIE_TOOKOFF",
     short_description="Valkyrie a décollé",
+    long_description="",
+    potential_sender="valkyrie"
+)
+
+VALKYRIE_ARMED = CGM(
+    value=108,
+    name="VALKYRIE_ARMED",
+    short_description="Valkyrie armé",
     long_description="",
     potential_sender="valkyrie"
 )
