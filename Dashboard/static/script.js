@@ -8,6 +8,7 @@ const dassaultLat=47.6013
 const dassaultLong=2.0085
 const giftLat=48.7097
 const gifLong=2.1671
+const ESP32Btn= document.getElementById('esp32-btn')
 const updateBtnValk = document.getElementById('update-valk');
 const updateBtnValh = document.getElementById('update-valh');
 const mainBtn = document.getElementById('green-button');
@@ -269,6 +270,7 @@ document.getElementById('gif-marker-button').addEventListener('click', function(
     document.getElementById('coords').innerText = `Lat: ${giftLat}, Lng: ${gifLong}`;
 });
 
+
 document.getElementById('dassault-marker-button').addEventListener('click', function() {
     // .flyTo() crée une animation fluide de déplacement
     setview([ dassaultLat, dassaultLong]);
@@ -446,6 +448,7 @@ stopBtn.onclick = function() {
         intern_log("site offline");
     }
 };
+
 
 printBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
