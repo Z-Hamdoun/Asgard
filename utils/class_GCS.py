@@ -11,7 +11,7 @@ class GroundStation:
         print("[GCS] Initialisation de l'antenne radio...")
         
         # Adresse locale UDP générée par MAVProxy
-        addr_valhalla = "127.0.0.1:14554"
+        addr_valhalla = "127.0.0.1:14554" # ATTENTION UDP
 
         # Connexion a Valhalla
         print(f"[GCS] Tentative de connexion à Valhalla sur {addr_valhalla}")
@@ -26,10 +26,17 @@ class GroundStation:
     # COMMANDES RADIO DESCENDANTES (PC -> VALHALLA)
     # ==========================================
 
-    def lancer_mission(self):
-        """Envoie l'ordre de décollage (Takeoff) à Valhalla."""
-        cgm = CGM.PC_DEMANDE_TAKEOFF_VALHALLA
-        print(f"[GCS-RADIO] Envoi ordre de mission ({cgm}) à Valhalla...")
+    def lancer_mission(self, num: int = 1):
+        """Envoie l'ordre de lancement de mission à Valhalla selon le numéro choisi."""
+        cgm_map = {
+            1: CGM.PC_DEMANDE_MISSION_1_VALHALLA,
+            2: CGM.PC_DEMANDE_MISSION_2_VALHALLA,
+            3: CGM.PC_DEMANDE_MISSION_3_VALHALLA,
+            4: CGM.PC_DEMANDE_MISSION_4_VALHALLA,
+            5: CGM.PC_DEMANDE_MISSION_5_VALHALLA,
+        }
+        cgm = cgm_map.get(num, CGM.PC_DEMANDE_MISSION_1_VALHALLA)
+        print(f"[GCS-RADIO] Envoi mission {num} ({cgm.name}) à Valhalla...")
         self.valhalla.send_cgm(cgm)
 
     def envoyer_goto_gps(self, lat: float, lon: float, alt: float):
@@ -53,6 +60,13 @@ class GroundStation:
         """Force Valhalla à rentrer à la base, sans lui couper les moteurs."""
         self.valhalla.change_mode("RTL")
         print("[GCS-RADIO] RTL forcé envoyé à Valhalla.")
+    
+    def connect_valhalla(self):
+        """Tente de connecter Valhalla au Dashboard.
+        """
+        print("[GCS-RADIO] Demande de configuer Valhalla.")
+        cgm = CGM.PC_CONFIGURE_VALHALLA
+        self.valhalla.send_cgm(cgm)
 
     def close(self):
         """Coupe proprement la connexion MAVLink."""

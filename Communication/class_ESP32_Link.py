@@ -29,6 +29,7 @@ class ESP32_Link:
         self.derniere_commande = None
         self.derniere_config = None
         self.dernier_cgm = None
+        self.dernier_num_mission = None  # Numéro de mission reçu via CMD:START:N
         # Parametres pour le mode follow
         self.valhalla_lat = None
         self.valhalla_lon = None
@@ -78,10 +79,10 @@ class ESP32_Link:
         self._write_serial(msg)
         print(f"[ESP32-TX] Config JSON envoyée : {json_str}")
 
-    def send_start_mission(self):
-        msg = "CMD:START\n"
+    def send_start_mission(self, num_mission: int = 1):
+        msg = f"CMD:START:{num_mission}\n"
         self._write_serial(msg)
-        print("[ESP32-TX] Ordre de démarrage envoyé !")
+        print(f"[ESP32-TX] Ordre de démarrage mission {num_mission} envoyé !")
 
     def send_telemetry(self, lat: float, lng: float, alt: float):
         msg = f"GPS:{lat}:{lng}:{alt}\n"
@@ -148,8 +149,25 @@ class ESP32_Link:
                     pass
                     
             elif message.startswith("CMD:"):
-                self.derniere_commande = message.replace("CMD:", "")
-                print(f"[ESP32-RX] Commande reçue : {self.derniere_commande}")
+                cmd_content = message[4:]  # retire "CMD:"
+                if cmd_content.startswith("START"):
+                    parts = cmd_content.split(":")
+                    try:
+                        if len(parts) < 2:
+                            raise ValueError("numéro de mission manquant")
+                        num = int(parts[1])
+                        if num < 1 or num > 5:
+                            raise ValueError(f"mission {num} hors limite [1-5]")
+                        self.dernier_num_mission = num
+                        self.derniere_commande = "START"
+                        print(f"[ESP32-RX] Ordre START mission {num} reçu.")
+                    except ValueError as e:
+                        # Envoi immédiat du CGM d'erreur à Valhalla (408 = VALKYRIE_MISSION_INVALID)
+                        print(f"[ESP32-RX] ERREUR CMD:START invalide ({e}) — CGM 408 envoyé à Valhalla !")
+                        self._write_serial("CGM:408\n")
+                else:
+                    self.derniere_commande = cmd_content
+                    print(f"[ESP32-RX] Commande reçue : {cmd_content}")
                 
             elif message.startswith("GPS:"):
                 parts = message.split(":")
@@ -179,3 +197,17 @@ class ESP32_Link:
             cgm = self.dernier_cgm
             self.dernier_cgm = None
             return cgm
+
+    def get_and_clear_mission_start(self) -> "int | None":
+        """
+        Retourne le numéro de mission (int >= 1) si un ordre CMD:START:N valide a été reçu.
+        Retourne None si aucun ordre START n'est en attente.
+        Les erreurs de parsing sont gérées directement dans _traiter_message (CGM 408 envoyé).
+        """
+        with self.lock:
+            if self.derniere_commande == "START":
+                num = self.dernier_num_mission
+                self.derniere_commande = None
+                self.dernier_num_mission = None
+                return num
+            return None

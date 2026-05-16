@@ -19,9 +19,9 @@ const requestBtn = document.getElementById("requestBtn")
 const sendBtn = document.getElementById("sendBtn")
 const sendCoordsBTN = document.getElementById("sendCoordsBtn")
 const requestCoordsBTN = document.getElementById("requestCoordsBtn")
-const checkValkBtn = document.getElementById("check-valk-btn")
-const checkValhBtn = document.getElementById("check-valh-btn")
-const checkEvrnBtn = document.getElementById("check-evrn-btn")
+const coValkBtn = document.getElementById("co-valk-btn")
+const coValhBtn = document.getElementById("co-valh-btn")
+const checkEvrnBtn = document.getElementById("check-evrn-btn")  // null si absent du HTML
 
 const input = document.getElementById('term-input');
 const cursor = document.getElementById('cursor');
@@ -136,12 +136,13 @@ ws.onmessage = function(event) {
         case "main_log":
             addLog("console", data.output);
             break;
-        case "log_ack":
+        case "log_ack": {
             intern_log(`Log de ${sourceSuffix} reçu`);
             const container = document.getElementById(`${sourceSuffix}-log`);
-            container.innerHTML=""
+            container.innerHTML = "";
             addLog(`${sourceSuffix}-log`, data.output);
             break;
+        }
 
         case "main_fail":
             addLog("console", `--- Le processus s'est terminé avec l'erreur ${data.output} ---`);
@@ -161,17 +162,42 @@ ws.onmessage = function(event) {
         case "coords_ack":
             intern_log("Coordonnées mis à jour avec succès.");
             break;
-        case "ask_ack":
-            intern_log("Paramètres récupéré avec succès.");
-            const data_param = data.data
-            document.getElementById("vrai_largage").value = data_param["vrai_largage"];
-            document.getElementById("taille_quadrillage").value = data_param["taille_quadrillage"];
-            document.getElementById("pas_quadrillage").value = data_param["pas_quadrillage"];
-            document.getElementById("radius_acceptance").value = data_param["radius_acceptance"];
-            document.getElementById("FOLLOW_MAX_SPEED").value = data_param["FOLLOW_MAX_SPEED"];
-            document.getElementById("alt_quadrillage").value = data_param["alt_quadrillage"];
-            break
-        case "ask_coords_ack":
+        case "ask_ack": {
+            intern_log("Paramètres récupérés avec succès.");
+            const data_param = data.data;
+            const setIfExists = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ""; };
+            setIfExists("taille_quadrillage", data_param["taille_quadrillage"]);
+            setIfExists("pas_quadrillage",    data_param["pas_quadrillage"]);
+            setIfExists("alt_quadrillage",    data_param["alt_quadrillage"]);
+            break;
+        }
+        // --- Retours GCS / connexion Valhalla ---
+        case "connecting_valhalla":
+            intern_log("CGM envoyé à Valhalla — en attente de connexion WiFi...");
+            break;
+        case "valhalla_ready":
+            intern_log("Valhalla connecté au Dashboard. Envoyez la configuration.");
+            break;
+        case "config_ack":
+            intern_log(`Configuration reçue et appliquée par ${data.source}.`);
+            break;
+        case "gcs_unavailable":
+            intern_log("GCS non disponible (pas de liaison MAVLink active).");
+            break;
+        case "gcs_error":
+            intern_log(`Erreur GCS : ${data.output}`);
+            break;
+        case "mission_starting":
+            intern_log("Mission lancée.");
+            break;
+        case "stopped":
+            intern_log("Arrêt d'urgence envoyé.");
+            break;
+        case "landing":
+            intern_log("RTL forcé envoyé.");
+            break;
+
+        case "ask_coords_ack": {
             const data_coords = data.data
 
             intern_log("Destination reçu : " + data_coords["lat_mission"] + ", " + data_coords["lng_mission"]);
@@ -186,6 +212,8 @@ ws.onmessage = function(event) {
 
             // Affichage des coordonnées dans l'interface
             document.getElementById('coords').innerText = `Lat: ${data_coords["lat_mission"]}, Lng: ${data_coords["lng_mission"]}`;
+            break;
+        }
     }
 };
 
@@ -374,15 +402,15 @@ updateBtnValh.onclick = function() {
 
 mainBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
-        const command = {
+        const selectedMission = document.querySelector('input[name="mission"]:checked')?.value ?? "mission1";
+        const numMission = parseInt(selectedMission.replace("mission", ""), 10);
+
+        ws.send(JSON.stringify({
             command: "main_mission",
-            target: "Valhalla"
-        };
-
-        intern_log("requête d'execution envoyé");
-        ws.send(JSON.stringify(command));
-        
-
+            target: "Valhalla",
+            num_mission: numMission
+        }));
+        intern_log(`Requête d'exécution mission ${numMission} envoyée.`);
     } else {
         intern_log("site offline");
     }
@@ -441,79 +469,59 @@ printBtn.onclick = function() {
 
 defaultBtn.onclick = function() {
     const valeursParDefaut = {
-        "vrai_largage": "true", 
-        "taille_quadrillage": 10, 
+        "taille_quadrillage": 10,
         "pas_quadrillage": 2,
-        "radius_acceptance": 1,
-        "FOLLOW_MAX_SPEED": 1400,
-        "alt_quadrillage": 8
+        "alt_quadrillage": 8,
+        "camera_resolution1": 848,
+        "camera_resolution2": 480,
+        "square_pnp_size": 40,
+        "taille_aruco1": 40,
+        "taille_aruco2": 10,
+        "id_aruco1": 1,
+        "id_aruco2": 1,
     };
-    document.getElementById("vrai_largage").value = valeursParDefaut["vrai_largage"];
-    document.getElementById("taille_quadrillage").value = valeursParDefaut["taille_quadrillage"];
-    document.getElementById("pas_quadrillage").value = valeursParDefaut["pas_quadrillage"];
-    document.getElementById("radius_acceptance").value = valeursParDefaut["radius_acceptance"];
-    document.getElementById("FOLLOW_MAX_SPEED").value = valeursParDefaut["FOLLOW_MAX_SPEED"];
-    document.getElementById("alt_quadrillage").value = valeursParDefaut["alt_quadrillage"];
+    for (const [id, val] of Object.entries(valeursParDefaut)) {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+    }
 }
 
 requestBtn.onclick = function() {
-    const valeursWait = {
-        "vrai_largage": "...", 
-        "taille_quadrillage": "...", 
-        "pas_quadrillage": "...",
-        "radius_acceptance": "...",
-        "FOLLOW_MAX_SPEED": "...",
-        "alt_quadrillage": "..."
-    };
-    document.getElementById("vrai_largage").value = valeursWait["vrai_largage"];
-    document.getElementById("taille_quadrillage").value = valeursWait["taille_quadrillage"];
-    document.getElementById("pas_quadrillage").value = valeursWait["pas_quadrillage"];
-    document.getElementById("radius_acceptance").value = valeursWait["radius_acceptance"];
-    document.getElementById("FOLLOW_MAX_SPEED").value = valeursWait["FOLLOW_MAX_SPEED"];
-    document.getElementById("alt_quadrillage").value = valeursWait["alt_quadrillage"];
-    const message = {
-        "command": "ask_config",
-        "target": "Valkyrie",
-    };
-
+    const champsConfig = [
+        "taille_quadrillage", "pas_quadrillage", "alt_quadrillage",
+        "camera_resolution1", "camera_resolution2",
+        "square_pnp_size", "taille_aruco1", "taille_aruco2",
+        "id_aruco1", "id_aruco2"
+    ];
+    for (const id of champsConfig) {
+        const el = document.getElementById(id);
+        if (el) el.value = "...";
+    }
     if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(message));
-        intern_log("Envoi de la requette de configuration");
+        ws.send(JSON.stringify({ command: "ask_config", target: "Valhalla" }));
+        intern_log("Requête de configuration envoyée...");
     } else {
         intern_log("site offline");
     }
 }
 
 sendBtn.onclick = function() {
-    const inputLargage = document.getElementById("vrai_largage").value;
-    const isLargageVrai = (inputLargage.toLowerCase() === "true"); // Convertit en Booléen
+    const getInt = (id) => parseInt(document.getElementById(id)?.value ?? "0", 10);
 
     const configData = {
-        "vrai_largage": isLargageVrai,
-        "taille_quadrillage": parseInt(document.getElementById("taille_quadrillage").value, 10),
-        "pas_quadrillage": parseInt(document.getElementById("pas_quadrillage").value, 10),
-        "radius_acceptance": parseInt(document.getElementById("radius_acceptance").value, 10),
-        "FOLLOW_MAX_SPEED": parseInt(document.getElementById("FOLLOW_MAX_SPEED").value, 10),
-        "alt_quadrillage": parseInt(document.getElementById("alt_quadrillage").value, 10)
+        "taille_quadrillage": getInt("taille_quadrillage"),
+        "pas_quadrillage":    getInt("pas_quadrillage"),
+        "alt_quadrillage":    getInt("alt_quadrillage"),
+        "camera_resolution":  [getInt("camera_resolution1"), getInt("camera_resolution2")],
+        "square_pnp_size":    getInt("square_pnp_size"),
+        "taille_aruco":       [getInt("taille_aruco1"), getInt("taille_aruco2")],
+        "id_aruco":           [getInt("id_aruco1"), getInt("id_aruco2")],
     };
-
-    // 2. On prépare le message global pour le WebSocket
-    const messagevalh = {
-        "command": "update_config",
-        "target": "Valhalla",
-        "data": configData // On intègre nos paramètres ici
-    };
-    const messagevalk = {
-        "command": "update_config",
-        "target": "Valkyrie",
-        "data": configData // On intègre nos paramètres ici
-    };
-
 
     if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(messagevalh));
-        ws.send(JSON.stringify(messagevalk));
-        intern_log("Envoi de la nouvelle configuration");
+        ws.send(JSON.stringify({ command: "update_config", target: "Valhalla", data: configData }));
+        ws.send(JSON.stringify({ command: "update_config", target: "Valkyrie", data: configData }));
+        intern_log("Configuration envoyée.");
     } else {
         intern_log("site offline");
     }
@@ -547,7 +555,7 @@ sendCoordsBTN.onclick = function() {
     }
 }
 
-requestCoordsBtn.onclick = function() {
+requestCoordsBTN.onclick = function() {
     const message = {
         "command": "ask_coords",
         "target": "Valkyrie"
@@ -561,9 +569,9 @@ requestCoordsBtn.onclick = function() {
     }
 }
 
-checkValkBtn.onclick = function(){
+coValkBtn.onclick = function(){
     const message = {
-        "command": "check_V",
+        "command": "co_V",
         "target": "Valkyrie"
     };
 
@@ -575,9 +583,9 @@ checkValkBtn.onclick = function(){
     }   
 }
 
-checkValhBtn.onclick = function(){
+coValhBtn.onclick = function(){
     const message = {
-        "command": "check_V",
+        "command": "co_V",
         "target": "Valhalla"
     };
 
@@ -589,15 +597,13 @@ checkValhBtn.onclick = function(){
     }   
 }
 
-checkEvrnBtn.onclick = function(){
-    const message = {
-        "command": "check_E",
-        "target": "Valkyrie"
+if (checkEvrnBtn) {
+    checkEvrnBtn.onclick = function(){
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ command: "check_E", target: "Valkyrie" }));
+            intern_log("Check tout le monde");
+        } else {
+            intern_log("site offline");
+        }
     };
-    if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(message));
-        intern_log("Check tout le monde");
-    } else {
-        intern_log("site offline");
-    }   
 }

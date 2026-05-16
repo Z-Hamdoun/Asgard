@@ -3,15 +3,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-import sys, os
+import sys, os, socket, asyncio
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.abspath(os.path.join(BASE_DIR, "../")))
 
 from utils.class_GCS import GroundStation
-
-import asyncio
-import time
-import socket
 
 
 # --- FONCTIONS UTILITAIRES ---
@@ -62,12 +59,27 @@ class ConnectionManager:
 # --- INITIALISATION DE L'APPLICATION ---
 app = FastAPI()
 manager = ConnectionManager()
-# gcs = GroundStation(use_simu=False)
 
-app.mount("/static", StaticFiles(directory="Dashboard/static"), name="static")
+# GCS initialisé en lazy dans un thread — ne bloque pas l'event loop asyncio
+_gcs: GroundStation | None = None
 
-# 2. On configure le moteur de templates
-templates = Jinja2Templates(directory="Dashboard/templates")
+async def get_gcs() -> GroundStation | None:
+    global _gcs
+    if _gcs is not None:
+        return _gcs
+    try:
+        loop = asyncio.get_event_loop()
+        _gcs = await loop.run_in_executor(None, lambda: GroundStation(use_simu=False))
+        print("[GCS] Connexion MAVLink établie.")
+    except Exception as e:
+        print(f"[GCS] Impossible de se connecter : {e}")
+        return None
+    return _gcs
+
+# Chemins absolus — fonctionne peu importe le répertoire de lancement d'uvicorn
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 
 # --- ROUTES ---
@@ -77,32 +89,6 @@ async def get_index(request: Request):
     return templates.TemplateResponse(
         request=request, name="index.html", context={"local_ip": local_ip}
     )
-
-
-@app.get("/start-mission")
-async def executer_python():
-    try:
-        # Lancement du script de manière asynchrone
-        process = await asyncio.create_subprocess_exec(
-            "python",
-            "start_mission.py",  # Remplacez par le nom ou le chemin de votre script
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-
-        # On attend que le script termine et on récupère la sortie (stdout) et les erreurs (stderr)
-        stdout, stderr = await process.communicate()
-
-        if process.returncode == 0:
-            # Succès : on renvoie ce que le script a affiché, en décodant les bytes en texte
-            return {"statut": "succes", "resultat": stdout.decode("utf-8")}
-        else:
-            # Erreur lors de l'exécution du script
-            return {"statut": "erreur", "message": stderr.decode("utf-8")}
-
-    except Exception as e:
-        # Erreur si le script est introuvable ou autre plantage serveur
-        return {"statut": "erreur", "message": str(e)}
 
 
 @app.websocket("/ws/{client_id}")
@@ -115,18 +101,29 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             target = data.get("target")
 
             # ======================================================
+            # Messages venant de Valhalla (relais WebSocket → Dashboard)
+            # ======================================================
+            if client_id == "Valhalla":
+                await manager.send_to_target(data, "dashboard")
+                continue
+
+            # ======================================================
             # Routage radio mavlink
             # ======================================================
-            if command == "main_mission":
+            elif command == "main_mission":
                 if target == "Valhalla":
-                    gcs.lancer_mission()  # Envoi du CGM 201 par l'antenne
+                    gcs = await get_gcs()
+                    if gcs:
+                        num_mission = int(data.get("num_mission", 1))
+                        gcs.lancer_mission(num_mission)
                 await manager.send_to_target(
                     {"type": "status", "command": "mission_starting", "source": "GCS"},
                     "dashboard",
                 )
 
             elif command == "urgency_stop":
-                if target == "Valhalla":
+                gcs = await get_gcs()
+                if gcs:
                     gcs.arret_urgence()
                 await manager.send_to_target(
                     {"type": "status", "command": "stopped", "source": "GCS"},
@@ -134,19 +131,40 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 )
 
             elif command == "urgency_landing":
-                if target == "Valhalla":
+                gcs = await get_gcs()
+                if gcs:
                     gcs.force_rtl()
                 await manager.send_to_target(
                     {"type": "status", "command": "landing", "source": "GCS"},
                     "dashboard",
                 )
 
+            elif command == "co_V":
+                if target == "Valhalla":
+                    gcs = await get_gcs()
+                    if gcs:
+                        try:
+                            gcs.connect_valhalla()
+                            await manager.send_to_target(
+                                {"type": "status", "command": "connecting_valhalla", "source": "GCS"},
+                                "dashboard",
+                            )
+                        except Exception as e:
+                            await manager.send_to_target(
+                                {"type": "status", "command": "gcs_error", "source": "GCS", "output": str(e)},
+                                "dashboard",
+                            )
+                    else:
+                        await manager.send_to_target(
+                            {"type": "status", "command": "gcs_unavailable", "source": "GCS"},
+                            "dashboard",
+                        )
+
             # ======================================================
-            # routage wifi websocket
+            # Routage wifi websocket (update_config, git_pull, etc.)
             # ======================================================
             else:
                 if target and target in manager.active_connections:
-                    # Pour update_config, update_coords, git_pull, etc.
                     await manager.send_to_target(data, target)
                 else:
                     await manager.send_to_target(data, "dashboard")

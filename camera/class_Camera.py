@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 import cv2
 import cv2.aruco as aruco
@@ -101,7 +101,7 @@ class Camera:
         if simulation is None:
             # A vérifier
             if resolution_id == 1:
-                self._resolution = (640, 480)
+                self._resolution = (848, 480)
             elif resolution_id == 2:
                 self._resolution = (1296, 972)
             elif resolution_id == 3:
@@ -121,16 +121,38 @@ class Camera:
                 from picamera2 import Picamera2
                 # Initialisation de la Pi Camera 2
                 self._picam2 = Picamera2()
-                self._picam2.preview_configuration.main.size = (self._resolution[0], self._resolution[1])
-                self._picam2.preview_configuration.main.format = "RGB888"
-                self._picam2.preview_configuration.controls.FrameRate = 30
-                self._picam2.configure("preview")
+                video_config = self._picam2.create_video_configuration(
+
+                    sensor={
+                        "output_size": (4608, 2592),
+                        "bit_depth": 10
+                    },
+
+                    main={
+                        "size": (848, 480),
+                        "format": "RGB888"
+                    },
+
+                    controls={
+                        "FrameRate": 30
+                    },
+
+                    buffer_count=6
+                )
+                self._picam2.configure(video_config)
+                # self._picam2.preview_configuration.main.size = (self._resolution[0], self._resolution[1])
+                # self._picam2.preview_configuration.main.format = "RGB888"
+                # self._picam2.preview_configuration.controls.FrameRate = 30
+                # self._picam2.configure("preview")
                 self._picam2.start()
                 #self._picam2.set_controls({"ExposureTime": 3500})
+                # self._picam2.set_controls({
+                #     "AeEnable": True,              # Keep auto-exposure ON
+                #     "ExposureValue": -1,})
+                #     #"AeExposureMode": "Short"})
                 self._picam2.set_controls({
-                    "AeEnable": True,              # Keep auto-exposure ON
-                    "ExposureValue": -1,})
-                    #"AeExposureMode": "Short"})
+                    "ScalerCrop": (0, 0, 4608, 2592)
+                    })
                 time.sleep(2)  # Laisser le temps à la caméra de s'initialiser
             elif simulation == "SITL": # On est sur Gazebo via topic
                 self.logger.log("[INFO] Intializing Gazebo camera")
@@ -195,13 +217,19 @@ class Camera:
                 # ], dtype=np.float64)
                 # self._dist_coeffs = np.array([0, 0, 0, 0, 0], dtype=np.float64) # Celle-là non plus
                 
+                #self._camera_matrix = np.array([
+                #    [961.20937, 0.00000, 327.96329],
+                #    [0.00000, 963.93177, 239.74834], NOTE : c est bien
+                #    [0.00000, 0.00000, 1.00000]
+                #], dtype=np.float64)
+                # 
+                # self._dist_coeffs = np.array([-0.02022, 1.12933, -0.00053, 0.00310, -5.27641], dtype=np.float64)
                 self._camera_matrix = np.array([
-                    [961.20937, 0.00000, 327.96329],
-                    [0.00000, 963.93177, 239.74834],
+                    [376.91194, 0.00000, 425.07994],
+                    [0.00000, 380.07917, 245.66015],
                     [0.00000, 0.00000, 1.00000]
                 ], dtype=np.float64)
-                
-                self._dist_coeffs = np.array([-0.02022, 1.12933, -0.00053, 0.00310, -5.27641], dtype=np.float64)
+                self._dist_coeffs = np.array([-0.00284, 0.09082, 0.00265, -0.00063, -0.07958], dtype=np.float64)
             else:
                 # Matrices de la caméra Gazebo (à vérifier)
                 # self._camera_matrix = np.array([
@@ -233,7 +261,7 @@ class Camera:
                 self.aruco_size = 0.62 # Taille ArUco sur Gazebo
             else:
                 self.aruco_id = 4
-                self.aruco_size = 0.1
+                self.aruco_size = 0.038
 
             # Variables utilisées pour la détection ArUco
             self.DO_CROP: bool = do_crop

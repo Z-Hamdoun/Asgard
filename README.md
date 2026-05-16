@@ -87,8 +87,30 @@ ssh helics@valkyrie.local
 
 **Password**: `opensesame`
 
+## Commandes systemd
+```sh
+# Met à jour systemd avec le nouveau fichier
+sudo systemctl daemon-reload
+
+# Active le lancement automatique au démarrage de la carte
+sudo systemctl enable valkyrie.service
+
+# Démarre le script maintenant (sans avoir à redémarrer le drone)
+sudo systemctl start valkyrie.service
+
+# Le script arrete temporairement mais redemarera apres un boot A FAIT AVANT UN GIT PULL
+sudo systemctl stop valkyrie.service
+
+# Si on veut que le script ne redemarre plus au reboot
+sudo systemctl disable valyrie.service
+
+# Le paramètre -f permet de suivre les logs en direct
+journalctl -u valkyrie.service -f
+```
+
 # Mavproxy
 
 ```sh
 mavproxy.py --master=/dev/ttyAMA0 --baudrate 921600
 ```
+

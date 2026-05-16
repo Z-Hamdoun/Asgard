@@ -215,7 +215,35 @@ class Camera:
                     [0, 0, 1]
                 ], dtype=np.float64)
                 self._dist_coeffs = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
+            
+            
+            # =========================================================================
+            # PARAMÈTRES E-ARUCO 
+            # =========================================================================
+            # Dictionnaires
+            self._aruco_dict_outer = aruco.getPredefinedDictionary(aruco.DICT_7X7_50)
+            self._aruco_dict_inner = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+            self._aruco_params = aruco.DetectorParameters()
+            
+            # Tailles physiques (en m)
+            self.outer_aruco_size = 0.36  # Le grand marqueur de 36 cm
+            self.inner_aruco_size = 0.04  # Le petit marqueur au centre de 4 cm
+            
+            # Identifiants des marqueurs (selon generate_e_aruco.py)
+            # DICT_7X7_50 ID=1 a le bit central noir → compatible e-ArUco
+            self.outer_aruco_id = 1
+            self.inner_aruco_id = 4
 
+            # États de crop indépendants pour inner et outer
+            # (portées très différentes : outer ~2-5m, inner <1m)
+            self._inner_crop = None
+            self._inner_scale_down = None
+            self._outer_crop = None
+            self._outer_scale_down = None
+            # =========================================================================
+            # FIN E-ARUCO 
+            # =========================================================================
+            
             # Créer le dictionnaire ArUco et les paramètres de détection
             self._aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_250)
             """Dictionnaire ArUco."""
@@ -376,6 +404,174 @@ class Camera:
             return -dy, dx, dz # A vérifier   # combinaisons testees: - + / + + /
         else:
             return dx, dy, dz # A vérifier
+    
+    
+    def _detect_aruco_marker(
+            self,
+            frame: np.ndarray,
+            aruco_dict,
+            target_id: int,
+            marker_size: float,
+            crop_state: str
+        ):
+        """
+        Tente de détecter un marqueur ArUco donné dans la frame.
+        Gère le crop intelligent (ROI + scale-down) pour accélérer la détection.
+
+        Args:
+            frame       : image en niveaux de gris (full-res).
+            aruco_dict  : dictionnaire ArUco à utiliser.
+            target_id   : ID du marqueur recherché.
+            marker_size : taille physique du marqueur en mètres.
+            crop_state  : 'inner' ou 'outer' — sélectionne les variables d'état de crop.
+
+        Returns:
+            (dx, dy, dz, taille_px, corner) si trouvé, None sinon.
+        """
+        last_crop       = getattr(self, f'_{crop_state}_crop')
+        last_scale_down = getattr(self, f'_{crop_state}_scale_down')
+
+        # --- Appliquer le crop si on a une estimation précédente ---
+        if last_crop is not None and last_scale_down is not None and self.DO_CROP:
+            frame_crop = frame[last_crop[0]:last_crop[2], last_crop[1]:last_crop[3]]
+            new_w = frame_crop.shape[1] // last_scale_down
+            new_h = frame_crop.shape[0] // last_scale_down
+            if new_w > 50 and new_h > 50:
+                frame_search = cv2.resize(frame_crop, (new_w, new_h), interpolation=cv2.INTER_AREA)
+            else:
+                # Zone trop petite → reset et recherche plein cadre
+                frame_search = frame
+                last_crop = None
+                setattr(self, f'_{crop_state}_crop',       None)
+                setattr(self, f'_{crop_state}_scale_down', None)
+        else:
+            frame_search = frame
+
+        # --- Détection ArUco ---
+        corners, ids, _ = cv2.aruco.detectMarkers(frame_search, aruco_dict, parameters=self._aruco_params)
+
+        if ids is None:
+            return None
+
+        for aruco_id, corner in zip(ids, corners):
+            if int(aruco_id) != target_id:
+                continue
+
+            # Reconvertir les coordonnées en référentiel de la frame originale
+            if last_crop is not None and last_scale_down is not None and self.DO_CROP:
+                corner = corner.copy()
+                corner[:, :, 0] = corner[:, :, 0] * last_scale_down + last_crop[1]
+                corner[:, :, 1] = corner[:, :, 1] * last_scale_down + last_crop[0]
+
+            # --- Estimation de pose ---
+            _, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
+                [corner], marker_size, self._camera_matrix, self._dist_coeffs
+            )
+            tvec = tvec[0][0]
+
+            # --- Mettre à jour l'état de crop pour la prochaine frame ---
+            bbox = (
+                int(corner[:, :, 1].min()),
+                int(corner[:, :, 0].min()),
+                int(corner[:, :, 1].max()),
+                int(corner[:, :, 0].max()),
+            )
+            taille_px = (bbox[3] - bbox[1], bbox[2] - bbox[0])
+            margin = int(max(taille_px) * 1.5) + self._resolution[0] // 6
+            new_crop = (
+                max(bbox[0] - margin, 0),
+                max(bbox[1] - margin, 0),
+                min(bbox[2] + margin, self._resolution[1]),
+                min(bbox[3] + margin, self._resolution[0]),
+            )
+            new_scale = max(min(min(taille_px) // 32, 10), 1)
+            setattr(self, f'_{crop_state}_crop',       new_crop)
+            setattr(self, f'_{crop_state}_scale_down', new_scale)
+
+            dx, dy, dz = self._camera_to_drone(tvec)
+            return dx, dy, dz, taille_px, corner
+
+        return None
+
+    def analyse_e_aruco(self, affichage: bool = False) -> tuple:
+        """
+        Détecte les marqueurs e-ArUco (outer 7x7 + inner 4x4) dans une frame.
+
+        Stratégie double marqueur (cf. papier Khazetdinov et al., SIBCON 2021) :
+          - Outer (DICT_7X7_50, 36 cm) → détectable de loin (~2-5 m),
+            utilisé pour le centrage en Loiter.
+          - Inner (DICT_4X4_50, 4 cm)  → détectable de près (<~1 m),
+            utilisé pour le guidage Precision Land final.
+
+        Priorité : inner > outer (inner est plus précis, si visible on l'utilise).
+
+        Args:
+            affichage (bool): Affiche la frame si True.
+
+        Returns:
+            tuple (dx, dy, dz, info, frame) :
+              - dx/dy/dz : déplacements en mètres (cf. _camera_to_drone).
+              - info     : "INNER:..." | "OUTER:..." | None (aucun marqueur).
+              - frame    : image gris analysée, None si rien détecté.
+            Retourne (0, 0, 0, None, None) si aucun marqueur détecté.
+        """
+        t_begin = self.time_boot_ms
+
+        raw_frame = self.get_frame(affiche=affichage, timeout=2)
+        if raw_frame is None:
+            return 0, 0, 0, None, None
+
+        frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2GRAY)
+        t_captured = self.time_boot_ms
+
+        # ── 1. Priorité : marqueur INNER (précision finale) ──────────────────
+        result = self._detect_aruco_marker(
+            frame, self._aruco_dict_inner, self.inner_aruco_id,
+            self.inner_aruco_size, 'inner'
+        )
+        if result is not None:
+            dx, dy, dz, taille_px, _ = result
+            t_det = self.time_boot_ms
+            info = (f"INNER:id{self.inner_aruco_id},"
+                    f"sz{taille_px},"
+                    f"rec{round(t_captured - t_begin, 3)},"
+                    f"det{round(t_det - t_captured, 3)}")
+            self.logger.log(
+                f"[e-ArUco INNER] dx={dx:.3f}m dy={dy:.3f}m dz={dz:.3f}m taille={taille_px}",
+                wanna_print=True
+            )
+            return dx, dy, dz, info, frame
+
+        # ── 2. Fallback : marqueur OUTER (centrage loiter) ───────────────────
+        result = self._detect_aruco_marker(
+            frame, self._aruco_dict_outer, self.outer_aruco_id,
+            self.outer_aruco_size, 'outer'
+        )
+        if result is not None:
+            dx, dy, dz, taille_px, _ = result
+            t_det = self.time_boot_ms
+            info = (f"OUTER:id{self.outer_aruco_id},"
+                    f"sz{taille_px},"
+                    f"rec{round(t_captured - t_begin, 3)},"
+                    f"det{round(t_det - t_captured, 3)}")
+            self.logger.log(
+                f"[e-ArUco OUTER] dx={dx:.3f}m dy={dy:.3f}m dz={dz:.3f}m taille={taille_px}",
+                wanna_print=True
+            )
+            return dx, dy, dz, info, frame
+
+        # ── Rien détecté ─────────────────────────────────────────────────────
+        if not self._simulation:
+            try:
+                meta = self._picam2.capture_metadata()
+                self.logger.log(
+                    f"[LOG] Expo={meta['ExposureTime']}µs ISO={meta['AnalogueGain']*100:.0f}",
+                    wanna_print=False
+                )
+            except Exception:
+                pass
+
+        return 0, 0, 0, None, None
 
     # 1ère fonction d'analyse, plus 'simpliste'
     def analyse(self, affichage : bool = False) -> tuple[float, float, float, str | None, np.ndarray | None]:
@@ -394,8 +590,10 @@ class Camera:
         """
         #Image à un instant t
         t_begin = self.time_boot_ms
-        frame = cv2.cvtColor(self.get_frame(affiche=affichage, timeout=2), cv2.COLOR_RGB2GRAY)
-        #threading.Thread(target=self.save_image, args=(frame,)).start()
+        raw = self.get_frame(affiche=affichage, timeout=2)
+        if raw is None:
+            return 0, 0, 0, None, None
+        frame = cv2.cvtColor(raw, cv2.COLOR_RGB2GRAY)
         last_aruco_time = self.time_boot_ms
 
         if self._last_scale_down is not None and self._last_crop is not None and self.DO_CROP:
@@ -420,8 +618,8 @@ class Camera:
 
         if ids is not None:
             for aruco_id, corner in zip(ids, corners):
-                #if aruco_id != self.aruco_id:
-                #    continue
+                # if aruco_id != self.aruco_id:
+                #     continue
 
                 if self._last_crop is not None and self.DO_CROP:
                     corner[:,:,0] *= self._last_scale_down

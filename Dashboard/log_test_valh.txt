@@ -1,5 +1,0 @@
-[INFO] Waiting for HEARTBEAT from (1:1)...
-
-Dans la mythologie nordique, le Valhalla, Valhöll en vieux norrois, Walhalla en allemand, ou encore Valhalle en français, est l'endroit où les valeureux guerriers défunts sont amenés. Il se trouve au sein même du royaume des dieux, « la fortification d'Asgard » où règne Odin. C'est sur les champs de bataille que les Valkyries ou walkyries choisissent et emmènent les hommes les plus braves et les plus valeureux afin de les ramener à Asgard, où Odin les attend pour les préparer à la bataille finale, le Ragnarök.
-
-Ce lieu mythique est principalement connu à travers l'Edda de Snorri et la Saga des rois de Norvège de l'écrivain scandinave Snorri Sturluson. 

@@ -2,7 +2,7 @@
 # lancer le script
 
 sur la station au sol:
-python -m uvicorn app:app --host 0.0.0.0 --port 8000
+python -m uvicorn Dashboard.app:app --host 0.0.0.0 --port 8000
 
 aller sur 0.0.0.0:8000
 
