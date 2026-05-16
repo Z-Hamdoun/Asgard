@@ -87,16 +87,18 @@ def run_mission_3(drone: Valkyrie, esp32: ESP32_Link, config: dict):
         cible_trouvee = drone.executer_quadrillage()
         if not cible_trouvee:
             print("[MISSION 3] Quadrillage terminé sans trouver la cible.")
+            drone.send_cgm(CGM.VALKYRIE_NO_TARGET_FOUND)
             return
 
         resultat = drone.precision_loiter_and_land()
 
         if resultat is True:
             print("[MISSION 3] Atterrissage de précision réussi.")
+            drone.send_cgm(CGM.VALKYRIE_LANDED)
             return
         elif resultat is False:
             print("[MISSION 3] Mission interrompue (fin_mission).")
-            return
+            return  # GCS a déclenché l'arrêt, pas besoin de CGM
         else:  # None --> cible perdue en LOITER --> requadrillage
             print("[MISSION 3] Cible perdue. Relance du quadrillage...")
 

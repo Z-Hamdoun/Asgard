@@ -364,3 +364,19 @@ VALKYRIE_MISSION_INVALID = CGM(
     long_description="CMD:START:N reçu mais N est absent, non entier ou hors limite [1-5]",
     potential_sender="valkyrie"
 )
+
+VALKYRIE_LANDED = CGM(
+    value=107,
+    name="VALKYRIE_LANDED",
+    short_description="Valkyrie a atterri avec succès sur l'ArUco",
+    long_description="Precision Land terminé, moteurs désarmés sur la cible",
+    potential_sender="valkyrie"
+)
+
+VALKYRIE_NO_TARGET_FOUND = CGM(
+    value=409,
+    name="VALKYRIE_NO_TARGET_FOUND",
+    short_description="Valkyrie n'a pas trouvé la cible ArUco après quadrillage complet",
+    long_description="Tous les points du quadrillage parcourus sans détecter l'ArUco cible",
+    potential_sender="valkyrie"
+)
