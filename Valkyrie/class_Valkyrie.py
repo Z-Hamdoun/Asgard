@@ -104,10 +104,11 @@ class Valkyrie(Drone):
                 break
             time.sleep(1)
 
-        # Echech armement
         if not armed:
-            self.send_cgm(CGM.VALKYRIE_TAKEOFF_FAIL)
+            self.send_cgm(CGM.VALKYRIE_ARM_FAIL)
             return False
+
+        self.send_cgm(CGM.VALKYRIE_ARMED)
 
         # Tentative takeoff
         took_off = False
@@ -194,6 +195,7 @@ class Valkyrie(Drone):
             point_actuel += 1
 
         print("\n[VALKYRIE] Quadrillage terminé. Cible non trouvée.")
+        self.return_to_launch()
         return False
 
     def precision_loiter_and_land(self) -> "bool | None":
@@ -229,8 +231,8 @@ class Valkyrie(Drone):
 
                     if target_locked_frames > 60:
                         print("[VALKYRIE] Centré ! Début de descente (LAND)...")
-                        self.change_mode("LAND")
                         self._rc_throttle_pwm = 0
+                        self.change_mode("LAND")
                         break
                 else:
                     target_locked_frames = max(0, target_locked_frames - 1)
@@ -239,6 +241,7 @@ class Valkyrie(Drone):
                     if lost_frames_loiter > _MAX_LOST_FRAMES_LOITER:
                         print("[VALKYRIE] Cible perdue en LOITER (5s) --> requadrillage.")
                         self._precision_active = False
+                        self.change_mode("GUIDED")
                         if self._rc_thread:
                             self._rc_thread.join(timeout=1.0)
                         return None

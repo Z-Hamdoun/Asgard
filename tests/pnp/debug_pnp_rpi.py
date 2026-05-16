@@ -27,7 +27,7 @@ def generate_frames():
         # On récupère les contours ET le masque (thresh)
         vector, get_contours, time = detector.get_landing_vector(frame)
         taches1, taches2, taches3, d = get_contours
-        output_frame, frame_blurred = d
+        frame_blurred, output_frame = d
         print(time)
         # OPTION A : Afficher UNIQUEMENT le masque noir et blanc
 
@@ -64,8 +64,8 @@ def generate_frames():
                 )
         nb_taches = len(taches1)
         texte = f"Taches detectees: {nb_taches}"
-        vector_text = "no vector"
-        if vector is not None:
+        vector_text = "no vector "
+        if vector[0] is not None:
             vector_text = (
                 "x:"
                 + str(round(vector[0], 2))
@@ -74,6 +74,8 @@ def generate_frames():
                 + " z:"
                 + str(round(vector[2], 2))
             )
+        else:
+            vector_text += vector[1]
         # 2. Choisir la couleur (Vert si on en a 5, Rouge sinon)
         couleur_texte = (0, 255, 0) if nb_taches == 5 else (0, 0, 255)
 

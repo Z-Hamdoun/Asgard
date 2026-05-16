@@ -1,0 +1,2 @@
+PLND_EST_TYPE 1 # 0 en Gazebo
+PLND_TYPE 1

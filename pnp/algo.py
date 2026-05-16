@@ -51,7 +51,7 @@ class PnPLandingSystem:
     sait repérer la couleur rose, et calcule la distance en 3D.
     """
 
-    def __init__(self, marker_distance=0.40, net_depth=0.20):
+    def __init__(self, marker_distance=0.33, net_depth=0.20):
         # 1. LA FORME DE LA CIBLE (Modèle 3D)
         # On explique à l'ordinateur à quoi ressemble notre cible dans la vraie vie.
         # marker_distance : La taille du carré (40 cm).
@@ -68,9 +68,17 @@ class PnPLandingSystem:
             dtype=np.float32,
         )
         self.camera_matrix = np.array(
-            [[1000, 0, 640], [0, 1000, 360], [0, 0, 1]], dtype=np.float32
+            [
+                [376.91194, 0.00000, 425.07994],
+                [0.00000, 380.07917, 245.66015],
+                [0.00000, 0.00000, 1.00000],
+            ],
+            dtype=np.float64,
         )
-        self.dist_coeffs = np.zeros((4, 1))
+
+        self.dist_coeffs = np.array(
+            [-0.00284, 0.09082, 0.00265, -0.00063, -0.07958], dtype=np.float64
+        )
 
     def _is_circular(self, cnt, area):
         """Vérifie si une forme est approximativement ronde."""
@@ -193,7 +201,7 @@ class PnPLandingSystem:
         a, b, Taches, d = self.get_contours(frame)
 
         if len(Taches) != 4:
-            return None, (a, b, Taches, d), time.time() - t
+            return (None, "no 4 point"), (a, b, Taches, d), time.time() - t
         points_2d = [tache["center"] for tache in Taches]
 
         try:
@@ -212,7 +220,7 @@ class PnPLandingSystem:
             )
 
             if not success:
-                return None, (a, b, Taches, d), time.time() - t
+                return (None, "nosuccess"), (a, b, Taches, d), time.time() - t
 
             # tvec contient notre position par rapport à la caméra
             x_cam = tvec[0][0]  # Décalage gauche/droite
@@ -228,7 +236,7 @@ class PnPLandingSystem:
 
         except Exception as e:
 
-            return None, (a, b, Taches, d), time.time() - t
+            return (None, str(e)), (a, b, Taches, d), time.time() - t
 
     def _order_points(self, pts):
         """
