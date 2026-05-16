@@ -108,22 +108,10 @@ class Valhalla(Drone):
         return True
 
     def land_and_wait_valkyrie(self):
-        # Envoi message vers valhalla pour qu'il commence sa mission (VIA ESP32)
-        # A implementer apres ...
-        
-        # Atterissage
+        """Atterrit Valhalla pendant que Valkyrie effectue sa mission. L'attente de fin de mission
+        est gérée par le caller via _valkyrie_done (Valhalla/main.py)."""
         for _ in range(5):
             if self.land():
                 self.send_cgm(CGM.VALHALLA_LANDING)
                 break
             time.sleep(1)
-        
-        while True:
-            if self.fin_mission: 
-                return False
-            
-            # Ici valhalla attend le signal de valkyrie (VIA ESP32)
-            # Quand valkyrie lance son signal, valhalla transmet sa position GPS en 10Hz pour que valkyrie
-            # passe en follow
-            
-            time.sleep(0.05)
