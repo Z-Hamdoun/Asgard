@@ -131,7 +131,7 @@ def generate_vector():
         vector = detector.get_landing_vector(frame)
         if not isinstance(vector[2], str):
             print(
-                f"{vector[0]:.3f},{vector[1]:.3f},{vector[2]:.3f}",
+                f"({vector[0]:.3f}, {vector[1]:.3f}, {vector[2]:.3f})",
                 1 / (time.time() - t),
             )
         else:
