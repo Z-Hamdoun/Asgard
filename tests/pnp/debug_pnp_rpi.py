@@ -121,6 +121,18 @@ def generate_frames():
         )
 
 
+def generate_vector():
+    detector = PnPLandingSystem()
+    while True:
+        t = time.time()
+        frame = picam2.capture_array()
+
+        # On récupère les contours ET le masque (thresh)
+        vector = detector.get_landing_vector(frame)
+
+        print(vector, 1 / (time.time() - t))
+
+
 @app.route("/video")
 def video():
     return Response(
@@ -129,4 +141,5 @@ def video():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    # app.run(host="0.0.0.0", port=5000)
+    generate_vector()
