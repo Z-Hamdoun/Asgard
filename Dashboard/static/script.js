@@ -198,6 +198,14 @@ ws.onmessage = function(event) {
             intern_log("RTL forcé envoyé.");
             break;
 
+        case "esp32_pong":
+            intern_log(`✅ ${data.output}`);
+            break;
+
+        case "esp32_timeout":
+            intern_log(`❌ ${data.output}`);
+            break;
+
         case "ask_coords_ack": {
             const data_coords = data.data
 
@@ -603,6 +611,17 @@ coValhBtn.onclick = function(){
     } else {
         intern_log("site offline");
     }   
+}
+
+if (ESP32Btn) {
+    ESP32Btn.onclick = function() {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ command: "esp32-btn", target: "Valhalla" }));
+            intern_log("Test de connectivité ESP32 envoyé...");
+        } else {
+            intern_log("site offline");
+        }
+    };
 }
 
 if (checkEvrnBtn) {

@@ -105,7 +105,7 @@ sudo systemctl stop valkyrie.service
 sudo systemctl disable valyrie.service
 
 # Le paramètre -f permet de suivre les logs en direct
-journalctl -u valkyrie.service -f
+journalctl -u launcher.service -f
 ```
 
 # Mavproxy

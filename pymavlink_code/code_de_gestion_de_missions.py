@@ -208,6 +208,14 @@ PC_DEMANDE_MISSION_5_VALHALLA = CGM(
     potential_sender="pc"
 )
 
+ESP32_PING = CGM(
+    value=209,
+    name="ESP32_PING",
+    short_description="Valhalla envoie un ping ESP32 pour tester la connectivité",
+    long_description="Déclenché par le Dashboard. Valkyrie doit répondre par ESP32_PONG (110).",
+    potential_sender="valhalla"
+)
+
 # ==============================================================================
 # VALHALLA  (sender : valhalla --> GCS)
 # ==============================================================================
@@ -325,6 +333,14 @@ VALKYRIE_ARMED = CGM(
     name="VALKYRIE_ARMED",
     short_description="Valkyrie armé",
     long_description="",
+    potential_sender="valkyrie"
+)
+
+ESP32_PONG = CGM(
+    value=110,
+    name="ESP32_PONG",
+    short_description="Valkyrie répond au ping ESP32 de Valhalla",
+    long_description="Réponse automatique à ESP32_PING (209). Indique que le lien ESP-NOW est fonctionnel.",
     potential_sender="valkyrie"
 )
 
