@@ -12,6 +12,18 @@ import pymavlink_code.code_de_gestion_de_missions as CGM
 
 CONFIG_FILE = "Valhalla/mission_config.json"
 
+# CGMs qui signalent la fin de la mission Valkyrie (succès ou échec terminal)
+_VALKYRIE_TERMINAL_CGMS = frozenset({
+    CGM.VALKYRIE_LANDED.value,
+    CGM.VALKYRIE_NO_TARGET_FOUND.value,
+    CGM.VALKYRIE_MODE_CHANGE_FAIL.value,
+    CGM.VALKYRIE_TAKEOFF_FAIL.value,
+})
+
+# Event + résultat partagés entre le thread relais et le runner de mission
+_valkyrie_done   = threading.Event()
+_valkyrie_result = [None]  # liste pour etre mutable depuis le thread relais
+
 # Valeurs par défaut appliquees si un paramètre est absent ou null
 CONFIG_DEFAULTS = {
     "alt_quadrillage":    5,
@@ -71,21 +83,27 @@ def run_relais_thread(drone, esp_link):
     """
     Ce thread tourne en permanence sur Valhalla.
     Il écoute les messages de Valkyrie (ESP-NOW) et les transfert à la GCS (MAVLink).
+    Quand un CGM terminal de Valkyrie arrive, il signale aussi _valkyrie_done.
     """
     print("[RELAIS] Thread de transfert ESP-NOW <-> MAVLink activé.")
-    
+
     while True:
         cgm_recu_int = esp_link.get_and_clear_cgm()
-        
+
         if cgm_recu_int is not None:
             objet_cgm = CGM.CGM.get(cgm_recu_int)
-            
+
             if objet_cgm is not None and objet_cgm.name != "EMPTY":
                 print(f"[RELAIS] Transfert du CGM {objet_cgm.name} ({cgm_recu_int}) vers la GCS (PC)...")
-                drone.send_cgm(objet_cgm) 
+                drone.send_cgm(objet_cgm)
             else:
                 print(f"[RELAIS-ERREUR] Code CGM {cgm_recu_int} inconnu dans la bibliothèque locale !")
-            
+
+            # Signal de fin de mission Valkyrie pour débloquer run_mission_3
+            if cgm_recu_int in _VALKYRIE_TERMINAL_CGMS:
+                _valkyrie_result[0] = cgm_recu_int
+                _valkyrie_done.set()
+
         time.sleep(0.1)
 
 # ==============================================================================
@@ -199,14 +217,30 @@ def run_mission_2(drone: Valhalla, esp32: ESP32_Link, config: dict):
 
 
 def run_mission_3(drone: Valhalla, esp32: ESP32_Link, config: dict):
-    """Mission 3 : Valkyrie takeoff, Fait un Quadrillage spiral, Cherche code aruco puis precision land sur lui"""
+    """Mission 3 : envoie config + ordre à Valkyrie, puis attend sa fin via ESP32."""
     print("[MISSION 3] Valkyrie quadrillage et Aruco Precision Land")
+
+    _valkyrie_done.clear()
+    _valkyrie_result[0] = None
+
     esp32.send_config(config)
     time.sleep(1)
     print("[MISSION 3] Ordre décollage Valkyrie...")
     esp32.send_start_mission(num_mission=3)
-    # Apres Valhalla doit ecouter valkyrie et attendre la fin de sa mission ou un failsafe.
-    # A IMPLEMENTER
+
+    print("[MISSION 3] En attente de la fin de mission Valkyrie (max 10min)...")
+    completed = _valkyrie_done.wait(timeout=600.0)
+
+    if not completed:
+        print("[MISSION 3] Timeout - aucune réponse de Valkyrie. Retour à l'attente.")
+        return
+
+    cgm = _valkyrie_result[0]
+    if cgm == CGM.VALKYRIE_LANDED.value:
+        print("[MISSION 3] Valkyrie a atterri avec succès sur l'ArUco !")
+    else:
+        obj = CGM.CGM.get(cgm)
+        print(f"[MISSION 3] Mission Valkyrie terminée en échec : {obj.name if obj else cgm}")
 
 
 def run_mission_4(drone: Valhalla, esp32: ESP32_Link, config: dict):
