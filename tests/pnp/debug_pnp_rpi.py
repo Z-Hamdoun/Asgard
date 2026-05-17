@@ -166,7 +166,7 @@ def testcaméraandgenerate_vector():
     while True:
         t = time.time()
         frame = picam2.capture_array()
-        vector = detector.get_landing_vector(frame)
+        vector = detector.get_landing_vector(frame, areamin=4)
         if not isinstance(vector[2], str):
             couleur_texte = (0, 255, 0)
             vector_text = f"({vector[0]:.3f}, {vector[1]:.3f}, {vector[2]:.3f})"
