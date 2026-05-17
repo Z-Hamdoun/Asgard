@@ -115,7 +115,9 @@ class ESP32_Link:
                     if ligne:
                         self._traiter_message(ligne)
             except Exception as e:
-                pass
+                print(f"[ESP32-UART] Erreur de lecture : {e}")
+                self.connected = False
+                break
             time.sleep(0.01)
     
     def _ecoute_continue_udp(self):

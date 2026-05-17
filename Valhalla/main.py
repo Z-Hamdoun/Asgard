@@ -398,7 +398,7 @@ if __name__ == "__main__":
     # valhalla = Valhalla(address="127.0.0.1:14550", target_system=1)  # SITL
 
     print("[MAIN] Connexion ESP32...")
-    esp32 = ESP32_Link(port="/dev/ttyAMA2", baudrate=115200, mock_simulation=False,
+    esp32 = ESP32_Link(port="/dev/ttyACM0", baudrate=115200, mock_simulation=False,
                        udp_rx_port=5001, udp_tx_port=5002)
     esp32.connect()
 
