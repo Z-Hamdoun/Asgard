@@ -14,9 +14,19 @@ import numpy as np
 
 app = Flask(__name__)
 picam2 = Picamera2()
+video_config = picam2.create_video_configuration(
+    sensor={"output_size": (4608, 2592), "bit_depth": 10},
+    main={"size": (WIDTH, HEIGHT), "format": "RGB888"},
+    controls={"FrameRate": 60},
+    buffer_count=6,
+)
 
-picam2.configure(picam2.create_video_configuration(main={"size": (848, 480)}))
+picam2.configure(video_config)
+
 picam2.start()
+
+# FORCE FULL SENSOR CROP
+picam2.set_controls({"ScalerCrop": (0, 0, 4608, 2592)})
 
 
 def generate_frames():
