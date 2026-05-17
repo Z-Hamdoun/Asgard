@@ -54,7 +54,10 @@ class ESP32_Link:
                 return False
             
         try:
-            self.serial_conn = serial.Serial(self.port, self.baudrate, timeout=1)
+            self.serial_conn = serial.Serial(
+                self.port, self.baudrate, timeout=1,
+                dsrdtr=False, rtscts=False  # évite le reset auto de l'ESP32-C3 à l'ouverture
+            )
             self.connected = True
             print(f"[ESP32] Connecté avec succès sur {self.port}")
             
