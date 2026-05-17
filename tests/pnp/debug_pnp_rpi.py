@@ -161,10 +161,55 @@ def generate_vector():
             print(vector[2])
 
 
+def testcaméraandgenerate_vector():
+    detector = PnPLandingSystem()
+    while True:
+        t = time.time()
+        frame = picam2.capture_array()
+        vector = detector.get_landing_vector(frame)
+        if not isinstance(vector[2], str):
+            couleur_texte = (0, 255, 0)
+            vector_text = f"({vector[0]:.3f}, {vector[1]:.3f}, {vector[2]:.3f})"
+        else:
+            couleur_texte = (0, 0, 255)
+            vector_text = vector[2]
+        print(
+            vector_text,
+            1 / (time.time() - t),
+        )
+        output_frame = frame
+
+        cv2.putText(
+            output_frame,
+            vector_text,
+            (20, 80),  # Position (x, y) en pixels depuis le coin haut-gauche
+            cv2.FONT_HERSHEY_SIMPLEX,  # Police de caractères
+            0.8,  # Taille de la police
+            couleur_texte,  # Couleur (BGR)
+            2,  # Épaisseur du trait
+            cv2.LINE_AA,  # Antialiasing pour un texte plus lisse
+        )
+        ret, buffer = cv2.imencode(".jpg", output_frame)
+        if not ret:
+            continue
+        yield (
+            b"--frame\r\n"
+            b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
+        )
+
+
 @app.route("/debug_pnp")
-def video():
+def debug():
     return Response(
         generate_frames(), mimetype="multipart/x-mixed-replace; boundary=frame"
+    )
+
+
+@app.route("/video")
+def video():
+    return Response(
+        testcaméraandgenerate_vector(),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
     )
 
 
