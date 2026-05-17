@@ -121,6 +121,19 @@ def generate_frames():
         )
 
 
+def testcaméra():
+    while True:
+        frame = picam2.capture_array()
+        output_frame = frame
+        ret, buffer = cv2.imencode(".jpg", output_frame)
+        if not ret:
+            continue
+        yield (
+            b"--frame\r\n"
+            b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
+        )
+
+
 def generate_vector():
     detector = PnPLandingSystem()
     while True:
@@ -138,13 +151,18 @@ def generate_vector():
             print(vector[2])
 
 
-@app.route("/video")
+@app.route("/debug_pnp")
 def video():
     return Response(
         generate_frames(), mimetype="multipart/x-mixed-replace; boundary=frame"
     )
 
 
+@app.route("/test_camera")
+def cam():
+    return Response(testcaméra(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
 if __name__ == "__main__":
-    # app.run(host="0.0.0.0", port=5000)
-    generate_vector()
+    app.run(host="0.0.0.0", port=5000)
+    # generate_vector()
