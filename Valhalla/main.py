@@ -196,6 +196,31 @@ async def _fetch_config_async(ip_ordis: list[str], timeout_s: float = 60.0) -> b
                                 config_received = True
                                 print("[WIFI] Config reçue. Déconnexion.")
                                 break  # Config obtenue --> on sort du while
+                        elif command == "print_log":
+                            repo_root = os.path.abspath(
+                                os.path.join(os.path.dirname(__file__), ".")
+                            )
+                            log_path = os.path.join(repo_root, "log_test_valh.txt")
+                            if os.path.exists(log_path):
+                                try:
+                                    with open(log_path, "r", encoding="utf-8") as f:
+                                        log_txt = f.read()
+                                except Exception as e:
+                                    log_txt = f"Erreur: {e}"
+                            else:
+                                log_txt = "log_test_valh.txt pas trouvé"
+
+                            await ws.send(
+                                json.dumps(
+                                    {
+                                        "type": "log",
+                                        "command": "log_ack",
+                                        "source": "Valhalla",
+                                        "output": log_txt,
+                                    }
+                                )
+                            )
+                            break
 
                         elif command == "git_pull":
                             repo_root = os.path.abspath(
