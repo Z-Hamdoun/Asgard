@@ -90,8 +90,11 @@ class ESP32_Link:
     
     def send_cgm(self, cgm_value: int):
         """Envoie un code de mission (CGM) via ESP-NOW"""
+        if not self.connected:
+            print(f"[ESP32-TX] ERREUR : non connecté, CGM {cgm_value} non envoyé !")
+            return
         self._write_serial(f"CGM:{cgm_value}\n")
-        print(f"[ESP32-TX] CGM envoyé vers Valhalla: {cgm_value}")
+        print(f"[ESP32-TX] CGM {cgm_value} envoyé.")
 
     def _write_serial(self, message: str):
         if not self.connected: 
