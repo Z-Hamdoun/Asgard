@@ -212,6 +212,17 @@ def fetch_config_from_dashboard(ip_ordi: str, esp32: ESP32_Link, timeout_s: floa
 # EXÉCUTION DES MISSIONS
 # ==============================================================================
 
+_VALKYRIE_CONFIG_KEYS = {
+    "taille_quadrillage", "pas_quadrillage", "alt_quadrillage",
+    "square_pnp_size", "taille_aruco", "id_aruco",
+    "camera_type", "camera_resolution",
+}
+
+def _config_valkyrie(config: dict) -> dict:
+    """Filtre la config pour Valkyrie : exclut lat/lng (inutiles + trop lourds pour ESP-NOW)."""
+    return {k: v for k, v in config.items() if k in _VALKYRIE_CONFIG_KEYS}
+
+
 def _check_coords(config: dict, drone: Valhalla) -> bool:
     """Vérifie que les coordonnées GPS cibles sont présentes. Envoie un CGM d'erreur sinon."""
     if config.get("lat_mission") is None or config.get("lng_mission") is None:
@@ -236,7 +247,7 @@ def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
             print("[MISSION 1] Point atteint. Envoi config à Valkyrie...")
             _valkyrie_done.clear()
             _valkyrie_result[0] = None
-            esp32.send_config(config)
+            esp32.send_config(_config_valkyrie(config))
             time.sleep(1.0)
             print("[MISSION 1] Ordre décollage Valkyrie...")
             drone.send_cgm(CGM.DEMANDE_TAKEOFF_VALKYRIE)
@@ -271,7 +282,7 @@ def run_mission_3(drone: Valhalla, esp32: ESP32_Link, config: dict):
     _valkyrie_done.clear()
     _valkyrie_result[0] = None
 
-    esp32.send_config(config)
+    esp32.send_config(_config_valkyrie(config))
     time.sleep(1)
     print("[MISSION 3] Ordre décollage Valkyrie...")
     drone.send_cgm(CGM.DEMANDE_TAKEOFF_VALKYRIE)
@@ -342,7 +353,7 @@ def main_loop(drone: Valhalla, esp32: ESP32_Link, ip_ordi: str):
             print("[CGM] PC_CONFIGURE_VALHALLA reçu. Connexion WiFi...")
             success = fetch_config_from_dashboard(ip_ordi, esp32, timeout_s=60.0)
             if success:
-                esp32.send_config(read_config())  # Relai immediat vers Valkyrie
+                esp32.send_config(_config_valkyrie(read_config()))  # Relai immediat vers Valkyrie
                 drone.send_cgm(CGM.VALHALLA_CONFIG_OK)
                 print("[CGM] Configuration OK. Retour à l'attente.")
             else:
