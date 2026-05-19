@@ -2,6 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from contextlib import asynccontextmanager
 
 import sys, os, socket, asyncio
 
@@ -56,8 +57,29 @@ class ConnectionManager:
             await connection.send_json(message)
 
 
+# --- MONITORING CGM ---
+async def _cgm_monitor():
+    """Draine la queue CGM du GCS et pousse chaque événement vers le Dashboard."""
+    while True:
+        gcs = _gcs
+        if gcs:
+            try:
+                while True:
+                    event = gcs.cgm_event_queue.get_nowait()
+                    await manager.send_to_target(event, "dashboard")
+            except Exception:
+                pass
+        await asyncio.sleep(0.1)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    asyncio.create_task(_cgm_monitor())
+    yield
+
+
 # --- INITIALISATION DE L'APPLICATION ---
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 manager = ConnectionManager()
 
 # GCS initialisé en lazy dans un thread — ne bloque pas l'event loop asyncio

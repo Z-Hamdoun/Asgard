@@ -209,6 +209,10 @@ ws.onmessage = function(event) {
             intern_log(`❌ ${data.output}`);
             break;
 
+        case "cgm_event":
+            addCgmLog(data);
+            break;
+
         case "ask_coords_ack": {
             const data_coords = data.data
 
@@ -320,11 +324,38 @@ function changelog() {
 
 document.getElementById("choix").addEventListener("change", changelog);
 function intern_log(log){
-        const line = document.createElement("div");
-        line.style.color = "#5cb85c"
-        line.textContent = log;
-        divconsole.appendChild(line);
-        divconsole.scrollTop = divconsole.scrollHeight;
+    const line = document.createElement("div");
+    line.style.color = "#5cb85c";
+    line.textContent = log;
+    divconsole.appendChild(line);
+    divconsole.scrollTop = divconsole.scrollHeight;
+}
+
+function addCgmLog(data) {
+    const LEVEL_COLORS = {
+        SUCCESS: "#5cb85c",
+        INFO:    "#17a2b8",
+        WARN:    "#f0ad4e",
+        FAIL:    "#d9534f",
+        CRIT:    "#cc44cc",
+    };
+    const sender   = (data.cgm_sender   || "SYSTEM").padEnd(8);
+    const level    = (data.cgm_level    || "???").padEnd(7);
+    const category = (data.cgm_category || "SYSTEM").padEnd(7);
+    const color    = LEVEL_COLORS[data.cgm_level] || "#cccccc";
+    const desc     = (data.cgm_description || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+    const line = document.createElement("div");
+    line.style.margin = "0";
+    line.style.fontFamily = "monospace";
+    line.innerHTML =
+        `<span style="color:#999">[${sender}]</span>` +
+        `<span style="color:${color};font-weight:bold">[${level}]</span>` +
+        `<span style="color:#9b59b6">[${category}]</span> ` +
+        `<span style="color:#ddd">${desc}</span>`;
+
+    divconsole.appendChild(line);
+    divconsole.scrollTop = divconsole.scrollHeight;
 }
 
 // CONSOLE
