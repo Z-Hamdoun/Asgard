@@ -34,8 +34,18 @@ class ESP32_Link:
         self.valhalla_lat = None
         self.valhalla_lon = None
         self.valhalla_alt = None
-        
+
+        # Watchdog de reconnexion automatique
+        self.max_retries = 5
+        self.retry_interval = 5.0
+        self.reconnect_exhausted = threading.Event()
+        self._on_fail_cb = None  # callable(attempt: int) appelé à chaque tentative échouée
+
         self.lock = threading.Lock()
+
+    def set_fail_callback(self, cb):
+        """cb(attempt) est appelé à chaque tentative de reconnexion échouée."""
+        self._on_fail_cb = cb
 
     def connect(self) -> bool:
         if self.mock:
@@ -112,8 +122,9 @@ class ESP32_Link:
     
     
 
-    # Methodes de reception 
+    # Methodes de reception
     def _ecoute_continue(self):
+        error_triggered = False
         while self.connected:
             try:
                 if self.serial_conn.in_waiting > 0:
@@ -123,8 +134,36 @@ class ESP32_Link:
             except Exception as e:
                 print(f"[ESP32-UART] Erreur de lecture : {e}")
                 self.connected = False
+                error_triggered = True
                 break
             time.sleep(0.01)
+        if error_triggered:
+            threading.Thread(target=self._watchdog, daemon=True).start()
+
+    def _watchdog(self):
+        """Tente de reconnecter l'ESP32 après une déconnexion inattendue."""
+        if self.serial_conn:
+            try:
+                self.serial_conn.close()
+            except Exception:
+                pass
+            self.serial_conn = None
+
+        for attempt in range(1, self.max_retries + 1):
+            print(f"[ESP32-WD] Tentative de reconnexion {attempt}/{self.max_retries}...")
+            if self._on_fail_cb:
+                try:
+                    self._on_fail_cb(attempt)
+                except Exception:
+                    pass
+            time.sleep(self.retry_interval)
+            if self.connect():
+                print(f"[ESP32-WD] Reconnecté après {attempt} tentative(s).")
+                self.reconnect_exhausted.clear()
+                return
+
+        print(f"[ESP32-WD] Reconnexion échouée après {self.max_retries} tentatives. ESP32 considéré perdu.")
+        self.reconnect_exhausted.set()
     
     def _ecoute_continue_udp(self):
         while self.connected:
