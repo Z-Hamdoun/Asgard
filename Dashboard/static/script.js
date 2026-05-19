@@ -86,7 +86,7 @@ ws.onmessage = function(event) {
         line.style.margin = "0";                 // Retire l'espacement par défaut
         line.textContent = text;
         container.appendChild(line);
-        container.scrollTop = container.scrollHeight;
+        line.scrollIntoView({ block: 'nearest' });
     };
 
     const updateLatency = (id, sentAt) => {
@@ -357,7 +357,7 @@ function updateCursor(event) {
         const nouvelleLigne = document.createElement("div");
         nouvelleLigne.textContent = "helics:~$" + input.value;
         divconsole.appendChild(nouvelleLigne);
-        divconsole.scrollTop = divconsole.scrollHeight;
+        line.scrollIntoView({ block: 'nearest' });
         const command = {
                 command: "terminal_log",
                 target: "Valkyrie",
