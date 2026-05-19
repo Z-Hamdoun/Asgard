@@ -51,6 +51,22 @@ def update_config(new_data: dict):
 
 
 # ==============================================================================
+# FAILSAFE ESP32
+# ==============================================================================
+def check_esp32_or_rtl(esp32: ESP32_Link, drone) -> bool:
+    """
+    À appeler avant toute opération qui dépend physiquement de l'ESP32
+    (pince, follow mode, etc.). Si le watchdog a épuisé ses tentatives, déclenche RTL.
+    Retourne False si RTL déclenché, True si ESP32 opérationnel.
+    """
+    if esp32.reconnect_exhausted.is_set():
+        print("[FAILSAFE] ESP32 perdu irrémédiablement. RTL déclenché.")
+        drone.rtl()
+        return False
+    return True
+
+
+# ==============================================================================
 # MISSIONS
 # ==============================================================================
 def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict):
@@ -201,6 +217,8 @@ if __name__ == "__main__":
         drone.send_cgm(CGM.VALKYRIE_ESP32_FAIL)
         time.sleep(5)
     print("[MAIN] ESP32 connecté.")
+
+    esp32.set_fail_callback(lambda _: drone.send_cgm(CGM.VALKYRIE_ESP32_FAIL))
 
     drone.set_esp32_link(esp32)
 

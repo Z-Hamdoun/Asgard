@@ -209,6 +209,22 @@ def fetch_config_from_dashboard(ip_ordi: str, esp32: ESP32_Link, timeout_s: floa
         loop.close()
 
 # ==============================================================================
+# FAILSAFE ESP32
+# ==============================================================================
+def check_esp32_or_rtl(esp32: ESP32_Link, drone) -> bool:
+    """
+    À appeler avant toute opération qui dépend physiquement de l'ESP32
+    (pince, follow mode, etc.). Si le watchdog a épuisé ses tentatives, déclenche RTL.
+    Retourne False si RTL déclenché, True si ESP32 opérationnel.
+    """
+    if esp32.reconnect_exhausted.is_set():
+        print("[FAILSAFE] ESP32 perdu irrémédiablement. RTL déclenché.")
+        drone.rtl()
+        return False
+    return True
+
+
+# ==============================================================================
 # EXÉCUTION DES MISSIONS
 # ==============================================================================
 
@@ -418,6 +434,8 @@ if __name__ == "__main__":
         valhalla.send_cgm(CGM.VALHALLA_ESP32_FAIL)
         time.sleep(5)
     print("[MAIN] ESP32 connecté.")
+
+    esp32.set_fail_callback(lambda _: valhalla.send_cgm(CGM.VALHALLA_ESP32_FAIL))
 
     # Thread relais permanent (meurt avec le process principal)
     threading.Thread(target=run_relais_thread, args=(valhalla, esp32), daemon=True).start()
