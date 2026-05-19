@@ -120,23 +120,25 @@ def run_relais_thread(drone, esp_link):
 # ==============================================================================
 async def _fetch_config_async(ip_ordi: str, esp32: ESP32_Link, timeout_s: float = 60.0) -> bool:
     """
-    Se connecte au Dashboard en essayant les IPs de la liste, attend une config
-    ou des commandes, puis se déconnecte proprement.
+    Se connecte au Dashboard, attend une config ou des commandes,
+    puis se déconnecte proprement.
+    Retourne True si une config a bien été reçue.
     """
+    uri = f"ws://{ip_ordi}:8000/ws/Valhalla"
+    print(f"[WIFI] Connexion ponctuelle à {uri}...")
     config_received = False
     deadline = time.time() + timeout_s
 
     try:
         async with websockets.connect(uri, close_timeout=2) as ws:
             print("[WIFI] Connecté. En attente de la configuration...")
-            # Signale au Dashboard que Valhalla est pret
             await ws.send(json.dumps({"type": "status", "command": "valhalla_ready", "source": "Valhalla"}))
 
-                while time.time() < deadline:
-                    try:
-                        raw = await asyncio.wait_for(ws.recv(), timeout=1.0)
-                        data = json.loads(raw)
-                        command = data.get("command")
+            while time.time() < deadline:
+                try:
+                    raw = await asyncio.wait_for(ws.recv(), timeout=1.0)
+                    data = json.loads(raw)
+                    command = data.get("command")
 
                     if data.get("type") == "ping":
                         await ws.send(json.dumps({"type": "pong", "source": "Valhalla",
@@ -149,7 +151,7 @@ async def _fetch_config_async(ip_ordi: str, esp32: ESP32_Link, timeout_s: float 
                             await ws.send(json.dumps({"type": "status", "command": "config_ack", "source": "Valhalla"}))
                             config_received = True
                             print("[WIFI] Config reçue. Déconnexion.")
-                            break  # Config obtenue --> on sort
+                            break
 
                     elif command == "git_pull":
                         try:
@@ -166,7 +168,6 @@ async def _fetch_config_async(ip_ordi: str, esp32: ESP32_Link, timeout_s: float 
                         _esp32_pong_event.clear()
                         _esp32_ping_sent_at[0] = time.time()
                         esp32.send_cgm(CGM.ESP32_PING.value)
-                        # Attente asynchrone du pong (timeout 5s)
                         pong_ok = False
                         for _ in range(50):
                             await asyncio.sleep(0.1)
@@ -185,20 +186,15 @@ async def _fetch_config_async(ip_ordi: str, esp32: ESP32_Link, timeout_s: float 
                                                       "source": "Valhalla",
                                                       "output": "ESP32 Link TIMEOUT (>5s)"}))
 
-                        elif command == "disconnect":
-                            print("[WIFI] Déconnexion demandée par le Dashboard.")
-                            break
+                    elif command == "disconnect":
+                        print("[WIFI] Déconnexion demandée par le Dashboard.")
+                        break
 
-                    except asyncio.TimeoutError:
-                        pass  # Normal, on reboucle
+                except asyncio.TimeoutError:
+                    pass  # Normal, on reboucle
 
-                # Si on est sorti du while parce qu'on a eu la config, on coupe la boucle for des IPs
-                if config_received:
-                    break
-
-        except Exception as e:
-            # MODIFICATION : Si l'IP échoue, on l'affiche et le 'for' passe naturellement à la suivante
-            print(f"[WIFI] Erreur de connexion sur {ip_ordi} : {e}")
+    except Exception as e:
+        print(f"[WIFI] Erreur de connexion : {e}")
 
     return config_received
 
