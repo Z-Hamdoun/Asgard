@@ -27,6 +27,7 @@ const checkEvrnBtn = document.getElementById("check-evrn-btn")  // null si absen
 const input = document.getElementById('term-input');
 const cursor = document.getElementById('cursor');
 const divconsole = document.getElementById('console');
+const consoleContainer = document.getElementById('console-container');
 
 // ==========================================
 // INITIALISATION
@@ -86,7 +87,8 @@ ws.onmessage = function(event) {
         line.style.margin = "0";                 // Retire l'espacement par défaut
         line.textContent = text;
         container.appendChild(line);
-        line.scrollIntoView({ block: 'nearest' });
+        const scrollEl = containerId === 'console' ? consoleContainer : container;
+        scrollEl.scrollTop = scrollEl.scrollHeight;
     };
 
     const updateLatency = (id, sentAt) => {
@@ -347,7 +349,7 @@ function addCgmLog(data) {
         `<span style="color:#ddd">${desc}</span>`;
 
     divconsole.appendChild(line);
-    divconsole.scrollTop = divconsole.scrollHeight;
+    consoleContainer.scrollTop = consoleContainer.scrollHeight;
 }
 
 // CONSOLE
@@ -357,7 +359,7 @@ function updateCursor(event) {
         const nouvelleLigne = document.createElement("div");
         nouvelleLigne.textContent = "helics:~$" + input.value;
         divconsole.appendChild(nouvelleLigne);
-        line.scrollIntoView({ block: 'nearest' });
+        consoleContainer.scrollTop = consoleContainer.scrollHeight;
         const command = {
                 command: "terminal_log",
                 target: "Valkyrie",
