@@ -318,13 +318,6 @@ function changelog() {
 }
 
 document.getElementById("choix").addEventListener("change", changelog);
-function intern_log(log){
-    const line = document.createElement("div");
-    line.style.color = "#5cb85c";
-    line.textContent = log;
-    divconsole.appendChild(line);
-    divconsole.scrollTop = divconsole.scrollHeight;
-}
 
 function uiLog(sender, level, category, description) {
     addCgmLog({ cgm_sender: (sender || "GCS").toUpperCase(), cgm_level: level, cgm_category: category, cgm_description: description });
@@ -371,9 +364,6 @@ function updateCursor(event) {
                 output:input.value
             };
         ws.send(JSON.stringify(command))
-        
-        const container = document.getElementById("console-container");
-        
         input.value = "";
     }
     const textBeforeCursor = input.value.substring(0, input.selectionStart);
@@ -447,67 +437,38 @@ mainBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
         const selectedMission = document.querySelector('input[name="mission"]:checked')?.value ?? "mission1";
         const numMission = parseInt(selectedMission.replace("mission", ""), 10);
-
-        ws.send(JSON.stringify({
-            command: "main_mission",
-            target: "Valhalla",
-            num_mission: numMission
-        }));
-        intern_log(`Requête d'exécution mission ${numMission} envoyée.`);
+        ws.send(JSON.stringify({ command: "main_mission", target: "Valhalla", num_mission: numMission }));
+        uiLog("GCS", "INFO", "MISSION", `Lancement mission ${numMission}`);
     } else {
-        intern_log("site offline");
+        uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
     }
 };
 
 landBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
-        const command = {
-            command: "urgency_landing",
-            target: "Valkyrie"
-        };
-        
-        intern_log("requête d'atterissage envoyé");
-        ws.send(JSON.stringify(command));
-        
-
+        ws.send(JSON.stringify({ command: "urgency_landing", target: "Valkyrie" }));
+        uiLog("GCS", "WARN", "FLIGHT", "Requête d'atterrissage envoyée");
     } else {
-        intern_log("site offline");
+        uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
     }
 };
 
 stopBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
-        const command = {
-            command: "urgency_stop",
-            target: "Valkyrie"
-        };
-        intern_log("requête d'arrêt d'urgence envoyé");
-        ws.send(JSON.stringify(command));
-        
-
+        ws.send(JSON.stringify({ command: "urgency_stop", target: "Valkyrie" }));
+        uiLog("GCS", "WARN", "FLIGHT", "Requête d'arrêt d'urgence envoyée");
     } else {
-        intern_log("site offline");
+        uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
     }
 };
 
-
 printBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
-        const commandvalk = {
-            command: "print_log",
-            target: "Valkyrie"
-        };
-        const commandvalh = {
-            command: "print_log",
-            target: "Valhalla"
-        };
-        intern_log("requête de log envoyé");
-        ws.send(JSON.stringify(commandvalk));
-        ws.send(JSON.stringify(commandvalh));
-        
-
+        ws.send(JSON.stringify({ command: "print_log", target: "Valkyrie" }));
+        ws.send(JSON.stringify({ command: "print_log", target: "Valhalla" }));
+        uiLog("GCS", "INFO", "SYSTEM", "Requête de log envoyée");
     } else {
-        intern_log("site offline");
+        uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
     }
 };
 
@@ -540,9 +501,9 @@ requestBtn.onclick = function() {
     }
     if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ command: "ask_config", target: "Valhalla" }));
-        intern_log("Requête de configuration envoyée...");
+        uiLog("GCS", "INFO", "CONFIG", "Requête de configuration envoyée");
     } else {
-        intern_log("site offline");
+        uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
     }
 }
 
@@ -550,11 +511,7 @@ sendBtn.onclick = function() {
     const getInt = (id) => parseInt(document.getElementById(id)?.value ?? "0", 10);
     const camBtn = document.querySelector('input[name="cam-choice"]:checked');
     const resoBtn = document.querySelector('input[name="reso-choice"]:checked');
-
-    const dico_reso = {
-        "low": [848, 480],
-        "high": [1696, 960]
-    };
+    const dico_reso = { "low": [848, 480], "high": [1696, 960] };
     const configData = {
         "taille_quadrillage": getInt("taille_quadrillage"),
         "pas_quadrillage":    getInt("pas_quadrillage"),
@@ -562,108 +519,78 @@ sendBtn.onclick = function() {
         "square_pnp_size":    getInt("square_pnp_size"),
         "taille_aruco":       [getInt("taille_aruco1"), getInt("taille_aruco2")],
         "id_aruco":           [getInt("id_aruco1"), getInt("id_aruco2")],
-        "camera_type": camBtn.value,
-        "camera_resolution": dico_reso[resoBtn.value],
+        "camera_type":        camBtn.value,
+        "camera_resolution":  dico_reso[resoBtn.value],
     };
-
-    console.log(configData); 
     if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ command: "update_config", target: "Valhalla", data: configData }));
         ws.send(JSON.stringify({ command: "update_config", target: "Valkyrie", data: configData }));
-        intern_log("Configuration envoyée.");
+        uiLog("GCS", "INFO", "CONFIG", "Configuration envoyée");
     } else {
-        intern_log("site offline");
+        uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
     }
 }
-
-
 
 sendCoordsBTN.onclick = function() {
     if (marker) {
         const position = marker.getLatLng();
-        const configData = {
-            "lat_mission":position.lat,
-            "lng_mission":position.lng
-        };
-        
-        const messagevalh = {
-            "command": "update_coords",
-            "target": "Valhalla",
-            "data": configData // On intègre nos paramètres ici
-        };
-
+        const configData = { "lat_mission": position.lat, "lng_mission": position.lng };
         if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify(messagevalh));
-            intern_log("Destination envoyée : " + position.lat + ", " + position.lng);
-    
+            ws.send(JSON.stringify({ command: "update_coords", target: "Valhalla", data: configData }));
+            uiLog("GCS", "INFO", "MISSION", `Destination envoyée : ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}`);
         } else {
-            intern_log("site offline");
+            uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
         }
     } else {
-        intern_log("Aucun point sélectionné. Cliquez sur la carte d'abord.");
+        uiLog("GCS", "WARN", "MISSION", "Aucun point sélectionné — cliquez sur la carte");
     }
 }
 
 requestCoordsBTN.onclick = function() {
-    const message = {
-        "command": "ask_coords",
-        "target": "Valkyrie"
-    };
-
     if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(message));
-        intern_log("Envoi de la requette de configuration");
+        ws.send(JSON.stringify({ command: "ask_coords", target: "Valkyrie" }));
+        uiLog("GCS", "INFO", "MISSION", "Requête de coordonnées envoyée");
     } else {
-        intern_log("site offline");
+        uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
     }
 }
 
-coValkBtn.onclick = function(){
-    const message = {
-        "command": "co_V",
-        "target": "Valkyrie"
-    };
-
+coValkBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(message));
-        intern_log("Check Valkyrie");
+        ws.send(JSON.stringify({ command: "co_V", target: "Valkyrie" }));
+        uiLog("GCS", "INFO", "SYSTEM", "Test connexion Valkyrie");
     } else {
-        intern_log("site offline");
-    }   
+        uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
+    }
 }
 
-coValhBtn.onclick = function(){
-    const message = {
-        "command": "co_V",
-        "target": "Valhalla"
-    };
-
+coValhBtn.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(message));
-        intern_log("Check Valhalla");
+        ws.send(JSON.stringify({ command: "co_V", target: "Valhalla" }));
+        uiLog("GCS", "INFO", "SYSTEM", "Test connexion Valhalla");
     } else {
-        intern_log("site offline");
-    }   
+        uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
+    }
 }
 
 if (ESP32Btn) {
     ESP32Btn.onclick = function() {
         if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ command: "esp32-btn", target: "Valhalla" }));
-            intern_log("Test de connectivité ESP32 envoyé...");
+            uiLog("GCS", "INFO", "ESP32", "Test de connectivité ESP32 envoyé");
         } else {
-            intern_log("site offline");
+            uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
         }
     };
 }
 
 if (checkEvrnBtn) {
-    checkEvrnBtn.onclick = function(){
+    checkEvrnBtn.onclick = function() {
         if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ command: "check_E", target: "Valkyrie" }));
-            intern_log("Check tout le monde");
+            uiLog("GCS", "INFO", "SYSTEM", "Check environnement envoyé");
         } else {
-            intern_log("site offline");
+            uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
         }
     };
 }
