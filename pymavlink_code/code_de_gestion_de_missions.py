@@ -393,3 +393,19 @@ VALKYRIE_NO_TARGET_FOUND = CGM(
     long_description="Tous les points du quadrillage parcourus sans détecter l'ArUco cible",
     potential_sender="valkyrie"
 )
+
+VALHALLA_ESP32_FAIL = CGM(
+    value=410,
+    name="VALHALLA_ESP32_FAIL",
+    short_description="Valhalla ne peut pas se connecter à son ESP32",
+    long_description="Connexion UART/USB vers l'ESP32 de Valhalla échouée. Retry en cours.",
+    potential_sender="valhalla"
+)
+
+VALKYRIE_ESP32_FAIL = CGM(
+    value=411,
+    name="VALKYRIE_ESP32_FAIL",
+    short_description="Valkyrie ne peut pas se connecter à son ESP32",
+    long_description="Connexion UART/USB vers l'ESP32 de Valkyrie échouée. Retry en cours.",
+    potential_sender="valkyrie"
+)
