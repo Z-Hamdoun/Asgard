@@ -8,7 +8,7 @@ import pymavlink_code.code_de_gestion_de_missions as CGM
 
 CONFIG_FILE = "Valkyrie/mission_config.json"
 
-SIMU = False  # True = SITL, False = REEL
+SIMU = True  # True = SITL, False = REEL
 
 # Valeurs par défaut appliquées si un paramètre est absent ou null
 CONFIG_DEFAULTS = {

@@ -12,7 +12,7 @@ import pymavlink_code.code_de_gestion_de_missions as CGM
 
 CONFIG_FILE = "Valhalla/mission_config.json"
 
-SIMU = False  # True = SITL, False = REEL
+SIMU = True  # True = SITL, False = REEL
 
 # CGMs qui signalent la fin de la mission Valkyrie (succès ou échec terminal)
 _VALKYRIE_TERMINAL_CGMS = frozenset({
@@ -367,7 +367,7 @@ def main_loop(drone: Valhalla, esp32: ESP32_Link, ip_ordi: list[str]):
         if drone.check_cgm(CGM.PC_CONFIGURE_VALHALLA):
             drone.delete_cgm(CGM.PC_CONFIGURE_VALHALLA)
             print("[CGM] PC_CONFIGURE_VALHALLA reçu. Connexion WiFi...")
-            success = fetch_config_from_dashboard(ip_ordi, esp32, timeout_s=60.0)
+            success = fetch_config_from_dashboard(ip_ordi[0], esp32, timeout_s=60.0)
             if success:
                 esp32.send_config(_config_valkyrie(read_config()))  # Relai immediat vers Valkyrie
                 drone.send_cgm(CGM.VALHALLA_CONFIG_OK)
