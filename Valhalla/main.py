@@ -120,12 +120,9 @@ def run_relais_thread(drone, esp_link):
 # ==============================================================================
 async def _fetch_config_async(ip_ordi: str, esp32: ESP32_Link, timeout_s: float = 60.0) -> bool:
     """
-    Se connecte au Dashboard, attend une config ou des commandes,
-    puis se déconnecte proprement.
-    Retourne True si une config a bien été reçue.
+    Se connecte au Dashboard en essayant les IPs de la liste, attend une config
+    ou des commandes, puis se déconnecte proprement.
     """
-    uri = f"ws://{ip_ordi}:8000/ws/Valhalla"
-    print(f"[WIFI] Connexion ponctuelle à {uri}...")
     config_received = False
     deadline = time.time() + timeout_s
 
@@ -135,11 +132,11 @@ async def _fetch_config_async(ip_ordi: str, esp32: ESP32_Link, timeout_s: float 
             # Signale au Dashboard que Valhalla est pret
             await ws.send(json.dumps({"type": "status", "command": "valhalla_ready", "source": "Valhalla"}))
 
-            while time.time() < deadline:
-                try:
-                    raw = await asyncio.wait_for(ws.recv(), timeout=1.0)
-                    data = json.loads(raw)
-                    command = data.get("command")
+                while time.time() < deadline:
+                    try:
+                        raw = await asyncio.wait_for(ws.recv(), timeout=1.0)
+                        data = json.loads(raw)
+                        command = data.get("command")
 
                     if data.get("type") == "ping":
                         await ws.send(json.dumps({"type": "pong", "source": "Valhalla",
@@ -188,15 +185,20 @@ async def _fetch_config_async(ip_ordi: str, esp32: ESP32_Link, timeout_s: float 
                                                       "source": "Valhalla",
                                                       "output": "ESP32 Link TIMEOUT (>5s)"}))
 
-                    elif command == "disconnect":
-                        print("[WIFI] Déconnexion demandée par le Dashboard.")
-                        break
+                        elif command == "disconnect":
+                            print("[WIFI] Déconnexion demandée par le Dashboard.")
+                            break
 
-                except asyncio.TimeoutError:
-                    pass  # Normal, on reboucle
+                    except asyncio.TimeoutError:
+                        pass  # Normal, on reboucle
 
-    except Exception as e:
-        print(f"[WIFI] Erreur de connexion : {e}")
+                # Si on est sorti du while parce qu'on a eu la config, on coupe la boucle for des IPs
+                if config_received:
+                    break
+
+        except Exception as e:
+            # MODIFICATION : Si l'IP échoue, on l'affiche et le 'for' passe naturellement à la suivante
+            print(f"[WIFI] Erreur de connexion sur {ip_ordi} : {e}")
 
     return config_received
 
@@ -338,7 +340,7 @@ def run_mission(drone: Valhalla, esp32: ESP32_Link, num_mission: int):
 # ==============================================================================
 # BOUCLE PRINCIPALE CGM
 # ==============================================================================
-def main_loop(drone: Valhalla, esp32: ESP32_Link, ip_ordi: str):
+def main_loop(drone: Valhalla, esp32: ESP32_Link, ip_ordi: list[str]):
     """
     Boucle infinie d'écoute des CGMs radio.
     Chaque CGM déclenche une action puis retourne ici.
@@ -402,7 +404,7 @@ if __name__ == "__main__":
         print("Usage: python main.py <IP_PC>")
         sys.exit(1)
 
-    ip_ordi = sys.argv[1]
+    ip_ordis = sys.argv[1:]
 
     print("[MAIN] Connexion MAVLink à Valhalla...")
     valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1, baud=921600)  # REEL
