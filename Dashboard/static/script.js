@@ -111,28 +111,29 @@ ws.onmessage = function(event) {
     const timer = data.source === "Valkyrie" ? valkTimer : valhTimer;
 
     switch (data.command) {
-        case "pull_ack":
+        case "pull_ack": {
             clearTimeout(timer);
             updateStatusDot(`git-dot-${sourceSuffix}`, 'online');
-            intern_log(data.output)
+            const firstLine = (data.output || "").split('\n').find(l => l.trim()) || "Git pull effectué";
+            uiLog(data.source, "SUCCESS", "SYSTEM", firstLine.trim());
             break;
-        
+        }
         case "check_ack":
-            intern_log(`Toutes les dépendances sont présentes et à jour sur ${data.source}.`)
+            uiLog(data.source, "SUCCESS", "SYSTEM", `Dépendances OK`);
             break;
 
-        case "check_fail":
-            intern_log(`Erreur de dépendance sur ${data.source}`)
-            intern_log(data.output)
+        case "check_fail": {
+            const detail = (data.output || "").split('\n')[0].trim();
+            uiLog(data.source, "FAIL", "SYSTEM", `Dépendance manquante${detail ? ' — ' + detail : ''}`);
             break;
-
-        case "pull_fail":
+        }
+        case "pull_fail": {
             clearTimeout(timer);
             updateStatusDot(`git-dot-${sourceSuffix}`, 'noline');
-            intern_log(data.output)
+            const firstLine = (data.output || "").split('\n').find(l => l.trim()) || "Erreur inconnue";
+            uiLog(data.source, "FAIL", "SYSTEM", `Git pull échoué — ${firstLine.trim()}`);
             break;
-
-
+        }
         case "start_main_ack":
             addLog("console", "--- execution de main ---");
             break;
@@ -140,14 +141,12 @@ ws.onmessage = function(event) {
         case "main_log":
             addLog("console", data.output);
             break;
-        case "log_ack": {
-            intern_log(`Log de ${sourceSuffix} reçu`);
-            const container = document.getElementById(`${sourceSuffix}-log`);
-            container.innerHTML = "";
-            addLog(`${sourceSuffix}-log`, data.output);
-            break;
-        }
 
+        case "log_ack":
+            document.getElementById(`${sourceSuffix}-log`).innerHTML = "";
+            addLog(`${sourceSuffix}-log`, data.output);
+            uiLog(data.source, "INFO", "SYSTEM", "Log reçu");
+            break;
         case "main_fail":
             addLog("console", `--- Le processus s'est terminé avec l'erreur ${data.output} ---`);
             break;
@@ -161,52 +160,53 @@ ws.onmessage = function(event) {
             addLog("console", `Mission déjà en cours.`);
             break;
         case "param_ack":
-            intern_log("Paramètres mis à jour avec succès.");
+            uiLog("GCS", "SUCCESS", "CONFIG", "Paramètres mis à jour");
             break;
         case "coords_ack":
-            intern_log("Coordonnées mis à jour avec succès.");
+            uiLog("GCS", "SUCCESS", "CONFIG", "Coordonnées mises à jour");
             break;
         case "ask_ack": {
-            intern_log("Paramètres récupérés avec succès.");
             const data_param = data.data;
             const setIfExists = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ""; };
             setIfExists("taille_quadrillage", data_param["taille_quadrillage"]);
             setIfExists("pas_quadrillage",    data_param["pas_quadrillage"]);
             setIfExists("alt_quadrillage",    data_param["alt_quadrillage"]);
+            uiLog("GCS", "SUCCESS", "CONFIG", "Paramètres récupérés");
             break;
         }
-        // --- Retours GCS / connexion Valhalla ---
         case "connecting_valhalla":
-            intern_log("CGM envoyé à Valhalla — en attente de connexion WiFi...");
+            uiLog("GCS", "INFO", "CONFIG", "CGM connexion WiFi envoyé à Valhalla");
             break;
         case "valhalla_ready":
-            intern_log("Valhalla connecté au Dashboard. Envoyez la configuration.");
+            uiLog("VALHALLA", "INFO", "CONFIG", "Connecté — en attente de la configuration");
             break;
         case "config_ack":
-            intern_log(`Configuration reçue et appliquée par ${data.source}.`);
+            uiLog(data.source, "SUCCESS", "CONFIG", "Configuration appliquée");
             break;
         case "gcs_unavailable":
-            intern_log("GCS non disponible (pas de liaison MAVLink active).");
+            uiLog("GCS", "FAIL", "SYSTEM", "Pas de liaison MAVLink active");
             break;
-        case "gcs_error":
-            intern_log(`Erreur GCS : ${data.output}`);
+        case "gcs_error": {
+            const detail = (data.output || "").split('\n')[0].trim();
+            uiLog("GCS", "FAIL", "SYSTEM", `Erreur GCS${detail ? ' — ' + detail : ''}`);
             break;
+        }
         case "mission_starting":
-            intern_log("Mission lancée.");
+            uiLog("GCS", "INFO", "MISSION", "Mission lancée");
             break;
         case "stopped":
-            intern_log("Arrêt d'urgence envoyé.");
+            uiLog("GCS", "WARN", "FLIGHT", "Arrêt d'urgence envoyé");
             break;
         case "landing":
-            intern_log("RTL forcé envoyé.");
+            uiLog("GCS", "WARN", "FLIGHT", "RTL forcé");
             break;
 
         case "esp32_pong":
-            intern_log(`✅ ${data.output}`);
+            uiLog("GCS", "SUCCESS", "ESP32", data.output);
             break;
 
         case "esp32_timeout":
-            intern_log(`❌ ${data.output}`);
+            uiLog("GCS", "FAIL", "ESP32", data.output);
             break;
 
         case "cgm_event":
@@ -214,20 +214,15 @@ ws.onmessage = function(event) {
             break;
 
         case "ask_coords_ack": {
-            const data_coords = data.data
-
-            intern_log("Destination reçu : " + data_coords["lat_mission"] + ", " + data_coords["lng_mission"]);
+            const data_coords = data.data;
             setview([ data_coords["lat_mission"], data_coords["lng_mission"]]);
-
-            // Si un marqueur existe déjà, on le déplace, sinon on le crée
             if (marker) {
                 marker.setLatLng([ data_coords["lat_mission"], data_coords["lng_mission"]]);
             } else {
                 marker = L.marker([ data_coords["lat_mission"], data_coords["lng_mission"]]).addTo(map);
             }
-
-            // Affichage des coordonnées dans l'interface
             document.getElementById('coords').innerText = `Lat: ${data_coords["lat_mission"]}, Lng: ${data_coords["lng_mission"]}`;
+            uiLog("GCS", "SUCCESS", "MISSION", `Destination : ${data_coords["lat_mission"]}, ${data_coords["lng_mission"]}`);
             break;
         }
     }
@@ -329,6 +324,10 @@ function intern_log(log){
     line.textContent = log;
     divconsole.appendChild(line);
     divconsole.scrollTop = divconsole.scrollHeight;
+}
+
+function uiLog(sender, level, category, description) {
+    addCgmLog({ cgm_sender: (sender || "GCS").toUpperCase(), cgm_level: level, cgm_category: category, cgm_description: description });
 }
 
 function addCgmLog(data) {
