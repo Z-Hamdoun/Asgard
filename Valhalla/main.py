@@ -413,10 +413,14 @@ if __name__ == "__main__":
     print("[MAIN] Connexion ESP32...")
     esp32 = ESP32_Link(port="/dev/ttyACM0", baudrate=115200, mock_simulation=SIMU,
                        udp_rx_port=5001, udp_tx_port=5002)
-    esp32.connect()
+    while not esp32.connect():
+        print("[MAIN] ESP32 non disponible. Retry dans 5s...")
+        valhalla.send_cgm(CGM.VALHALLA_ESP32_FAIL)
+        time.sleep(5)
+    print("[MAIN] ESP32 connecté.")
 
     # Thread relais permanent (meurt avec le process principal)
     threading.Thread(target=run_relais_thread, args=(valhalla, esp32), daemon=True).start()
 
     # Boucle principale (bloquante)
-    main_loop(valhalla, esp32, ip_ordi)
+    main_loop(valhalla, esp32, ip_ordis)

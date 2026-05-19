@@ -196,7 +196,11 @@ if __name__ == "__main__":
     print("[MAIN] Connexion ESP32...")
     esp32 = ESP32_Link(port="/dev/ttyACM0", baudrate=115200, mock_simulation=SIMU,
                        udp_rx_port=5002, udp_tx_port=5001)
-    esp32.connect()
+    while not esp32.connect():
+        print("[MAIN] ESP32 non disponible. Retry dans 5s...")
+        drone.send_cgm(CGM.VALKYRIE_ESP32_FAIL)
+        time.sleep(5)
+    print("[MAIN] ESP32 connecté.")
 
     drone.set_esp32_link(esp32)
 
