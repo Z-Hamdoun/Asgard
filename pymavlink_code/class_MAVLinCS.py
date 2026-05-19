@@ -108,6 +108,9 @@ class MAVLinCS:
         self.cgm: set = set()
         """set contenant les CGM reçus et envoyés."""
 
+        self._cgm_hook = None
+        """Callback optionnel appelé à chaque CGM reçu : cb(cgm_object)."""
+
         self.master: mavutil.mavfile | None = None 
         """Objet master permettant de communiquer en MAVLink."""
 
@@ -2818,7 +2821,11 @@ class MAVLinCS:
                     cgm = CGM.CGM.get(value=m.value)
                     self.logger.log(cgm.description)
                     self.cgm.add(cgm)
-                    # Analyse du CGM
+                    if self._cgm_hook and cgm.value != 0:
+                        try:
+                            self._cgm_hook(cgm)
+                        except Exception:
+                            pass
             elif m.get_type() == "TIMESYNC":
                 self.timesync_handler._receive(m)
         except Exception:
