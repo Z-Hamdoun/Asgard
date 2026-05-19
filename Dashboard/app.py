@@ -60,22 +60,35 @@ class ConnectionManager:
 # --- MONITORING CGM ---
 async def _cgm_monitor():
     """Draine la queue CGM du GCS et pousse chaque événement vers le Dashboard."""
-    while True:
-        gcs = _gcs
-        if gcs:
-            try:
-                while True:
-                    event = gcs.cgm_event_queue.get_nowait()
-                    await manager.send_to_target(event, "dashboard")
-            except Exception:
-                pass
-        await asyncio.sleep(0.1)
+    try:
+        while True:
+            gcs = _gcs
+            if gcs:
+                try:
+                    while True:
+                        event = gcs.cgm_event_queue.get_nowait()
+                        await manager.send_to_target(event, "dashboard")
+                except Exception:
+                    pass  # queue vide ou erreur d'envoi, on reboucle
+            await asyncio.sleep(0.1)
+    except asyncio.CancelledError:
+        pass  # arrêt propre demandé par le lifespan
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    asyncio.create_task(_cgm_monitor())
-    yield
+    monitor_task = asyncio.create_task(_cgm_monitor())
+    try:
+        yield
+    finally:
+        monitor_task.cancel()
+        try:
+            await monitor_task
+        except asyncio.CancelledError:
+            pass
+        if _gcs:
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, _gcs.close)
 
 
 # --- INITIALISATION DE L'APPLICATION ---
