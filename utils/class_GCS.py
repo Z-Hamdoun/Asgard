@@ -1,7 +1,42 @@
 import time
+import queue as _queue
 from pymavlink import mavutil
 from pymavlink_code.class_MAVLinCS import MAVLinCS
 import pymavlink_code.code_de_gestion_de_missions as CGM
+
+
+def _cgm_category(name: str) -> str:
+    n = name.upper()
+    if "ESP32"   in n: return "ESP32"
+    if "CONFIG"  in n: return "CONFIG"
+    if "TAKEOFF" in n or "LAND" in n or "ARM" in n: return "FLIGHT"
+    if "TARGET"  in n or "QUAD" in n: return "MISSION"
+    if "MISSION" in n: return "MISSION"
+    if "MODE"    in n: return "MODE"
+    return "SYSTEM"
+
+
+_LEVEL_LABELS = {
+    CGM.Level.Sucesses: "SUCCESS",
+    CGM.Level.Message:  "INFO",
+    CGM.Level.Warning:  "WARN",
+    CGM.Level.Failure:  "FAIL",
+    CGM.Level.Critical: "CRIT",
+}
+
+
+def _format_cgm_event(cgm: CGM.CGM) -> dict:
+    return {
+        "type":            "status",
+        "command":         "cgm_event",
+        "source":          "GCS",
+        "cgm_value":       cgm.value,
+        "cgm_level":       _LEVEL_LABELS.get(cgm.level, "???"),
+        "cgm_sender":      (cgm.potential_sender or "SYSTEM").upper(),
+        "cgm_category":    _cgm_category(cgm.name),
+        "cgm_description": cgm.short_description_str,
+    }
+
 
 class GroundStation:
     """
@@ -10,18 +45,19 @@ class GroundStation:
     
     def __init__(self, use_simu: bool = False):
         print("[GCS] Initialisation de l'antenne radio...")
-        
-        # Adresse locale UDP générée par MAVProxy
-        addr_valhalla = "0.0.0.0:14550" # ATTENTION UDP
 
-        # Connexion a Valhalla
+        addr_valhalla = "0.0.0.0:14554"  # ATTENTION UDP
+
         print(f"[GCS] Tentative de connexion à Valhalla sur {addr_valhalla}")
         self.valhalla = MAVLinCS(
             address=addr_valhalla,
-            target_system=1, 
+            target_system=1,
         )
-        
         print("[GCS] Connexion MAVLink (UDP) établie avec succès.")
+
+        # File thread-safe alimentée par le hook MAVLinCS - drainée par app.py
+        self.cgm_event_queue: _queue.Queue = _queue.Queue()
+        self.valhalla._cgm_hook = lambda cgm: self.cgm_event_queue.put(_format_cgm_event(cgm))
 
     # ==========================================
     # COMMANDES RADIO DESCENDANTES (PC -> VALHALLA)
