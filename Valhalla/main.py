@@ -12,6 +12,8 @@ import pymavlink_code.code_de_gestion_de_missions as CGM
 
 CONFIG_FILE = "Valhalla/mission_config.json"
 
+SIMU = False  # True = SITL, False = matériel réel
+
 # CGMs qui signalent la fin de la mission Valkyrie (succès ou échec terminal)
 _VALKYRIE_TERMINAL_CGMS = frozenset({
     CGM.VALKYRIE_LANDED.value,
@@ -403,11 +405,13 @@ if __name__ == "__main__":
     ip_ordis = sys.argv[1:]
 
     print("[MAIN] Connexion MAVLink à Valhalla...")
-    valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1, baud=921600)  # REEL
-    # valhalla = Valhalla(address="127.0.0.1:14550", target_system=1)  # SITL
+    if SIMU:
+        valhalla = Valhalla(address="127.0.0.1:14550", target_system=1)
+    else:
+        valhalla = Valhalla(address="/dev/ttyAMA0", target_system=1, baud=921600)
 
     print("[MAIN] Connexion ESP32...")
-    esp32 = ESP32_Link(port="/dev/ttyACM0", baudrate=115200, mock_simulation=False,
+    esp32 = ESP32_Link(port="/dev/ttyACM0", baudrate=115200, mock_simulation=SIMU,
                        udp_rx_port=5001, udp_tx_port=5002)
     esp32.connect()
 
