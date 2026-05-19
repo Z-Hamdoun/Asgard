@@ -52,6 +52,7 @@ class GroundStation:
         self.valhalla = MAVLinCS(
             address=addr_valhalla,
             target_system=1,
+            timeout_heartbeat=10,
         )
         print("[GCS] Connexion MAVLink (UDP) établie avec succès.")
 

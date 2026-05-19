@@ -106,6 +106,8 @@ async def get_gcs() -> GroundStation | None:
         loop = asyncio.get_event_loop()
         _gcs = await loop.run_in_executor(None, lambda: GroundStation(use_simu=False))
         print("[GCS] Connexion MAVLink établie.")
+    except asyncio.CancelledError:
+        raise  # laisse uvicorn gérer le shutdown proprement
     except Exception as e:
         print(f"[GCS] Impossible de se connecter : {e}")
         return None
