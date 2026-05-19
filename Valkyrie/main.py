@@ -8,6 +8,8 @@ import pymavlink_code.code_de_gestion_de_missions as CGM
 
 CONFIG_FILE = "Valkyrie/mission_config.json"
 
+SIMU = False  # True = SITL, False = REEL
+
 # Valeurs par défaut appliquées si un paramètre est absent ou null
 CONFIG_DEFAULTS = {
     "alt_quadrillage":    5,
@@ -186,13 +188,14 @@ def main_loop(drone: Valkyrie, esp32: ESP32_Link):
 # ==============================================================================
 if __name__ == "__main__":
     print("[MAIN] Connexion MAVLink à Valkyrie...")
-    drone = Valkyrie(address="/dev/ttyAMA0", target_system=2, baud=921600)  # REEL
-    # drone = Valkyrie(address="127.0.0.1:14560", target_system=2)  # SITL
+    if SIMU:
+        drone = Valkyrie(address="127.0.0.1:14560", target_system=2)
+    else:
+        drone = Valkyrie(address="/dev/ttyAMA0", target_system=2, baud=921600)
 
     print("[MAIN] Connexion ESP32...")
-    esp32 = ESP32_Link(port="/dev/ttyACM0", baudrate=115200, mock_simulation=False,
-                       udp_rx_port=5002,
-                       udp_tx_port=5001)
+    esp32 = ESP32_Link(port="/dev/ttyACM0", baudrate=115200, mock_simulation=SIMU,
+                       udp_rx_port=5002, udp_tx_port=5001)
     esp32.connect()
 
     drone.set_esp32_link(esp32)

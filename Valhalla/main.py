@@ -12,7 +12,7 @@ import pymavlink_code.code_de_gestion_de_missions as CGM
 
 CONFIG_FILE = "Valhalla/mission_config.json"
 
-SIMU = False  # True = SITL, False = matériel réel
+SIMU = False  # True = SITL, False = REEL
 
 # CGMs qui signalent la fin de la mission Valkyrie (succès ou échec terminal)
 _VALKYRIE_TERMINAL_CGMS = frozenset({
