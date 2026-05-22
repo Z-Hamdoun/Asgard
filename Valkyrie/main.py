@@ -1,6 +1,7 @@
 import os, sys, time, threading
 import json
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
 from class_Valkyrie import Valkyrie
 from Communication.class_ESP32_Link import ESP32_Link
@@ -8,18 +9,19 @@ import pymavlink_code.code_de_gestion_de_missions as CGM
 
 CONFIG_FILE = "Valkyrie/mission_config.json"
 
-SIMU = True  # True = SITL, False = REEL
+SIMU = False  # True = SITL, False = REEL
 
 # Valeurs par défaut appliquées si un paramètre est absent ou null
 CONFIG_DEFAULTS = {
-    "alt_quadrillage":    5,
+    "alt_quadrillage": 5,
     "taille_quadrillage": 10,
-    "pas_quadrillage":    2,
-    "camera_resolution":  [848, 480],
-    "square_pnp_size":    40,
-    "taille_aruco":       [40, 10],
-    "id_aruco":           [1, 1],
+    "pas_quadrillage": 2,
+    "camera_resolution": [848, 480],
+    "square_pnp_size": 40,
+    "taille_aruco": [40, 10],
+    "id_aruco": [1, 1],
 }
+
 
 # ==============================================================================
 # GESTION JSON
@@ -33,6 +35,7 @@ def read_config() -> dict:
             return {}
     return {}
 
+
 def read_config_safe() -> dict:
     """Lit la config et substitue les valeurs par défaut pour les clés absentes ou nulles."""
     config = read_config()
@@ -41,6 +44,7 @@ def read_config_safe() -> dict:
             config[key] = default_val
             print(f"[JSON] '{key}' manquant — valeur par défaut : {default_val}")
     return config
+
 
 def update_config(new_data: dict):
     config = read_config()
@@ -210,8 +214,13 @@ if __name__ == "__main__":
         drone = Valkyrie(address="/dev/ttyAMA0", target_system=2, baud=921600)
 
     print("[MAIN] Connexion ESP32...")
-    esp32 = ESP32_Link(port="/dev/ttyACM0", baudrate=115200, mock_simulation=SIMU,
-                       udp_rx_port=5002, udp_tx_port=5001)
+    esp32 = ESP32_Link(
+        port="/dev/ttyACM0",
+        baudrate=115200,
+        mock_simulation=SIMU,
+        udp_rx_port=5002,
+        udp_tx_port=5001,
+    )
     while not esp32.connect():
         print("[MAIN] ESP32 non disponible. Retry dans 5s...")
         drone.send_cgm(CGM.VALKYRIE_ESP32_FAIL)

@@ -1,6 +1,7 @@
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 import cv2
 import cv2.aruco as aruco
@@ -11,23 +12,25 @@ import threading
 
 from utils.class_Logger import Logger
 
-
-RESOLUTION_CAMERA_GAZEBO = (640, 480) # A vérifier
+RESOLUTION_CAMERA_GAZEBO = (848, 480)  # A vérifier
 
 
 # Note importante : Les fonctions d'analyse ArUco sont incompréhensibles (même par les auteurs désormais)
 # Si elles marchent pas, cherchez pas et refaites les lol
 
+
 class Camera:
     """Crée une connection avec une caméra."""
-    def __init__(self,
-            simulation: str | None,
-            resolution_id: int = 1,
-            do_crop: bool = True,
-            camera_topic: str = "/world/iris_runway/model/iris_with_gimbal/model/gimbal/link/pitch_link/sensor/camera/image",
-            gstream_port: int = 5600,
-            logger: Logger = Logger()
-        ):
+
+    def __init__(
+        self,
+        simulation: str | None,
+        resolution_id: int = 1,
+        do_crop: bool = True,
+        camera_topic: str = "/world/iris_runway/model/iris_with_gimbal/model/gimbal/link/pitch_link/sensor/camera/image",
+        gstream_port: int = 5600,
+        logger: Logger = Logger(),
+    ):
         """Initialise la caméra.
 
         Note:
@@ -97,7 +100,7 @@ class Camera:
         # Initialisation de la caméra
         # ---------------------------
 
-        # Recherche de la résolution de la caméra       
+        # Recherche de la résolution de la caméra
         if simulation is None:
             # A vérifier
             if resolution_id == 1:
@@ -115,39 +118,51 @@ class Camera:
             self._resolution = RESOLUTION_CAMERA_GAZEBO
 
         try:
-            if simulation is None: # On simule pas -> Pi Camera
+            if simulation is None:  # On simule pas -> Pi Camera
                 self.logger.log("[INFO] Intializing Pi Camera..")
                 # On importe le module
                 from picamera2 import Picamera2
+
                 # Initialisation de la Pi Camera 2
                 self._picam2 = Picamera2()
-                self._picam2.preview_configuration.main.size = (self._resolution[0], self._resolution[1])
+                self._picam2.preview_configuration.main.size = (
+                    self._resolution[0],
+                    self._resolution[1],
+                )
                 self._picam2.preview_configuration.main.format = "RGB888"
                 self._picam2.preview_configuration.controls.FrameRate = 30
                 self._picam2.configure("preview")
                 self._picam2.start()
-                #self._picam2.set_controls({"ExposureTime": 3500})
-                self._picam2.set_controls({
-                    "AeEnable": True,              # Keep auto-exposure ON
-                    "ExposureValue": -1,})
-                    #"AeExposureMode": "Short"})
+                # self._picam2.set_controls({"ExposureTime": 3500})
+                self._picam2.set_controls(
+                    {
+                        "AeEnable": True,  # Keep auto-exposure ON
+                        "ExposureValue": -1,
+                    }
+                )
+                # "AeExposureMode": "Short"})
                 time.sleep(2)  # Laisser le temps à la caméra de s'initialiser
-            elif simulation == "SITL": # On est sur Gazebo via topic
+            elif simulation == "SITL":  # On est sur Gazebo via topic
                 self.logger.log("[INFO] Intializing Gazebo camera")
                 # On importe les modules
-                from gz.transport13 import Node 
+                from gz.transport13 import Node
                 from gz.msgs10.image_pb2 import Image
+
                 # On s'abonne au topic
                 self._node = Node()
-                subscribed = self._node.subscribe(Image, camera_topic, self._image_callback)
+                subscribed = self._node.subscribe(
+                    Image, camera_topic, self._image_callback
+                )
                 if not subscribed:
                     raise RuntimeError(f"Failed to subscribe to topic: {camera_topic}")
-            else: # HITL -> Gstream
+            else:  # HITL -> Gstream
                 self.logger.log("[INFO] Intializing Gstream camera")
                 # On importe les modules
                 import gi
-                gi.require_version('Gst', '1.0')
+
+                gi.require_version("Gst", "1.0")
                 from gi.repository import Gst, GObject
+
                 self._Gst = Gst
                 self._Gst.init(None)
 
@@ -165,7 +180,10 @@ class Camera:
                 # récupérer appsink (doit exister maintenant)
                 self._appsink = self._pipeline.get_by_name("appsink")
                 if self._appsink is None:
-                    raise RuntimeError("Impossible de récupérer appsink depuis le pipeline GStreamer. Pipeline: " + pipeline_str)
+                    raise RuntimeError(
+                        "Impossible de récupérer appsink depuis le pipeline GStreamer. Pipeline: "
+                        + pipeline_str
+                    )
 
                 # démarrer le pipeline après la vérification
                 self._pipeline.set_state(self._Gst.State.PLAYING)
@@ -173,7 +191,9 @@ class Camera:
                 self._stop_gstream_thread = threading.Event()
                 self._gstream_thread_stopped = threading.Event()
                 self._gstream_thread_stopped.set()
-                self._gstream_thread = threading.Thread(target=self._gstream_thread_fct, args=(), daemon=True)
+                self._gstream_thread = threading.Thread(
+                    target=self._gstream_thread_fct, args=(), daemon=True
+                )
                 self._gstream_thread.start()
             self.logger.log("[SUCCESS] Camera initialized")
 
@@ -194,14 +214,20 @@ class Camera:
                 #     [  0.0,   0.0,   1.0]
                 # ], dtype=np.float64)
                 # self._dist_coeffs = np.array([0, 0, 0, 0, 0], dtype=np.float64) # Celle-là non plus
-                
-                self._camera_matrix = np.array([
-                    [961.20937, 0.00000, 327.96329],
-                    [0.00000, 963.93177, 239.74834],
-                    [0.00000, 0.00000, 1.00000]
-                ], dtype=np.float64)
-                
-                self._dist_coeffs = np.array([-0.02022, 1.12933, -0.00053, 0.00310, -5.27641], dtype=np.float64)
+
+                self._camera_matrix = np.array(
+                    [
+                        [376.91194, 0.00000, 425.07994],
+                        [0.00000, 380.07917, 245.66015],
+                        [0.00000, 0.00000, 1.00000],
+                    ],
+                    dtype=np.float64,
+                )
+
+                self._dist_coeffs = np.array(
+                    [-0.00284, 0.09082, 0.00265, -0.00063, -0.07958], dtype=np.float64
+                )
+
             else:
                 # Matrices de la caméra Gazebo (à vérifier)
                 # self._camera_matrix = np.array([
@@ -209,26 +235,28 @@ class Camera:
                 #     [0, 1272.5229930877686, 365.0],
                 #     [0, 0, 1]
                 # ], dtype=np.float64)
-                self._camera_matrix = np.array([
-                    [205.4696273803711, 0.0, 320.0],
-                    [0, 205.4696559906006, 240.0],
-                    [0, 0, 1]
-                ], dtype=np.float64)
+                self._camera_matrix = np.array(
+                    [
+                        [205.4696273803711, 0.0, 320.0],
+                        [0, 205.4696559906006, 240.0],
+                        [0, 0, 1],
+                    ],
+                    dtype=np.float64,
+                )
                 self._dist_coeffs = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
-            
-            
+
             # =========================================================================
-            # PARAMÈTRES E-ARUCO 
+            # PARAMÈTRES E-ARUCO
             # =========================================================================
             # Dictionnaires
             self._aruco_dict_outer = aruco.getPredefinedDictionary(aruco.DICT_7X7_50)
             self._aruco_dict_inner = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
             self._aruco_params = aruco.DetectorParameters()
-            
+
             # Tailles physiques (en m)
             self.outer_aruco_size = 0.36  # Le grand marqueur de 36 cm
             self.inner_aruco_size = 0.04  # Le petit marqueur au centre de 4 cm
-            
+
             # Identifiants des marqueurs (selon generate_e_aruco.py)
             # DICT_7X7_50 ID=1 a le bit central noir → compatible e-ArUco
             self.outer_aruco_id = 1
@@ -241,9 +269,9 @@ class Camera:
             self._outer_crop = None
             self._outer_scale_down = None
             # =========================================================================
-            # FIN E-ARUCO 
+            # FIN E-ARUCO
             # =========================================================================
-            
+
             # Créer le dictionnaire ArUco et les paramètres de détection
             self._aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_250)
             """Dictionnaire ArUco."""
@@ -258,7 +286,7 @@ class Camera:
             """Taille du code ArUco en m."""
             if self._simulation:
                 self.aruco_id = 4
-                self.aruco_size = 0.62 # Taille ArUco sur Gazebo
+                self.aruco_size = 0.62  # Taille ArUco sur Gazebo
             else:
                 self.aruco_id = 4
                 self.aruco_size = 0.1
@@ -269,11 +297,11 @@ class Camera:
             self._last_scale_down = None
             self._last_crop = None
             self._already_found_once = False
-            self._last_found_altitude = None 
-            self._last_found_distance = None 
+            self._last_found_altitude = None
+            self._last_found_distance = None
             self._last_found_px_size = None
             self._kernel = np.ones((3, 3), np.uint8)
-            self._kernel2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9,9))
+            self._kernel2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
 
             self.logger.log("[SUCCESS] Camera parameters loaded")
         except Exception as e:
@@ -318,11 +346,9 @@ class Camera:
     # Capture d'image + outils
     # ------------------------
 
-    def get_frame(self,
-            affiche: bool = False,
-            timeout: float = 5,
-            save = False
-        ) -> np.ndarray:
+    def get_frame(
+        self, affiche: bool = False, timeout: float = 5, save=False
+    ) -> np.ndarray:
         """
         Renvoie la dernière frame capturée, et affiche ou non celle-ci.
 
@@ -333,13 +359,15 @@ class Camera:
         Returns:
             np.ndarray: L'image capturée en format BGR, ou None si le timeout est dépassé (Gazebo).
         """
-        if self._simulation is None: # Pi Camera
+        if self._simulation is None:  # Pi Camera
             frame = self._picam2.capture_array()
-        else: # Camera Gazebo ou Gstream
+        else:  # Camera Gazebo ou Gstream
             start_time = time.time()
             time_since_boot_waiting = self.time_boot_ms
             # On attend la prochaine image (on prend pas ce qu'on a déjà capturé, comme sur la PiCam)
-            while self._frame is None or not self._time_frame >= time_since_boot_waiting:
+            while (
+                self._frame is None or not self._time_frame >= time_since_boot_waiting
+            ):
                 if time.time() - start_time > timeout:
                     self.logger.log("[WARNING] Timeout: No frame received")
                     return None
@@ -354,7 +382,7 @@ class Camera:
         # Attention à bien renvoyer la frame en RGB
         if save:
             cv2.imwrite("image.jpg", frame)
-        return frame #cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        return frame  # cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
     def encode(self, img: np.ndarray, quality: int = 80) -> tuple[bytes, int, int]:
         """Encode une image en bytes.
@@ -370,7 +398,7 @@ class Camera:
                 - **width** (*float*) - Largeur en px.
         """
         height, width = img.shape
-        _, img_encoded = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, quality])
+        _, img_encoded = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, quality])
         return img_encoded.tobytes(), height, width
 
     def save_image(self, image: np.ndarray) -> None:
@@ -387,7 +415,9 @@ class Camera:
     # Analyse ArUco (changez si ça marche pas et que vous avez la foi)
     # ----------------------------------------------------------------
 
-    def _camera_to_drone(self, tvec: list[float, float, float]) -> tuple[float, float, float]:
+    def _camera_to_drone(
+        self, tvec: list[float, float, float]
+    ) -> tuple[float, float, float]:
         """Fonction qui transforme le vecteur tvec en déplacements.
 
         Args:
@@ -401,19 +431,18 @@ class Camera:
         """
         dx, dy, dz = float(tvec[0]), float(tvec[1]), float(tvec[2])
         if not self._simulation:
-            return -dy, dx, dz # A vérifier   # combinaisons testees: - + / + + /
+            return -dy, dx, dz  # A vérifier   # combinaisons testees: - + / + + /
         else:
-            return dx, dy, dz # A vérifier
-    
-    
+            return dx, dy, dz  # A vérifier
+
     def _detect_aruco_marker(
-            self,
-            frame: np.ndarray,
-            aruco_dict,
-            target_id: int,
-            marker_size: float,
-            crop_state: str
-        ):
+        self,
+        frame: np.ndarray,
+        aruco_dict,
+        target_id: int,
+        marker_size: float,
+        crop_state: str,
+    ):
         """
         Tente de détecter un marqueur ArUco donné dans la frame.
         Gère le crop intelligent (ROI + scale-down) pour accélérer la détection.
@@ -428,27 +457,31 @@ class Camera:
         Returns:
             (dx, dy, dz, taille_px, corner) si trouvé, None sinon.
         """
-        last_crop       = getattr(self, f'_{crop_state}_crop')
-        last_scale_down = getattr(self, f'_{crop_state}_scale_down')
+        last_crop = getattr(self, f"_{crop_state}_crop")
+        last_scale_down = getattr(self, f"_{crop_state}_scale_down")
 
         # --- Appliquer le crop si on a une estimation précédente ---
         if last_crop is not None and last_scale_down is not None and self.DO_CROP:
-            frame_crop = frame[last_crop[0]:last_crop[2], last_crop[1]:last_crop[3]]
+            frame_crop = frame[last_crop[0] : last_crop[2], last_crop[1] : last_crop[3]]
             new_w = frame_crop.shape[1] // last_scale_down
             new_h = frame_crop.shape[0] // last_scale_down
             if new_w > 50 and new_h > 50:
-                frame_search = cv2.resize(frame_crop, (new_w, new_h), interpolation=cv2.INTER_AREA)
+                frame_search = cv2.resize(
+                    frame_crop, (new_w, new_h), interpolation=cv2.INTER_AREA
+                )
             else:
                 # Zone trop petite → reset et recherche plein cadre
                 frame_search = frame
                 last_crop = None
-                setattr(self, f'_{crop_state}_crop',       None)
-                setattr(self, f'_{crop_state}_scale_down', None)
+                setattr(self, f"_{crop_state}_crop", None)
+                setattr(self, f"_{crop_state}_scale_down", None)
         else:
             frame_search = frame
 
         # --- Détection ArUco ---
-        corners, ids, _ = cv2.aruco.detectMarkers(frame_search, aruco_dict, parameters=self._aruco_params)
+        corners, ids, _ = cv2.aruco.detectMarkers(
+            frame_search, aruco_dict, parameters=self._aruco_params
+        )
 
         if ids is None:
             return None
@@ -485,8 +518,8 @@ class Camera:
                 min(bbox[3] + margin, self._resolution[0]),
             )
             new_scale = max(min(min(taille_px) // 32, 10), 1)
-            setattr(self, f'_{crop_state}_crop',       new_crop)
-            setattr(self, f'_{crop_state}_scale_down', new_scale)
+            setattr(self, f"_{crop_state}_crop", new_crop)
+            setattr(self, f"_{crop_state}_scale_down", new_scale)
 
             dx, dy, dz = self._camera_to_drone(tvec)
             return dx, dy, dz, taille_px, corner
@@ -526,37 +559,47 @@ class Camera:
 
         # ── 1. Priorité : marqueur INNER (précision finale) ──────────────────
         result = self._detect_aruco_marker(
-            frame, self._aruco_dict_inner, self.inner_aruco_id,
-            self.inner_aruco_size, 'inner'
+            frame,
+            self._aruco_dict_inner,
+            self.inner_aruco_id,
+            self.inner_aruco_size,
+            "inner",
         )
         if result is not None:
             dx, dy, dz, taille_px, _ = result
             t_det = self.time_boot_ms
-            info = (f"INNER:id{self.inner_aruco_id},"
-                    f"sz{taille_px},"
-                    f"rec{round(t_captured - t_begin, 3)},"
-                    f"det{round(t_det - t_captured, 3)}")
+            info = (
+                f"INNER:id{self.inner_aruco_id},"
+                f"sz{taille_px},"
+                f"rec{round(t_captured - t_begin, 3)},"
+                f"det{round(t_det - t_captured, 3)}"
+            )
             self.logger.log(
                 f"[e-ArUco INNER] dx={dx:.3f}m dy={dy:.3f}m dz={dz:.3f}m taille={taille_px}",
-                wanna_print=True
+                wanna_print=True,
             )
             return dx, dy, dz, info, frame
 
         # ── 2. Fallback : marqueur OUTER (centrage loiter) ───────────────────
         result = self._detect_aruco_marker(
-            frame, self._aruco_dict_outer, self.outer_aruco_id,
-            self.outer_aruco_size, 'outer'
+            frame,
+            self._aruco_dict_outer,
+            self.outer_aruco_id,
+            self.outer_aruco_size,
+            "outer",
         )
         if result is not None:
             dx, dy, dz, taille_px, _ = result
             t_det = self.time_boot_ms
-            info = (f"OUTER:id{self.outer_aruco_id},"
-                    f"sz{taille_px},"
-                    f"rec{round(t_captured - t_begin, 3)},"
-                    f"det{round(t_det - t_captured, 3)}")
+            info = (
+                f"OUTER:id{self.outer_aruco_id},"
+                f"sz{taille_px},"
+                f"rec{round(t_captured - t_begin, 3)},"
+                f"det{round(t_det - t_captured, 3)}"
+            )
             self.logger.log(
                 f"[e-ArUco OUTER] dx={dx:.3f}m dy={dy:.3f}m dz={dz:.3f}m taille={taille_px}",
-                wanna_print=True
+                wanna_print=True,
             )
             return dx, dy, dz, info, frame
 
@@ -566,7 +609,7 @@ class Camera:
                 meta = self._picam2.capture_metadata()
                 self.logger.log(
                     f"[LOG] Expo={meta['ExposureTime']}µs ISO={meta['AnalogueGain']*100:.0f}",
-                    wanna_print=False
+                    wanna_print=False,
                 )
             except Exception:
                 pass
@@ -574,7 +617,9 @@ class Camera:
         return 0, 0, 0, None, None
 
     # 1ère fonction d'analyse, plus 'simpliste'
-    def analyse(self, affichage : bool = False) -> tuple[float, float, float, str | None, np.ndarray | None]:
+    def analyse(
+        self, affichage: bool = False
+    ) -> tuple[float, float, float, str | None, np.ndarray | None]:
         """Détermine les distances à effectuer pour aller sur le code Aruco.
 
         Args:
@@ -588,7 +633,7 @@ class Camera:
                 - **info** (*str | None*) - Infos diverses de la détection. None s'il n'y a pas le bon code ArUco.
                 - **frame** (*np.ndarray | None*) - Frame analysée. None s'il n'y a pas le bon code ArUco.
         """
-        #Image à un instant t
+        # Image à un instant t
         t_begin = self.time_boot_ms
         raw = self.get_frame(affiche=affichage, timeout=2)
         if raw is None:
@@ -596,15 +641,24 @@ class Camera:
         frame = cv2.cvtColor(raw, cv2.COLOR_RGB2GRAY)
         last_aruco_time = self.time_boot_ms
 
-        if self._last_scale_down is not None and self._last_crop is not None and self.DO_CROP:
+        if (
+            self._last_scale_down is not None
+            and self._last_crop is not None
+            and self.DO_CROP
+        ):
             # Crop:
-            frame_crop = frame[self._last_crop[0]:self._last_crop[2],self._last_crop[1]:self._last_crop[3]]
+            frame_crop = frame[
+                self._last_crop[0] : self._last_crop[2],
+                self._last_crop[1] : self._last_crop[3],
+            ]
 
             # Scale down:
             new_width = frame_crop.shape[1] // self._last_scale_down
             new_height = frame_crop.shape[0] // self._last_scale_down
             if new_width > 50 or new_height > 50:
-                frame_treated = cv2.resize(frame_crop, (new_width, new_height), interpolation=cv2.INTER_AREA)
+                frame_treated = cv2.resize(
+                    frame_crop, (new_width, new_height), interpolation=cv2.INTER_AREA
+                )
             else:
                 frame_treated = frame
                 self._last_scale_down, self._last_crop = None, None
@@ -612,7 +666,9 @@ class Camera:
             frame_treated = frame
 
         # Détecter les marqueurs ArUco
-        corners, ids, _ = cv2.aruco.detectMarkers(frame_treated, self._aruco_dict, parameters=self._aruco_params)
+        corners, ids, _ = cv2.aruco.detectMarkers(
+            frame_treated, self._aruco_dict, parameters=self._aruco_params
+        )
         t_marker_detect = self.time_boot_ms
         corners: Sequence[cv2.typing.MatLike]
 
@@ -622,53 +678,69 @@ class Camera:
                 #     continue
 
                 if self._last_crop is not None and self.DO_CROP:
-                    corner[:,:,0] *= self._last_scale_down
-                    corner[:,:,1] *= self._last_scale_down
-                    corner[:,:,0] += self._last_crop[1]
-                    corner[:,:,1] += self._last_crop[0]
+                    corner[:, :, 0] *= self._last_scale_down
+                    corner[:, :, 1] *= self._last_scale_down
+                    corner[:, :, 0] += self._last_crop[1]
+                    corner[:, :, 1] += self._last_crop[0]
 
                 # cv2.aruco.drawDetectedMarkers(frame, corners, ids)
-                #self.save_image(image=frame)
+                # self.save_image(image=frame)
 
-                _, tvec, _ = cv2.aruco.estimatePoseSingleMarkers([corner], self.aruco_size, self._camera_matrix, self._dist_coeffs)
+                _, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
+                    [corner], self.aruco_size, self._camera_matrix, self._dist_coeffs
+                )
                 tvec = tvec[0][0]  # Extraire le vecteur de translation
-                #if self._last_crop is not None and self.DO_CROP:
+                # if self._last_crop is not None and self.DO_CROP:
                 #    self.write_log(f"ID: {aruco_id[0]}, x={tvec[0]:.2f} m, y={tvec[1]:.2f} m, z={tvec[2]:.2f} m, x:{self._last_crop[2]-self._last_crop[0]}, y:{self._last_crop[3]-self._last_crop[1]}, scale:{self._last_scale_down}")
-                #else:
+                # else:
                 #    self.write_log(f"ID: {aruco_id[0]}, x={tvec[0]:.2f} m, y={tvec[1]:.2f} m, z={tvec[2]:.2f} m")
 
                 last_crop = (
-                    int(corner[:,:,1].min()), 
-                    int(corner[:,:,0].min()), 
-                    int(corner[:,:,1].max()), 
-                    int(corner[:,:,0].max())
+                    int(corner[:, :, 1].min()),
+                    int(corner[:, :, 0].min()),
+                    int(corner[:, :, 1].max()),
+                    int(corner[:, :, 0].max()),
                 )
 
-                taille_aruco_px = (last_crop[3]-last_crop[1], last_crop[2]-last_crop[0])
-                to_crop = (int(taille_aruco_px[0]*1.5) + self._resolution[0]/6, int(taille_aruco_px[1]*1.5) + self._resolution[0]/6)
-
-                self._last_crop = (  
-                                max( int(last_crop[0]-to_crop[1]), 0 ),
-                                max( int(last_crop[1]-to_crop[0]), 0 ),
-                                min( int(last_crop[2]+to_crop[1]), self._resolution[1] ), 
-                                min( int(last_crop[3]+to_crop[0]), self._resolution[0] )
+                taille_aruco_px = (
+                    last_crop[3] - last_crop[1],
+                    last_crop[2] - last_crop[0],
                 )
-                self._last_scale_down = max(min(min(taille_aruco_px)//32, 10), 1)
+                to_crop = (
+                    int(taille_aruco_px[0] * 1.5) + self._resolution[0] / 6,
+                    int(taille_aruco_px[1] * 1.5) + self._resolution[0] / 6,
+                )
+
+                self._last_crop = (
+                    max(int(last_crop[0] - to_crop[1]), 0),
+                    max(int(last_crop[1] - to_crop[0]), 0),
+                    min(int(last_crop[2] + to_crop[1]), self._resolution[1]),
+                    min(int(last_crop[3] + to_crop[0]), self._resolution[0]),
+                )
+                self._last_scale_down = max(min(min(taille_aruco_px) // 32, 10), 1)
 
                 dx, dy, dz = self._camera_to_drone(tvec=tvec)
-                self.logger.log(f"[LOG] ID {aruco_id[0]}, x={dx:.2f} m, y={dy:.2f} m, z={dz:.2f} m, aruco {taille_aruco_px}, last_crop:{last_crop}", wanna_print=False)
+                self.logger.log(
+                    f"[LOG] ID {aruco_id[0]}, x={dx:.2f} m, y={dy:.2f} m, z={dz:.2f} m, aruco {taille_aruco_px}, last_crop:{last_crop}",
+                    wanna_print=False,
+                )
 
                 info = f"id:{int(aruco_id)},rec:{round(last_aruco_time-t_begin, 4)},det:{round(t_marker_detect-last_aruco_time, 4)},sd{self._last_scale_down}"
                 return dx, dy, dz, info, frame_treated
         if not self._simulation:
-            self.logger.log(f"[LOG] Exposure Time: {self._picam2.capture_metadata()['ExposureTime']} µs, ISO: {self._picam2.capture_metadata()['AnalogueGain'] * 100:.0f}", wanna_print=False)
+            self.logger.log(
+                f"[LOG] Exposure Time: {self._picam2.capture_metadata()['ExposureTime']} µs, ISO: {self._picam2.capture_metadata()['AnalogueGain'] * 100:.0f}",
+                wanna_print=False,
+            )
 
         self._last_crop = None
         self._last_scale_down = None
         return 0, 0, 0, None, None
 
     # 2ème fonction d'analyse, plus complexe
-    def analyse_scale_down(self, affichage : bool = False, current_altitude : float = None) -> tuple[float, float, float, str | None, np.ndarray | None]:
+    def analyse_scale_down(
+        self, affichage: bool = False, current_altitude: float = None
+    ) -> tuple[float, float, float, str | None, np.ndarray | None]:
         """Détermine les distances à effectuer pour aller sur le code Aruco.
 
         Args:
@@ -682,31 +754,39 @@ class Camera:
                 - **info** (*str | None*) - Infos diverses de la détection. None s'il n'y a pas le bon code ArUco.
                 - **frame** (*np.ndarray | None*) - Frame analysée. None s'il n'y a pas le bon code ArUco.
         """
-        #Image à un instant t
+        # Image à un instant t
         t_begin = self.time_boot_ms
         frame = self.get_frame(affiche=affichage, timeout=2)
 
         last_aruco_time = self.time_boot_ms
 
-        scale_down_ratio_analyse = self._find_ratio(self._already_found_once, current_altitude)
-        img, pre_corners, zone_detected = self._whiten_grass_protected(frame, scale_down_ratio_analyse)
-        #threading.Thread(target=self.save_image, args=(img,)).start()
+        scale_down_ratio_analyse = self._find_ratio(
+            self._already_found_once, current_altitude
+        )
+        img, pre_corners, zone_detected = self._whiten_grass_protected(
+            frame, scale_down_ratio_analyse
+        )
+        # threading.Thread(target=self.save_image, args=(img,)).start()
 
         if zone_detected and self.DO_CROP:
             # Crop:
-            scale_down_ratio_detection = max(min(min(pre_corners[2:])//64, 10), 1)
+            scale_down_ratio_detection = max(min(min(pre_corners[2:]) // 64, 10), 1)
 
-            img_crop = img[pre_corners[1]:pre_corners[1] + pre_corners[3],
-                        pre_corners[0]:pre_corners[0] + pre_corners[2]]
+            img_crop = img[
+                pre_corners[1] : pre_corners[1] + pre_corners[3],
+                pre_corners[0] : pre_corners[0] + pre_corners[2],
+            ]
 
             new_width = img_crop.shape[1] // scale_down_ratio_detection
             new_height = img_crop.shape[0] // scale_down_ratio_detection
 
             if new_width > 40 or new_height > 40:
                 frame_treated = cv2.resize(img_crop, (new_width, new_height))
-                #frame_treated = cv2.resize(frame_crop, (new_width, new_height), interpolation=cv2.INTER_AREA)
+                # frame_treated = cv2.resize(frame_crop, (new_width, new_height), interpolation=cv2.INTER_AREA)
             else:
-                self.logger.log("[WARNING] Problème de taille de l'image, crop trop petit")
+                self.logger.log(
+                    "[WARNING] Problème de taille de l'image, crop trop petit"
+                )
                 frame_treated = img
                 zone_detected = False
         else:
@@ -714,7 +794,9 @@ class Camera:
             frame_treated = img
 
         # Détecter les marqueurs ArUco
-        corners, ids, _ = cv2.aruco.detectMarkers(frame_treated, self._aruco_dict, parameters=self._aruco_params)
+        corners, ids, _ = cv2.aruco.detectMarkers(
+            frame_treated, self._aruco_dict, parameters=self._aruco_params
+        )
         t_marker_detect = self.time_boot_ms
         corners: Sequence[cv2.typing.MatLike]
 
@@ -724,41 +806,52 @@ class Camera:
                     continue
 
                 if zone_detected and self.DO_CROP:
-                    #write_log(f"corners_before_crop: {corner}")
-                    corner[:,:,0] *= scale_down_ratio_detection
-                    corner[:,:,1] *= scale_down_ratio_detection
-                    corner[:,:,0] += pre_corners[1]
-                    corner[:,:,1] += pre_corners[0]
-                #self.write_log(f"corners_after_crop:{corner}")
-                #self.write_log(f"Corner {corner[0]}")
+                    # write_log(f"corners_before_crop: {corner}")
+                    corner[:, :, 0] *= scale_down_ratio_detection
+                    corner[:, :, 1] *= scale_down_ratio_detection
+                    corner[:, :, 0] += pre_corners[1]
+                    corner[:, :, 1] += pre_corners[0]
+                # self.write_log(f"corners_after_crop:{corner}")
+                # self.write_log(f"Corner {corner[0]}")
                 cv2.aruco.drawDetectedMarkers(img, corners, ids)
-                #threading.Thread(target=self.save_image, args=(img,)).start()
+                # threading.Thread(target=self.save_image, args=(img,)).start()
 
-                _, tvec, _ = cv2.aruco.estimatePoseSingleMarkers([corner], self.aruco_size, self._camera_matrix, self._dist_coeffs)
+                _, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
+                    [corner], self.aruco_size, self._camera_matrix, self._dist_coeffs
+                )
                 tvec = tvec[0][0]  # Extraire le vecteur de translation
 
                 last_crop = (
-                    int(corner[:,:,1].min()), 
-                    int(corner[:,:,0].min()), 
-                    int(corner[:,:,1].max()), 
-                    int(corner[:,:,0].max())
+                    int(corner[:, :, 1].min()),
+                    int(corner[:, :, 0].min()),
+                    int(corner[:, :, 1].max()),
+                    int(corner[:, :, 0].max()),
                 )
-                #write_log(f"last_crop1: {last_crop}")
-                taille_aruco_px = (last_crop[3]-last_crop[1], last_crop[2]-last_crop[0])
+                # write_log(f"last_crop1: {last_crop}")
+                taille_aruco_px = (
+                    last_crop[3] - last_crop[1],
+                    last_crop[2] - last_crop[0],
+                )
 
                 dx, dy, dz = self._camera_to_drone(tvec=tvec)
 
                 self._already_found_once = True
-                self._last_found_altitude = current_altitude 
-                self._last_found_distance = dz 
+                self._last_found_altitude = current_altitude
+                self._last_found_distance = dz
                 self._last_found_px_size = min(taille_aruco_px)
-                #self.logger.log(f"taille_aruco_px {taille_aruco_px}")
-                self.logger.log(f"[LOG] ID {aruco_id[0]}, xf={dx:.2f} m, yr={dy:.2f} m, zd={dz:.2f} m, aruco {taille_aruco_px}, last_crop:{last_crop}", wanna_print=False)
+                # self.logger.log(f"taille_aruco_px {taille_aruco_px}")
+                self.logger.log(
+                    f"[LOG] ID {aruco_id[0]}, xf={dx:.2f} m, yr={dy:.2f} m, zd={dz:.2f} m, aruco {taille_aruco_px}, last_crop:{last_crop}",
+                    wanna_print=False,
+                )
 
                 info = f"id:{int(aruco_id)},rec:{round(last_aruco_time-t_begin, 4)},det:{round(t_marker_detect-last_aruco_time, 4)},sd{scale_down_ratio_detection}"
                 return dx, dy, dz, info, frame_treated
         if not self._simulation:
-            self.logger.log(f"[LOG] Exposure Time: {self._picam2.capture_metadata()['ExposureTime']} µs, ISO: {self._picam2.capture_metadata()['AnalogueGain'] * 100:.0f}", wanna_print=False)
+            self.logger.log(
+                f"[LOG] Exposure Time: {self._picam2.capture_metadata()['ExposureTime']} µs, ISO: {self._picam2.capture_metadata()['AnalogueGain'] * 100:.0f}",
+                wanna_print=False,
+            )
 
         return 0, 0, 0, None, None
 
@@ -795,27 +888,36 @@ class Camera:
                 arr = buf.extract_dup(0, buf.get_size())
                 # on récupère width/height via caps
                 structure = caps.get_structure(0)
-                width = structure.get_value('width')
-                height = structure.get_value('height')
-                self._frame = np.frombuffer(arr, dtype=np.uint8).reshape((height, width, 3))
+                width = structure.get_value("width")
+                height = structure.get_value("height")
+                self._frame = np.frombuffer(arr, dtype=np.uint8).reshape(
+                    (height, width, 3)
+                )
                 self._time_frame = self.time_boot_ms
             except Exception:
                 self._frame = None
         self._gstream_thread_stopped.set()
 
-    def _find_ratio(self, already_found_once, current_altitude) -> float: 
+    def _find_ratio(self, already_found_once, current_altitude) -> float:
         """Trouve le ratio de scale down à appliquer pour l'analyse avant de faire la détection ArUco."""
         height = self.resolution[1]
         if not already_found_once:
             return 8
 
         # Gère le cas où l'altitude est absolue
-        current_estimated_distance = current_altitude - (self._last_found_altitude - self._last_found_distance)
+        current_estimated_distance = current_altitude - (
+            self._last_found_altitude - self._last_found_distance
+        )
 
         current_estimated_distance = max(current_estimated_distance, 0.2)
-        current_estimated_px_size = min(self._last_found_px_size * self._last_found_distance / current_estimated_distance, int(height*0.8))
-        #self.write_log(f"lfps:{self._last_found_px_size} ceps {current_estimated_px_size} lfd: {self._last_found_distance} cea: {current_estimated_distance}")
-        subsample_ratio = min(max(current_estimated_px_size/64, height/64), 1)
+        current_estimated_px_size = min(
+            self._last_found_px_size
+            * self._last_found_distance
+            / current_estimated_distance,
+            int(height * 0.8),
+        )
+        # self.write_log(f"lfps:{self._last_found_px_size} ceps {current_estimated_px_size} lfd: {self._last_found_distance} cea: {current_estimated_distance}")
+        subsample_ratio = min(max(current_estimated_px_size / 64, height / 64), 1)
 
         return int(subsample_ratio * 8)
 
@@ -823,7 +925,11 @@ class Camera:
         """Supprime les zones de haute saturation (surement de l'herbe) et renvoie la position la plus probable de l'ArUco."""
         width = self.resolution[0]
         height = self.resolution[1]
-        rgb_image = cv2.resize(rgb_image_src, (width//subsample_ratio, height//subsample_ratio), interpolation=cv2.INTER_LINEAR)
+        rgb_image = cv2.resize(
+            rgb_image_src,
+            (width // subsample_ratio, height // subsample_ratio),
+            interpolation=cv2.INTER_LINEAR,
+        )
 
         B, G, R = rgb_image[::, ::, 0], rgb_image[::, ::, 1], rgb_image[::, ::, 2]
         a = np.stack([R, G, B], axis=0)
@@ -832,14 +938,16 @@ class Camera:
         gray_mask_small = diff > tolerance
 
         # Pour éliminer les plus petites zones : max 4 "pixels"
-        gray_mask_small = cv2.dilate(gray_mask_small.astype(np.uint8), self._kernel, iterations=1)
+        gray_mask_small = cv2.dilate(
+            gray_mask_small.astype(np.uint8), self._kernel, iterations=1
+        )
         # Pour élargir la zone de recherche aruco après avoir supprimé les petites aberrations
-        gray_mask_small = ~cv2.dilate(~gray_mask_small.astype(np.uint8), self._kernel2, iterations=1)
+        gray_mask_small = ~cv2.dilate(
+            ~gray_mask_small.astype(np.uint8), self._kernel2, iterations=1
+        )
 
         gray_mask = cv2.resize(
-            gray_mask_small, 
-            (width, height), 
-            interpolation=cv2.INTER_LINEAR
+            gray_mask_small, (width, height), interpolation=cv2.INTER_LINEAR
         )
         if self._simulation:
             rgb_image_src_copy = rgb_image_src.copy()
@@ -850,11 +958,13 @@ class Camera:
         rgb_image[gray_mask_small == 1] = [255, 255, 255]
 
         # Trouve les contours des formes qui se détachent
-        _, obstacle = cv2.threshold(rgb_image[:,:,0], 100, 255, cv2.THRESH_BINARY_INV)
-        contours, _ = cv2.findContours(obstacle, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        _, obstacle = cv2.threshold(rgb_image[:, :, 0], 100, 255, cv2.THRESH_BINARY_INV)
+        contours, _ = cv2.findContours(
+            obstacle, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
 
         # Afin de ne pas détecter les plus petites zones
-        min_area = int((25*25)/(subsample_ratio**2))  # Aruco de 25px
+        min_area = int((25 * 25) / (subsample_ratio**2))  # Aruco de 25px
 
         candidates = []
         for cnt in contours:
@@ -866,10 +976,27 @@ class Camera:
 
         # Si on détecte 2 zones dont la seconde (ordonnées par taille) represente plus de la moitié de sa surface : on a détecté de la merde
         # Si la plus grosse zone détectée fait presque la taille de l'écran : la suppression de l'herbe ne s'est pas bien passée
-        if candidates and ((len(sort_cand) >= 2 and sort_cand[-1][0][0]*sort_cand[-2][0][0] != 0 and sort_cand[-1][0][0]/sort_cand[-2][0][0] > 2) or
-                            (len(sort_cand) == 1 or sort_cand[-1][0][0]*sort_cand[-2][0][0] != 0)) and (
-                            sort_cand[-1][0][2] < width//subsample_ratio - 2 and sort_cand[-1][0][3] < height//subsample_ratio - 2):
-            candidate = (np.array(sort_cand[-1][0]) + np.array([-2, -4, 3, 4]))*subsample_ratio
+        if (
+            candidates
+            and (
+                (
+                    len(sort_cand) >= 2
+                    and sort_cand[-1][0][0] * sort_cand[-2][0][0] != 0
+                    and sort_cand[-1][0][0] / sort_cand[-2][0][0] > 2
+                )
+                or (
+                    len(sort_cand) == 1
+                    or sort_cand[-1][0][0] * sort_cand[-2][0][0] != 0
+                )
+            )
+            and (
+                sort_cand[-1][0][2] < width // subsample_ratio - 2
+                and sort_cand[-1][0][3] < height // subsample_ratio - 2
+            )
+        ):
+            candidate = (
+                np.array(sort_cand[-1][0]) + np.array([-2, -4, 3, 4])
+            ) * subsample_ratio
             candidate[0] = max(0, candidate[0])
             candidate[1] = max(0, candidate[1])
             candidate[2] = min(width - candidate[0], candidate[2])

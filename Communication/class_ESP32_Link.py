@@ -4,6 +4,7 @@ import threading
 import json
 import socket
 
+
 class ESP32_Link:
     """
     Gère la communication UART avec l'ESP32.
@@ -12,19 +13,26 @@ class ESP32_Link:
     - CMD:START         -> Ordre de démarrage
     - GPS:lat:lng:alt   -> Télémétrie en vol
     """
-    def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 115200, mock_simulation: bool = False,
-                udp_rx_port: int = 5001, udp_tx_port: int = 5002):
+
+    def __init__(
+        self,
+        port: str = "/dev/ttyAMA1",
+        baudrate: int = 115200,
+        mock_simulation: bool = False,
+        udp_rx_port: int = 5001,
+        udp_tx_port: int = 5002,
+    ):
         self.port = port
         self.baudrate = baudrate
         self.serial_conn = None
         self.connected = False
-        
+
         # Paramètres de simulation
         self.mock = mock_simulation
         self.udp_rx_port = udp_rx_port
         self.udp_tx_port = udp_tx_port
         self.sock = None
-        
+
         # Variables de stockage des réceptions
         self.derniere_commande = None
         self.derniere_config = None
@@ -39,7 +47,9 @@ class ESP32_Link:
         self.max_retries = 5
         self.retry_interval = 5.0
         self.reconnect_exhausted = threading.Event()
-        self._on_fail_cb = None  # callable(attempt: int) appelé à chaque tentative échouée
+        self._on_fail_cb = (
+            None  # callable(attempt: int) appelé à chaque tentative échouée
+        )
 
         self.lock = threading.Lock()
 
@@ -53,24 +63,29 @@ class ESP32_Link:
             try:
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 self.sock.bind(("127.0.0.1", self.udp_rx_port))
-                self.sock.settimeout(1.0) # Pour ne pas bloquer le thread à la fermeture
+                self.sock.settimeout(
+                    1.0
+                )  # Pour ne pas bloquer le thread à la fermeture
                 self.connected = True
-                
+
                 t = threading.Thread(target=self._ecoute_continue_udp, daemon=True)
                 t.start()
                 return True
             except Exception as e:
                 print(f"[ESP32 SIMU] Erreur de création du pont UDP : {e}")
                 return False
-            
+
         try:
             self.serial_conn = serial.Serial(
-                self.port, self.baudrate, timeout=1,
-                dsrdtr=False, rtscts=False  # évite le reset auto de l'ESP32-C3 à l'ouverture
+                self.port,
+                self.baudrate,
+                timeout=1,
+                dsrdtr=False,
+                rtscts=False,  # évite le reset auto de l'ESP32-C3 à l'ouverture
             )
             self.connected = True
             print(f"[ESP32] Connecté avec succès sur {self.port}")
-            
+
             t = threading.Thread(target=self._ecoute_continue, daemon=True)
             t.start()
             return True
@@ -83,12 +98,14 @@ class ESP32_Link:
     def send_config(self, config_dict):
         """Transforme le dictionnaire complet en texte compact et l'envoie"""
         # separators=(',', ':') permet de retirer les espaces inutiles pour économiser des octets
-        json_str = json.dumps(config_dict, separators=(',', ':'))
+        json_str = json.dumps(config_dict, separators=(",", ":"))
         msg = f"CFG:{json_str}\n"
-        
+
         if len(msg) > 240:
-            print(f"[ESP32-TX] ATTENTION: Configuration trop lourde ({len(msg)} octets). Risque de coupure ESP-NOW.")
-            
+            print(
+                f"[ESP32-TX] ATTENTION: Configuration trop lourde ({len(msg)} octets). Risque de coupure ESP-NOW."
+            )
+
         self._write_serial(msg)
         print(f"[ESP32-TX] Config JSON envoyée : {json_str}")
 
@@ -100,7 +117,7 @@ class ESP32_Link:
     def send_telemetry(self, lat: float, lng: float, alt: float):
         msg = f"GPS:{lat}:{lng}:{alt}\n"
         self._write_serial(msg)
-    
+
     def send_cgm(self, cgm_value: int):
         """Envoie un code de mission (CGM) via ESP-NOW"""
         if not self.connected:
@@ -110,17 +127,15 @@ class ESP32_Link:
         print(f"[ESP32-TX] CGM {cgm_value} envoyé.")
 
     def _write_serial(self, message: str):
-        if not self.connected: 
+        if not self.connected:
             return
-            
+
         if self.mock and self.sock:
             # Mode Simulation
-            self.sock.sendto(message.encode('utf-8'), ("127.0.0.1", self.udp_tx_port))
+            self.sock.sendto(message.encode("utf-8"), ("127.0.0.1", self.udp_tx_port))
         elif not self.mock and self.serial_conn:
             # Mode Réel : Envoi par le câble physique UART
-            self.serial_conn.write(message.encode('utf-8'))
-    
-    
+            self.serial_conn.write(message.encode("utf-8"))
 
     # Methodes de reception
     def _ecoute_continue(self):
@@ -128,7 +143,11 @@ class ESP32_Link:
         while self.connected:
             try:
                 if self.serial_conn.in_waiting > 0:
-                    ligne = self.serial_conn.readline().decode('utf-8', errors='ignore').strip()
+                    ligne = (
+                        self.serial_conn.readline()
+                        .decode("utf-8", errors="ignore")
+                        .strip()
+                    )
                     if ligne:
                         self._traiter_message(ligne)
             except Exception as e:
@@ -150,7 +169,9 @@ class ESP32_Link:
             self.serial_conn = None
 
         for attempt in range(1, self.max_retries + 1):
-            print(f"[ESP32-WD] Tentative de reconnexion {attempt}/{self.max_retries}...")
+            print(
+                f"[ESP32-WD] Tentative de reconnexion {attempt}/{self.max_retries}..."
+            )
             if self._on_fail_cb:
                 try:
                     self._on_fail_cb(attempt)
@@ -162,18 +183,21 @@ class ESP32_Link:
                 self.reconnect_exhausted.clear()
                 return
 
-        print(f"[ESP32-WD] Reconnexion échouée après {self.max_retries} tentatives. ESP32 considéré perdu.")
+        print(
+            f"[ESP32-WD] Reconnexion échouée après {self.max_retries} tentatives. ESP32 considéré perdu."
+        )
         self.reconnect_exhausted.set()
-    
+
     def _ecoute_continue_udp(self):
         while self.connected:
             try:
                 data, _ = self.sock.recvfrom(1024)
                 if data:
-                    ligne = data.decode('utf-8', errors='ignore').strip()
-                    if ligne: self._traiter_message(ligne)
+                    ligne = data.decode("utf-8", errors="ignore").strip()
+                    if ligne:
+                        self._traiter_message(ligne)
             except socket.timeout:
-                pass # Normal, permet de vérifier si on doit fermer le thread
+                pass  # Normal, permet de vérifier si on doit fermer le thread
             except Exception:
                 pass
 
@@ -181,20 +205,24 @@ class ESP32_Link:
         with self.lock:
             # Si on recoit une config json
             if message.startswith("CFG:"):
-                json_str = message[4:] # On retire "CFG:"
+                json_str = message[4:]  # On retire "CFG:"
                 try:
                     self.derniere_config = json.loads(json_str)
-                    print(f"[ESP32-RX] Configuration JSON reçue : {self.derniere_config}")
+                    print(
+                        f"[ESP32-RX] Configuration JSON reçue : {self.derniere_config}"
+                    )
                 except json.JSONDecodeError:
                     print(f"[ESP32-RX] Erreur : JSON corrompu reçu -> {json_str}")
-            
-            elif message.startswith("CGM:"): # Interception d'un CGM
+
+            elif message.startswith("CGM:"):  # Interception d'un CGM
                 try:
                     self.dernier_cgm = int(message.split(":")[1])
-                    print(f"[ESP32-RX] CGM intercepté depuis l'essaim : {self.dernier_cgm}")
+                    print(
+                        f"[ESP32-RX] CGM intercepté depuis l'essaim : {self.dernier_cgm}"
+                    )
                 except ValueError:
                     pass
-                    
+
             elif message.startswith("CMD:"):
                 cmd_content = message[4:]  # retire "CMD:"
                 if cmd_content.startswith("START"):
@@ -210,12 +238,14 @@ class ESP32_Link:
                         print(f"[ESP32-RX] Ordre START mission {num} reçu.")
                     except ValueError as e:
                         # Envoi immédiat du CGM d'erreur à Valhalla (408 = VALKYRIE_MISSION_INVALID)
-                        print(f"[ESP32-RX] ERREUR CMD:START invalide ({e}) — CGM 408 envoyé à Valhalla !")
+                        print(
+                            f"[ESP32-RX] ERREUR CMD:START invalide ({e}) — CGM 408 envoyé à Valhalla !"
+                        )
                         self._write_serial("CGM:408\n")
                 else:
                     self.derniere_commande = cmd_content
                     print(f"[ESP32-RX] Commande reçue : {cmd_content}")
-                
+
             elif message.startswith("GPS:"):
                 parts = message.split(":")
                 try:
@@ -237,7 +267,7 @@ class ESP32_Link:
             cfg = self.derniere_config
             self.derniere_config = None
             return cfg
-    
+
     def get_and_clear_cgm(self):
         """Récupère le dernier CGM reçu et vide la variable"""
         with self.lock:
