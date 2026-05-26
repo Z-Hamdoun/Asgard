@@ -128,8 +128,11 @@ class Valkyrie(Drone):
         return True
 
 
-    def executer_quadrillage(self) -> bool:
+    def executer_quadrillage(self, e_analyse: bool = False) -> bool:
         """Effectue un quadrillage sous forme de spirale, de centre la Position GPS actuelle.
+
+        Args:
+            e_analyse (bool): True = détection e-ArUco (inner+outer), False = analyse classique.
 
         Returns:
             bool: resultat de l'operation
@@ -159,7 +162,8 @@ class Valkyrie(Drone):
                 if self.fin_mission: return False
 
                 # Scan visuel
-                dx, dy, dz, info, frame = self.camera.analyse(affichage=False)
+                scan = self.camera.analyse_e_aruco if e_analyse else self.camera.analyse
+                dx, dy, dz, info, frame = scan(affichage=False)
 
                 # Cible trouvee
                 if info is not None:
@@ -198,9 +202,12 @@ class Valkyrie(Drone):
         self.return_to_launch()
         return False
 
-    def precision_loiter_and_land(self) -> "bool | None":
+    def precision_loiter_and_land(self, e_analyse: bool = False) -> "bool | None":
         """
         Precision loiter jusqu'a ce que la cible soit centree, puis precision LAND.
+
+        Args:
+            e_analyse (bool): True = détection e-ArUco (inner+outer), False = analyse classique.
 
         Returns:
             True  : atterrissage réussi
@@ -208,6 +215,7 @@ class Valkyrie(Drone):
             None  : cible perdue en LOITER --> requadrillage nécessaire
         """
         print("[VALKYRIE] Début du Precision Loiter...")
+        scan = self.camera.analyse_e_aruco if e_analyse else self.camera.analyse
 
         while True:  # Boucle externe : LAND avorté --> retour en LOITER
 
@@ -222,7 +230,7 @@ class Valkyrie(Drone):
                         self._rc_thread.join(timeout=1.0)
                     return False
 
-                dx, dy, dz, info, _ = self.camera.analyse(affichage=False)
+                dx, dy, dz, info, _ = scan(affichage=False)
 
                 if info is not None:
                     self.send_landing_target(dx, dy, dz)
@@ -257,7 +265,7 @@ class Valkyrie(Drone):
                     self._precision_active = False
                     return False
 
-                dx, dy, dz, info, _ = self.camera.analyse(affichage=False)
+                dx, dy, dz, info, _ = scan(affichage=False)
 
                 if info is not None:
                     self.send_landing_target(dx, dy, dz)

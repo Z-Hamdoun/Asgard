@@ -107,7 +107,7 @@ def run_mission_2(drone: Valkyrie, esp32: ESP32_Link, config: dict):
 
 
 def run_mission_3(drone: Valkyrie, esp32: ESP32_Link, config: dict):
-    """Mission 3 : Valkyrie takeoff, Quadrillage spiral, Precision Land sur ArUco avec failsafes."""
+    """Mission 3 : quadrillage spiral + Precision Land e-ArUco (inner/outer)."""
     if not drone.load_config(config):
         print("[MISSION 3] Configuration invalide. Abandon.")
         return
@@ -120,13 +120,13 @@ def run_mission_3(drone: Valkyrie, esp32: ESP32_Link, config: dict):
 
     # Boucle requadrillage : on retente si la cible est perdue en LOITER
     while True:
-        cible_trouvee = drone.executer_quadrillage()
+        cible_trouvee = drone.executer_quadrillage(e_analyse=True)
         if not cible_trouvee:
             print("[MISSION 3] Quadrillage terminé sans trouver la cible.")
             drone.send_cgm(CGM.VALKYRIE_NO_TARGET_FOUND)
             return
 
-        resultat = drone.precision_loiter_and_land()
+        resultat = drone.precision_loiter_and_land(e_analyse=True)
 
         if resultat is True:
             print("[MISSION 3] Atterrissage de précision réussi.")
