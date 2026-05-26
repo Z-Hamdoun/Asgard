@@ -321,8 +321,30 @@ def run_mission_3(drone: Valhalla, esp32: ESP32_Link, config: dict):
 
 def run_mission_4(drone: Valhalla, esp32: ESP32_Link, config: dict):
     """Mission 4 : à implémenter."""
-    print("[MISSION 4] Non implémentée.")
-    drone.send_cgm(CGM.VALHALLA_NO_TARGET_FOUND)
+    print("[MISSION 4] Valkyrie quadrillage et Aruco Precision Land")
+
+    _valkyrie_done.clear()
+    _valkyrie_result[0] = None
+
+    esp32.send_config(_config_valkyrie(config))
+    time.sleep(1)
+    print("[MISSION 4] Ordre décollage Valkyrie...")
+    drone.send_cgm(CGM.DEMANDE_TAKEOFF_VALKYRIE)
+    esp32.send_start_mission(num_mission=4)
+
+    print("[MISSION 4] En attente de la fin de mission Valkyrie (max 10min)...")
+    completed = _valkyrie_done.wait(timeout=600.0)
+
+    if not completed:
+        print("[MISSION 4] Timeout - aucune réponse de Valkyrie. Retour à l'attente.")
+        return
+
+    cgm = _valkyrie_result[0]
+    if cgm == CGM.VALKYRIE_LANDED.value:
+        print("[MISSION 4] Valkyrie a atterri avec succès sur l'ArUco !")
+    else:
+        obj = CGM.CGM.get(cgm)
+        print(f"[MISSION 4] Mission Valkyrie terminée en échec : {obj.name if obj else cgm}")
 
 
 def run_mission_5(drone: Valhalla, esp32: ESP32_Link, config: dict):
