@@ -17,9 +17,11 @@ from class_Drone import Drone
 if TYPE_CHECKING:
     from Communication.class_ESP32_Link import ESP32_Link
 
-# Seuils failsafe (à 20 Hz = 0.05s par frame)
-_MAX_LOST_FRAMES_LOITER = 100  # 5s - cible perdue en loiter --> requadrillage
-_MAX_LOST_FRAMES_LAND   = 40   # 2s - cible perdue en land --> remonter
+# Seuils failsafe (secondes -- indépendants du FPS caméra)
+_LOITER_LOCK_DURATION = 3.0   # s -- centrage requis avant de passer en LAND
+_LOITER_LOST_TIMEOUT  = 5.0   # s -- cible perdue en LOITER --> requadrillage
+_LAND_LOST_TIMEOUT    = 5.0   # s -- cible perdue en LAND --> remontée
+_YAW_TOLERANCE_DEG    = 5.0  # ° -- tolérance d'alignement yaw
 
 
 class Valkyrie(Drone):
@@ -234,8 +236,8 @@ class Valkyrie(Drone):
         while True:  # Boucle externe : LAND avorté --> retour en LOITER
 
             # -- Phase 1 : Centrage en LOITER ----------------------------------
-            target_locked_frames = 0
-            lost_frames_loiter   = 0
+            target_locked_since = None
+            target_lost_since   = None
 
             while True:
                 if getattr(self, 'fin_mission', False):
@@ -245,23 +247,31 @@ class Valkyrie(Drone):
                     return False
 
                 dx, dy, dz, info, _ = scan(affichage=False)
+                now = time.time()
 
                 if info is not None:
                     self.send_landing_target(dx, dy, dz)
-                    target_locked_frames += 1
-                    lost_frames_loiter    = 0
+                    if target_locked_since is None:
+                        target_locked_since = now
+                    target_lost_since = None
 
-                    if target_locked_frames > 60:
+                    elapsed = now - target_locked_since
+                    print(f"[LOITER] centrage {elapsed:.1f}/{_LOITER_LOCK_DURATION:.0f}s", end="\r")
+
+                    if elapsed >= _LOITER_LOCK_DURATION:
+                        print()
                         print("[VALKYRIE] Centré ! Début de descente (LAND)...")
                         self._rc_throttle_pwm = 0
                         self.change_mode("LAND")
                         break
                 else:
-                    target_locked_frames = max(0, target_locked_frames - 1)
-                    lost_frames_loiter  += 1
+                    if target_lost_since is None:
+                        target_lost_since = now
+                    if now - target_lost_since >= 1.0:
+                        target_locked_since = None
 
-                    if lost_frames_loiter > _MAX_LOST_FRAMES_LOITER:
-                        print("[VALKYRIE] Cible perdue en LOITER (5s) --> requadrillage.")
+                    if now - target_lost_since >= _LOITER_LOST_TIMEOUT:
+                        print(f"\n[VALKYRIE] Cible perdue en LOITER ({_LOITER_LOST_TIMEOUT:.0f}s) --> requadrillage.")
                         self._precision_active = False
                         self.change_mode("GUIDED")
                         if self._rc_thread:
@@ -271,8 +281,8 @@ class Valkyrie(Drone):
                 time.sleep(0.05)
 
             # -- Phase 2 : Descente en LAND -------------------------------------
-            lost_frames_land = 0
-            land_aborted     = False
+            land_lost_since = None
+            land_aborted    = False
 
             while True:
                 if getattr(self, 'fin_mission', False):
@@ -280,14 +290,16 @@ class Valkyrie(Drone):
                     return False
 
                 dx, dy, dz, info, _ = scan(affichage=False)
+                now = time.time()
 
                 if info is not None:
                     self.send_landing_target(dx, dy, dz)
-                    lost_frames_land = 0
+                    land_lost_since = None
                 else:
-                    lost_frames_land += 1
-                    if lost_frames_land > _MAX_LOST_FRAMES_LAND:
-                        print("[VALKYRIE] Cible perdue en LAND (2s) --> remontée.")
+                    if land_lost_since is None:
+                        land_lost_since = now
+                    if now - land_lost_since >= _LAND_LOST_TIMEOUT:
+                        print(f"[VALKYRIE] Cible perdue en LAND ({_LAND_LOST_TIMEOUT:.0f}s) --> remontée.")
                         land_aborted = True
                         break
 
@@ -341,9 +353,9 @@ class Valkyrie(Drone):
 
         while True:
 
-            # -- Phase 1 : Centrage en LOITER ----------------------------------
-            target_locked_frames = 0
-            lost_frames_loiter   = 0
+            # -- Phase 1a : Centrage en LOITER ---------------------------------
+            target_locked_since = None
+            target_lost_since   = None
 
             while True:
                 if getattr(self, 'fin_mission', False):
@@ -353,15 +365,21 @@ class Valkyrie(Drone):
                     return False
 
                 dx, dy, dz, info, _ = scan(affichage=False)
+                now = time.time()
 
                 if info is not None:
                     dx_c = dx + self.cam_x_m
                     dy_c = dy + self.cam_y_m
                     self.send_landing_target(dx_c, dy_c, dz)
-                    target_locked_frames += 1
-                    lost_frames_loiter    = 0
+                    if target_locked_since is None:
+                        target_locked_since = now
+                    target_lost_since = None
 
-                    if target_locked_frames > 60:
+                    elapsed = now - target_locked_since
+                    print(f"[LOITER] centrage {elapsed:.1f}/{_LOITER_LOCK_DURATION:.0f}s", end="\r")
+
+                    if elapsed >= _LOITER_LOCK_DURATION:
+                        print()
                         print("[VALKYRIE] Centré ! Alignement yaw pince...")
                         self._align_yaw_to_target(dx_c, dy_c)
                         print("[VALKYRIE] Début de descente (LAND)...")
@@ -369,11 +387,14 @@ class Valkyrie(Drone):
                         self.change_mode("LAND")
                         break
                 else:
-                    target_locked_frames = max(0, target_locked_frames - 1)
-                    lost_frames_loiter  += 1
+                    if target_lost_since is None:
+                        target_lost_since = now
+                    # Grâce de 1 s : une perte brève ne remet pas le timer à zéro
+                    if now - target_lost_since >= 1.0:
+                        target_locked_since = None
 
-                    if lost_frames_loiter > _MAX_LOST_FRAMES_LOITER:
-                        print("[VALKYRIE] Cible perdue en LOITER (5s) --> requadrillage.")
+                    if now - target_lost_since >= _LOITER_LOST_TIMEOUT:
+                        print(f"\n[VALKYRIE] Cible perdue en LOITER ({_LOITER_LOST_TIMEOUT:.0f}s) --> requadrillage.")
                         self._precision_active = False
                         self.change_mode("GUIDED")
                         if self._rc_thread:
@@ -383,8 +404,8 @@ class Valkyrie(Drone):
                 time.sleep(0.05)
 
             # -- Phase 2 : Descente en LAND -------------------------------------
-            lost_frames_land = 0
-            land_aborted     = False
+            land_lost_since = None
+            land_aborted    = False
 
             while True:
                 if getattr(self, 'fin_mission', False):
@@ -392,14 +413,16 @@ class Valkyrie(Drone):
                     return False
 
                 dx, dy, dz, info, _ = scan(affichage=False)
+                now = time.time()
 
                 if info is not None:
                     self.send_landing_target(dx + self.cam_x_m, dy + self.cam_y_m, dz)
-                    lost_frames_land = 0
+                    land_lost_since = None
                 else:
-                    lost_frames_land += 1
-                    if lost_frames_land > _MAX_LOST_FRAMES_LAND:
-                        print("[VALKYRIE] Cible perdue en LAND (2s) --> remontée.")
+                    if land_lost_since is None:
+                        land_lost_since = now
+                    if now - land_lost_since >= _LAND_LOST_TIMEOUT:
+                        print(f"[VALKYRIE] Cible perdue en LAND ({_LAND_LOST_TIMEOUT:.0f}s) --> remontée.")
                         land_aborted = True
                         break
 
@@ -438,7 +461,7 @@ class Valkyrie(Drone):
     # ALIGNEMENT YAW (pince sur axe du nez)
     # =========================================================================
     def _align_yaw_to_target(self, dx: float, dy: float,
-                              tolerance_deg: float = 10.0,
+                              tolerance_deg: float = _YAW_TOLERANCE_DEG,
                               timeout: float = 10.0) -> bool:
         """
         Pivote le drone en LOITER pour aligner le nez (et la pince) vers la cible,
@@ -446,7 +469,7 @@ class Valkyrie(Drone):
 
         Aucun changement de mode : on reste en LOITER. Le thread _rc_override_loop
         déjà actif diffuse _rc_yaw_pwm à 10 Hz. À la fin (convergence ou timeout),
-        _rc_yaw_pwm est remis à 0 → le FC/pilote reprend le canal yaw, et LOITER
+        _rc_yaw_pwm est remis à 0 --> le FC/pilote reprend le canal yaw, et LOITER
         gèle automatiquement le cap atteint.
 
         dx/dy en repère body FRD (x=avant, y=droite), déjà corrigés de l'offset caméra.
@@ -465,7 +488,7 @@ class Valkyrie(Drone):
 
         # Sens de rotation : PWM > 1500 = CW, PWM < 1500 = CCW
         self._rc_yaw_pwm = 1600 if angle_deg >= 0 else 1400
-        print(f"[VALKYRIE] Alignement yaw : rotation {angle_deg:+.1f}° → cible {target_yaw_deg:.1f}°")
+        print(f"[VALKYRIE] Alignement yaw : rotation {angle_deg:+.1f}° --> cible {target_yaw_deg:.1f}°")
 
         deadline = time.time() + timeout
         try:
