@@ -21,7 +21,8 @@ if TYPE_CHECKING:
 _LOITER_LOCK_DURATION = 3.0   # s -- centrage requis avant de passer en LAND
 _LOITER_LOST_TIMEOUT  = 5.0   # s -- cible perdue en LOITER --> requadrillage
 _LAND_LOST_TIMEOUT    = 5.0   # s -- cible perdue en LAND --> remontée
-_YAW_TOLERANCE_DEG    = 5.0  # ° -- tolérance d'alignement yaw
+_YAW_TOLERANCE_DEG    = 5.0   # ° -- tolérance d'alignement yaw
+_ARUCO_CGM_INTERVAL   = 5.0   # s -- intervalle minimum entre deux CGMs ArUco du même type
 
 
 class Valkyrie(Drone):
@@ -48,6 +49,10 @@ class Valkyrie(Drone):
         self._rc_throttle_pwm = 0
         self._rc_yaw_pwm      = 0   # 0 = pas d'override (pilote/FC reprend le canal)
         self._rc_thread = None
+
+        # Rate-limiting CGMs ArUco (évite le spam)
+        self._last_outer_cgm = 0.0
+        self._last_inner_cgm = 0.0
 
     def set_esp32_link(self, esp32: ESP32_Link):
         """Enregistre le lien ESP32 utilisé pour router les CGMs via Valhalla."""
@@ -250,6 +255,7 @@ class Valkyrie(Drone):
                 now = time.time()
 
                 if info is not None:
+                    self._maybe_send_aruco_cgm(info)
                     self.send_landing_target(dx, dy, dz)
                     if target_locked_since is None:
                         target_locked_since = now
@@ -261,6 +267,7 @@ class Valkyrie(Drone):
                     if elapsed >= _LOITER_LOCK_DURATION:
                         print()
                         print("[VALKYRIE] Centré ! Début de descente (LAND)...")
+                        self.send_cgm(CGM.VALKYRIE_PRECISION_LAND_STARTING)
                         self._rc_throttle_pwm = 0
                         self.change_mode("LAND")
                         break
@@ -272,6 +279,7 @@ class Valkyrie(Drone):
 
                     if now - target_lost_since >= _LOITER_LOST_TIMEOUT:
                         print(f"\n[VALKYRIE] Cible perdue en LOITER ({_LOITER_LOST_TIMEOUT:.0f}s) --> requadrillage.")
+                        self.send_cgm(CGM.VALKYRIE_LOITER_LOST_TARGET)
                         self._precision_active = False
                         self.change_mode("GUIDED")
                         if self._rc_thread:
@@ -293,6 +301,7 @@ class Valkyrie(Drone):
                 now = time.time()
 
                 if info is not None:
+                    self._maybe_send_aruco_cgm(info)
                     self.send_landing_target(dx, dy, dz)
                     land_lost_since = None
                 else:
@@ -300,6 +309,7 @@ class Valkyrie(Drone):
                         land_lost_since = now
                     if now - land_lost_since >= _LAND_LOST_TIMEOUT:
                         print(f"[VALKYRIE] Cible perdue en LAND ({_LAND_LOST_TIMEOUT:.0f}s) --> remontée.")
+                        self.send_cgm(CGM.VALKYRIE_LAND_ABORTED)
                         land_aborted = True
                         break
 
@@ -368,6 +378,7 @@ class Valkyrie(Drone):
                 now = time.time()
 
                 if info is not None:
+                    self._maybe_send_aruco_cgm(info)
                     dx_c = dx + self.cam_x_m
                     dy_c = dy + self.cam_y_m
                     self.send_landing_target(dx_c, dy_c, dz)
@@ -383,6 +394,7 @@ class Valkyrie(Drone):
                         print("[VALKYRIE] Centré ! Alignement yaw pince...")
                         self._align_yaw_to_target(dx_c, dy_c)
                         print("[VALKYRIE] Début de descente (LAND)...")
+                        self.send_cgm(CGM.VALKYRIE_PRECISION_LAND_STARTING)
                         self._rc_throttle_pwm = 0
                         self.change_mode("LAND")
                         break
@@ -395,6 +407,7 @@ class Valkyrie(Drone):
 
                     if now - target_lost_since >= _LOITER_LOST_TIMEOUT:
                         print(f"\n[VALKYRIE] Cible perdue en LOITER ({_LOITER_LOST_TIMEOUT:.0f}s) --> requadrillage.")
+                        self.send_cgm(CGM.VALKYRIE_LOITER_LOST_TARGET)
                         self._precision_active = False
                         self.change_mode("GUIDED")
                         if self._rc_thread:
@@ -416,6 +429,7 @@ class Valkyrie(Drone):
                 now = time.time()
 
                 if info is not None:
+                    self._maybe_send_aruco_cgm(info)
                     self.send_landing_target(dx + self.cam_x_m, dy + self.cam_y_m, dz)
                     land_lost_since = None
                 else:
@@ -423,6 +437,7 @@ class Valkyrie(Drone):
                         land_lost_since = now
                     if now - land_lost_since >= _LAND_LOST_TIMEOUT:
                         print(f"[VALKYRIE] Cible perdue en LAND ({_LAND_LOST_TIMEOUT:.0f}s) --> remontée.")
+                        self.send_cgm(CGM.VALKYRIE_LAND_ABORTED)
                         land_aborted = True
                         break
 
@@ -456,6 +471,22 @@ class Valkyrie(Drone):
                 for _ in range(5):
                     if self.change_mode("LOITER"):
                         break
+
+    # =========================================================================
+    # CGMs ARUCO (rate-limited)
+    # =========================================================================
+    def _maybe_send_aruco_cgm(self, info) -> None:
+        """Envoie un CGM de détection ArUco (inner ou outer) au plus toutes les
+        _ARUCO_CGM_INTERVAL secondes pour éviter le spam."""
+        now = time.time()
+        if info == self.camera.inner_aruco_id:
+            if now - self._last_inner_cgm >= _ARUCO_CGM_INTERVAL:
+                self.send_cgm(CGM.VALKYRIE_INNER_ARUCO_DETECTED)
+                self._last_inner_cgm = now
+        elif info == self.camera.outer_aruco_id:
+            if now - self._last_outer_cgm >= _ARUCO_CGM_INTERVAL:
+                self.send_cgm(CGM.VALKYRIE_OUTER_ARUCO_DETECTED)
+                self._last_outer_cgm = now
 
     # =========================================================================
     # ALIGNEMENT YAW (pince sur axe du nez)
@@ -501,6 +532,7 @@ class Valkyrie(Drone):
                     error = abs((yaw_deg - target_yaw_deg + 180) % 360 - 180)
                     if error < tolerance_deg:
                         print(f"[VALKYRIE] Yaw aligné (erreur résiduelle {error:.1f}°).")
+                        self.send_cgm(CGM.VALKYRIE_YAW_ALIGNED)
                         return True
                 time.sleep(0.05)
         finally:
@@ -508,6 +540,7 @@ class Valkyrie(Drone):
             self._rc_yaw_pwm = 0
 
         print("[VALKYRIE] Timeout alignement yaw -- passage en LAND quand même.")
+        self.send_cgm(CGM.VALKYRIE_YAW_ALIGN_TIMEOUT)
         return False
 
     # Utilitaire
