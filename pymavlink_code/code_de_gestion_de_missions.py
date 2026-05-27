@@ -428,6 +428,14 @@ VALKYRIE_YAW_ALIGNED = CGM(
     potential_sender="valkyrie"
 )
 
+VALKYRIE_FOLLOW_STARTED = CGM(
+    value=112,
+    name="VALKYRIE_FOLLOW_STARTED",
+    short_description="Valkyrie mode FOLLOW activé",
+    long_description="Valkyrie a réussi à passer en mode FOLLOW et commence à suivre Valhalla à 2m au-dessus.",
+    potential_sender="valkyrie"
+)
+
 # --- Messages (200-299) -------------------------------------------------------
 
 VALKYRIE_OUTER_ARUCO_DETECTED = CGM(
@@ -469,6 +477,14 @@ VALKYRIE_LOITER_LOST_TARGET = CGM(
     name="VALKYRIE_LOITER_LOST_TARGET",
     short_description="Cible perdue en LOITER -- requadrillage",
     long_description="La cible ArUco a été perdue trop longtemps en phase de centrage. Valkyrie relance un quadrillage complet.",
+    potential_sender="valkyrie"
+)
+
+VALKYRIE_FOLLOW_GPS_LOST = CGM(
+    value=303,
+    name="VALKYRIE_FOLLOW_GPS_LOST",
+    short_description="GPS Valhalla perdu en FOLLOW -- RTL",
+    long_description="Le signal GPS de Valhalla (reçu via ESP32) est perdu depuis trop longtemps. Valkyrie déclenche un RTL.",
     potential_sender="valkyrie"
 )
 
