@@ -596,3 +596,28 @@ if (checkEvrnBtn) {
         }
     };
 }
+
+const openGripperBtn  = document.getElementById("open-gripper-btn");
+const closeGripperBtn = document.getElementById("close-gripper-btn");
+
+if (openGripperBtn) {
+    openGripperBtn.onclick = function() {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ command: "open_gripper", target: "Valkyrie" }));
+            uiLog("GCS", "INFO", "ESP32", "Ouverture pince envoyée");
+        } else {
+            uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
+        }
+    };
+}
+
+if (closeGripperBtn) {
+    closeGripperBtn.onclick = function() {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ command: "close_gripper", target: "Valkyrie" }));
+            uiLog("GCS", "INFO", "ESP32", "Fermeture pince envoyée");
+        } else {
+            uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
+        }
+    };
+}

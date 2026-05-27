@@ -176,6 +176,24 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     "dashboard",
                 )
 
+            elif command == "open_gripper":
+                gcs = await get_gcs()
+                if gcs:
+                    gcs.ouvrir_pince()
+                await manager.send_to_target(
+                    {"type": "status", "command": "gripper_opening", "source": "GCS"},
+                    "dashboard",
+                )
+
+            elif command == "close_gripper":
+                gcs = await get_gcs()
+                if gcs:
+                    gcs.fermer_pince()
+                await manager.send_to_target(
+                    {"type": "status", "command": "gripper_closing", "source": "GCS"},
+                    "dashboard",
+                )
+
             elif command == "co_V":
                 if target == "Valhalla":
                     gcs = await get_gcs()

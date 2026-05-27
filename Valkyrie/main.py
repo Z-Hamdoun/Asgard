@@ -5,6 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
 from class_Valkyrie import Valkyrie
 from Communication.class_ESP32_Link import ESP32_Link
+from Communication.class_GripperESP32 import GripperESP32
 import pymavlink_code.code_de_gestion_de_missions as CGM
 
 CONFIG_FILE = "Valkyrie/mission_config.json"
@@ -213,7 +214,7 @@ def run_mission(drone: Valkyrie, esp32: ESP32_Link, num_mission: int):
 # ==============================================================================
 # BOUCLE PRINCIPALE (attente ordres ESP32 de Valhalla)
 # ==============================================================================
-def main_loop(drone: Valkyrie, esp32: ESP32_Link):
+def main_loop(drone: Valkyrie, esp32: ESP32_Link, gripper: GripperESP32 | None = None):
     """
     Boucle infinie d'écoute des messages ESP-NOW de Valhalla.
     - CFG:json      --> mise à jour de la config locale
@@ -249,6 +250,22 @@ def main_loop(drone: Valkyrie, esp32: ESP32_Link):
         if cgm_recu == CGM.ESP32_PING.value:
             print("[MAIN] ESP32_PING reçu. Envoi du PONG...")
             esp32.send_cgm(CGM.ESP32_PONG.value)
+
+        # Commandes manuelles pince depuis le Dashboard
+        elif cgm_recu == CGM.PC_OPEN_GRIPPER_VALKYRIE.value:
+            print("[MAIN] Ouverture manuelle de la pince...")
+            if gripper is not None:
+                gripper.open_gripper()
+            else:
+                print("[MAIN] Pince non connectée.")
+
+        elif cgm_recu == CGM.PC_CLOSE_GRIPPER_VALKYRIE.value:
+            print("[MAIN] Fermeture manuelle de la pince...")
+            if gripper is not None:
+                caught = gripper.close_gripper()
+                print(f"[MAIN] Résultat fermeture pince : {'SAISIE OK' if caught else 'RIEN SAISI'}")
+            else:
+                print("[MAIN] Pince non connectée.")
 
         time.sleep(0.1)
 
@@ -295,4 +312,9 @@ if __name__ == "__main__":
 
     drone.set_esp32_link(esp32)
 
-    main_loop(drone, esp32)
+    gripper = GripperESP32(port="/dev/ttyACM1")
+    if not gripper.connect():
+        print("[MAIN] Pince non connectée — fonctions pince désactivées.")
+        gripper = None
+
+    main_loop(drone, esp32, gripper)

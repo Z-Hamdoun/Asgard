@@ -553,21 +553,32 @@ class Camera:
         t_captured = self.time_boot_ms
 
         # -- Priorité : marqueur INNER (précision finale, DICT_4X4_50 ID=17) -
+        # En-dessous de 8px, l'estimation PnP est aberrante (faux positifs typiques : 2-3px ;
+        # une vraie détection inner à 1,5m réel donne ~12px).
+        _MIN_INNER_PX = 8
         result = self._detect_aruco_marker(frame, 'inner')
         if result is not None:
             dx, dy, dz, taille_px, _ = result
-            t_det = self.time_boot_ms
-            info = (
-                f"INNER:id{self.inner_aruco_id},"
-                f"sz{taille_px},"
-                f"rec{round(t_captured - t_begin, 3)},"
-                f"det{round(t_det - t_captured, 3)}"
-            )
-            self.logger.log(
-                f"[e-ArUco INNER] dx={dx:.3f}m dy={dy:.3f}m dz={dz:.3f}m taille={taille_px}",
-                wanna_print=True,
-            )
-            return dx, dy, dz, info, frame
+            if min(taille_px) < _MIN_INNER_PX:
+                # Trop petit — presque certainement du bruit ; on réinitialise le crop
+                # pour éviter de rester verrouillé sur ce faux positif.
+                self._inner_crop = None
+                self._inner_scale_down = None
+                self.logger.log(
+                    f"[e-ArUco INNER] rejeté (taille={taille_px} < {_MIN_INNER_PX}px)",
+                    wanna_print=True
+                )
+            else:
+                t_det = self.time_boot_ms
+                info = (f"INNER:id{self.inner_aruco_id},"
+                        f"sz{taille_px},"
+                        f"rec{round(t_captured - t_begin, 3)},"
+                        f"det{round(t_det - t_captured, 3)}")
+                self.logger.log(
+                    f"[e-ArUco INNER] dx={dx:.3f}m dy={dy:.3f}m dz={dz:.3f}m taille={taille_px}",
+                    wanna_print=True
+                )
+                return dx, dy, dz, info, frame
 
         # Fallback : marqueur OUTER (centrage loiter, DICT_7X7_50 ID=5)
         result = self._detect_aruco_marker(frame, 'outer')
