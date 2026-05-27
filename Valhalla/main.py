@@ -1,4 +1,4 @@
-import os, sys, threading, time
+import os, sys, threading, time, math
 import asyncio
 import websockets
 import json
@@ -20,6 +20,7 @@ _VALKYRIE_TERMINAL_CGMS = frozenset({
     CGM.VALKYRIE_NO_TARGET_FOUND.value,
     CGM.VALKYRIE_MODE_CHANGE_FAIL.value,
     CGM.VALKYRIE_TAKEOFF_FAIL.value,
+    CGM.VALKYRIE_FOLLOW_GPS_LOST.value,  # Mission 5 : GPS Valhalla perdu → RTL Valkyrie
 })
 
 # Event + résultat partagés entre le thread relais et le runner de mission
@@ -277,7 +278,7 @@ def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
             print("[MISSION 1] En attente de la fin de mission Valkyrie (max 15min)...")
             completed = _valkyrie_done.wait(timeout=900.0)
             if not completed:
-                print("[MISSION 1] Timeout — aucune réponse de Valkyrie. Retour à l'attente.")
+                print("[MISSION 1] Timeout -- aucune réponse de Valkyrie. Retour à l'attente.")
             else:
                 cgm = _valkyrie_result[0]
                 if cgm == CGM.VALKYRIE_LANDED.value:
@@ -352,9 +353,44 @@ def run_mission_4(drone: Valhalla, esp32: ESP32_Link, config: dict):
 
 
 def run_mission_5(drone: Valhalla, esp32: ESP32_Link, config: dict):
-    """Mission 5 : à implémenter."""
-    print("[MISSION 5] Non implémentée.")
-    drone.send_cgm(CGM.VALHALLA_NO_TARGET_FOUND)
+    """Mission 5 : Valhalla RC-contrôlé, diffuse son GPS pour que Valkyrie le suive."""
+    if not check_esp32_or_rtl(esp32, drone):
+        return
+
+    _valkyrie_done.clear()
+    _valkyrie_result[0] = None
+
+    # Démarrage de Valkyrie en mode FOLLOW
+    print("[MISSION 5] Ordre mission FOLLOW à Valkyrie (CMD:START:5)...")
+    esp32.send_start_mission(num_mission=5)
+
+    # Diffusion GPS Valhalla à 10 Hz jusqu'à fin de mission
+    print("[MISSION 5] Diffusion GPS Valhalla via ESP32 démarrée.")
+    _gps_running = [True]
+
+    def _gps_broadcast():
+        while _gps_running[0] and not drone.fin_mission:
+            # position() retourne (lat, lon, relative_alt, alt_msl)
+            lat, lon, rel_alt, alt_msl = drone.position()
+            if not (math.isnan(lat) or math.isnan(lon) or math.isnan(rel_alt) or math.isnan(alt_msl)):
+                esp32.send_telemetry(lat, lon, rel_alt, alt_msl)
+            time.sleep(0.1)
+
+    gps_thread = threading.Thread(target=_gps_broadcast, daemon=True)
+    gps_thread.start()
+
+    print("[MISSION 5] En attente fin mission FOLLOW Valkyrie (max 8 min)...")
+    _valkyrie_done.wait(timeout=480)
+
+    _gps_running[0] = False
+    gps_thread.join(timeout=2.0)
+
+    cgm = _valkyrie_result[0]
+    if cgm is not None:
+        obj = CGM.CGM.get(cgm)
+        print(f"[MISSION 5] Fin Valkyrie : {obj.name if obj else cgm}")
+    else:
+        print("[MISSION 5] Timeout ou urgence -- fin mission FOLLOW.")
 
 
 _MISSION_RUNNERS = {
@@ -384,14 +420,15 @@ def _handle_emergency_landing_cleanup(drone: Valhalla):
 def run_mission(drone: Valhalla, esp32: ESP32_Link, num_mission: int):
     """Point d'entrée unique : charge la config sécurisée et dispatche vers la bonne mission."""
     config = read_config_safe()
-    if not _check_coords(config, drone):
+    # Mission 5 ne nécessite pas de coordonnées GPS cibles (Valhalla est RC-contrôlé)
+    if num_mission != 5 and not _check_coords(config, drone):
         return
 
     runner = _MISSION_RUNNERS.get(num_mission, run_mission_1)
     print(f"[MISSION] Lancement mission {num_mission}...")
     runner(drone, esp32, config)
 
-    # Cleanup après urgence — priority landing > stop (stop est déjà désarmé)
+    # Cleanup après urgence -- priority landing > stop (stop est déjà désarmé)
     if _emergency_landing_event.is_set():
         _handle_emergency_landing_cleanup(drone)
     elif _emergency_stop_event.is_set():
