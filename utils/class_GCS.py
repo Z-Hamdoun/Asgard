@@ -89,10 +89,15 @@ class GroundStation:
         self.valhalla.send_statustext(msg_text, severity=7)
 
     def arret_urgence(self):
-        """Ordonne le désarmement immédiat de Valhalla."""
-        code = CGM.PC_A_DISARM_FORCE_VALHALLA.value
+        """Force le désarmement immédiat de Valhalla (et relai vers Valkyrie via watcher Valhalla)."""
         print("[GCS-RADIO] !!! ARRÊT D'URGENCE ENVOYÉ À VALHALLA !!!")
-        self.valhalla.send_named_value_int(code)
+        self.valhalla.send_cgm(CGM.PC_A_DISARM_FORCE_VALHALLA)
+        self.valhalla.disarm(force=True)
+
+    def atterrissage_urgence(self):
+        """Ordonne l'atterrissage d'urgence de Valhalla (RTL + relai vers Valkyrie)."""
+        print("[GCS-RADIO] !!! ATTERRISSAGE D'URGENCE ENVOYÉ À VALHALLA !!!")
+        self.valhalla.send_cgm(CGM.PC_URGENCY_LANDING_VALHALLA)
 
     def force_rtl(self):
         """Force Valhalla à rentrer à la base, sans lui couper les moteurs."""
