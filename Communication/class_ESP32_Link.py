@@ -41,11 +41,20 @@ class ESP32_Link:
         self.reconnect_exhausted = threading.Event()
         self._on_fail_cb = None  # callable(attempt: int) appelé à chaque tentative échouée
 
+        # Callbacks d'urgence : {cgm_value: callable()}
+        # Appelés immédiatement à la réception du CGM, sans passer par dernier_cgm.
+        self._emergency_callbacks: dict = {}
+
         self.lock = threading.Lock()
 
     def set_fail_callback(self, cb):
         """cb(attempt) est appelé à chaque tentative de reconnexion échouée."""
         self._on_fail_cb = cb
+
+    def register_emergency_cgm(self, cgm_value: int, callback):
+        """Enregistre un callback déclenché immédiatement à la réception d'un CGM d'urgence.
+        Le CGM n'est PAS stocké dans dernier_cgm (non pollable par get_and_clear_cgm)."""
+        self._emergency_callbacks[cgm_value] = callback
 
     def connect(self) -> bool:
         if self.mock:
@@ -190,8 +199,16 @@ class ESP32_Link:
             
             elif message.startswith("CGM:"): # Interception d'un CGM
                 try:
-                    self.dernier_cgm = int(message.split(":")[1])
-                    print(f"[ESP32-RX] CGM intercepté depuis l'essaim : {self.dernier_cgm}")
+                    cgm_val = int(message.split(":")[1])
+                    cb = self._emergency_callbacks.get(cgm_val)
+                    if cb is not None:
+                        try:
+                            cb()
+                        except Exception:
+                            pass
+                    else:
+                        self.dernier_cgm = cgm_val
+                        print(f"[ESP32-RX] CGM intercepté depuis l'essaim : {cgm_val}")
                 except ValueError:
                     pass
                     
