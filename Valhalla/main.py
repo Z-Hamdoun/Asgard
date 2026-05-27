@@ -1,4 +1,4 @@
-import os, sys, threading, time
+import os, sys, threading, time, math
 import asyncio
 import websockets
 import json
@@ -15,18 +15,21 @@ CONFIG_FILE = "Valhalla/mission_config.json"
 SIMU = False  # True = SITL, False = REEL
 
 # CGMs qui signalent la fin de la mission Valkyrie (succès ou échec terminal)
-_VALKYRIE_TERMINAL_CGMS = frozenset(
-    {
-        CGM.VALKYRIE_LANDED.value,
-        CGM.VALKYRIE_NO_TARGET_FOUND.value,
-        CGM.VALKYRIE_MODE_CHANGE_FAIL.value,
-        CGM.VALKYRIE_TAKEOFF_FAIL.value,
-    }
-)
+_VALKYRIE_TERMINAL_CGMS = frozenset({
+    CGM.VALKYRIE_LANDED.value,
+    CGM.VALKYRIE_NO_TARGET_FOUND.value,
+    CGM.VALKYRIE_MODE_CHANGE_FAIL.value,
+    CGM.VALKYRIE_TAKEOFF_FAIL.value,
+    CGM.VALKYRIE_FOLLOW_GPS_LOST.value,  # Mission 5 : GPS Valhalla perdu → RTL Valkyrie
+})
 
 # Event + résultat partagés entre le thread relais et le runner de mission
 _valkyrie_done = threading.Event()
 _valkyrie_result = [None]  # liste pour etre mutable depuis le thread relais
+
+# Events d'urgence : settés par le watcher, clearés après cleanup
+_emergency_stop_event    = threading.Event()  # désarmement forcé
+_emergency_landing_event = threading.Event()  # RTL + retour attente
 
 # Ping-pong ESP32 : timestamp d'envoi et event de réception du pong
 _esp32_ping_sent_at = [0.0]
@@ -307,7 +310,7 @@ def check_esp32_or_rtl(esp32: ESP32_Link, drone) -> bool:
     """
     if esp32.reconnect_exhausted.is_set():
         print("[FAILSAFE] ESP32 perdu irrémédiablement. RTL déclenché.")
-        drone.rtl()
+        drone.return_to_launch()
         return False
     return True
 
@@ -353,7 +356,7 @@ def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
 
     if drone.takeoff_pc(altitude=3):
         print(f"[MISSION 1] Décollage OK. En route vers {lat}, {lng}...")
-        if drone.execute_goto_from_config(radius_acceptance=2.0):
+        if drone.execute_goto_from_config(radius_acceptance=2.0) and not drone.fin_mission:
             print("[MISSION 1] Point atteint. Envoi config à Valkyrie...")
             _valkyrie_done.clear()
             _valkyrie_result[0] = None
@@ -367,9 +370,7 @@ def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
             print("[MISSION 1] En attente de la fin de mission Valkyrie (max 15min)...")
             completed = _valkyrie_done.wait(timeout=900.0)
             if not completed:
-                print(
-                    "[MISSION 1] Timeout — aucune réponse de Valkyrie. Retour à l'attente."
-                )
+                print("[MISSION 1] Timeout -- aucune réponse de Valkyrie. Retour à l'attente.")
             else:
                 cgm = _valkyrie_result[0]
                 if cgm == CGM.VALKYRIE_LANDED.value:
@@ -448,9 +449,44 @@ def run_mission_4(drone: Valhalla, esp32: ESP32_Link, config: dict):
 
 
 def run_mission_5(drone: Valhalla, esp32: ESP32_Link, config: dict):
-    """Mission 5 : à implémenter."""
-    print("[MISSION 5] Non implémentée.")
-    drone.send_cgm(CGM.VALHALLA_NO_TARGET_FOUND)
+    """Mission 5 : Valhalla RC-contrôlé, diffuse son GPS pour que Valkyrie le suive."""
+    if not check_esp32_or_rtl(esp32, drone):
+        return
+
+    _valkyrie_done.clear()
+    _valkyrie_result[0] = None
+
+    # Démarrage de Valkyrie en mode FOLLOW
+    print("[MISSION 5] Ordre mission FOLLOW à Valkyrie (CMD:START:5)...")
+    esp32.send_start_mission(num_mission=5)
+
+    # Diffusion GPS Valhalla à 10 Hz jusqu'à fin de mission
+    print("[MISSION 5] Diffusion GPS Valhalla via ESP32 démarrée.")
+    _gps_running = [True]
+
+    def _gps_broadcast():
+        while _gps_running[0] and not drone.fin_mission:
+            # position() retourne (lat, lon, relative_alt, alt_msl)
+            lat, lon, rel_alt, alt_msl = drone.position()
+            if not (math.isnan(lat) or math.isnan(lon) or math.isnan(rel_alt) or math.isnan(alt_msl)):
+                esp32.send_telemetry(lat, lon, rel_alt, alt_msl)
+            time.sleep(0.1)
+
+    gps_thread = threading.Thread(target=_gps_broadcast, daemon=True)
+    gps_thread.start()
+
+    print("[MISSION 5] En attente fin mission FOLLOW Valkyrie (max 8 min)...")
+    _valkyrie_done.wait(timeout=480)
+
+    _gps_running[0] = False
+    gps_thread.join(timeout=2.0)
+
+    cgm = _valkyrie_result[0]
+    if cgm is not None:
+        obj = CGM.CGM.get(cgm)
+        print(f"[MISSION 5] Fin Valkyrie : {obj.name if obj else cgm}")
+    else:
+        print("[MISSION 5] Timeout ou urgence -- fin mission FOLLOW.")
 
 
 _MISSION_RUNNERS = {
@@ -462,16 +498,76 @@ _MISSION_RUNNERS = {
 }
 
 
+def _reset_after_emergency(drone: Valhalla):
+    """Réinitialise fin_mission/allow_actions pour permettre un nouveau départ."""
+    drone.fin_mission = False
+    drone.allow_actions = True
+
+
+def _handle_emergency_landing_cleanup(drone: Valhalla):
+    """Attend l'atterrissage après un RTL d'urgence, puis réinitialise l'état."""
+    _reset_after_emergency(drone)
+    print("[URGENCE] Attente atterrissage Valhalla...")
+    drone.wait_motors_disarmed(timeout=120.0)
+    print("[URGENCE] Valhalla posé. Retour à l'attente de mission.")
+    _emergency_landing_event.clear()
+
+
 def run_mission(drone: Valhalla, esp32: ESP32_Link, num_mission: int):
     """Point d'entrée unique : charge la config sécurisée et dispatche vers la bonne mission."""
     config = read_config_safe()
-    if not _check_coords(config, drone):
+    # Mission 5 ne nécessite pas de coordonnées GPS cibles (Valhalla est RC-contrôlé)
+    if num_mission != 5 and not _check_coords(config, drone):
         return
 
     runner = _MISSION_RUNNERS.get(num_mission, run_mission_1)
     print(f"[MISSION] Lancement mission {num_mission}...")
     runner(drone, esp32, config)
+
+    # Cleanup après urgence -- priority landing > stop (stop est déjà désarmé)
+    if _emergency_landing_event.is_set():
+        _handle_emergency_landing_cleanup(drone)
+    elif _emergency_stop_event.is_set():
+        _reset_after_emergency(drone)
+        _emergency_stop_event.clear()
+
     print(f"[MISSION] Mission {num_mission} terminée. Retour à la boucle d'attente.")
+    drone.send_cgm(CGM.VALHALLA_WAITING_MISSION)
+
+# ==============================================================================
+# WATCHER D'URGENCE (thread de fond)
+# ==============================================================================
+def emergency_watcher(drone: Valhalla, esp32: ESP32_Link):
+    """
+    Surveille en permanence les CGMs d'urgence, y compris pendant une mission active.
+    Tourne dans un thread daemon indépendant de main_loop.
+    """
+    while True:
+        # --- Arrêt d'urgence : désarme Valhalla + relaie vers Valkyrie ---
+        if drone.check_cgm(CGM.PC_A_DISARM_FORCE_VALHALLA):
+            drone.delete_cgm(CGM.PC_A_DISARM_FORCE_VALHALLA)
+            print("[URGENCE-WD] Désarmement forcé Valhalla !")
+            # timeout_ack=0 : envoie la commande sans attendre l'ACK (non bloquant)
+            drone.disarm(force=True, timeout_ack=0)
+            # Couper IMMÉDIATEMENT les boucles de mission et débloquer les wait()
+            drone.fin_mission = True
+            _emergency_stop_event.set()
+            _valkyrie_done.set()       # débloque _valkyrie_done.wait() dans run_mission_*
+            esp32.send_cgm(CGM.PC_A_DISARM_FORCE_VALKYRIE.value)
+
+        # --- Atterrissage d'urgence : RTL Valhalla + relai Valkyrie ---
+        if drone.check_cgm(CGM.PC_URGENCY_LANDING_VALHALLA):
+            drone.delete_cgm(CGM.PC_URGENCY_LANDING_VALHALLA)
+            print("[URGENCE-WD] Atterrissage d'urgence Valhalla !")
+            # timeout=0 : envoie la commande RTL sans bloquer
+            drone.return_to_launch(timeout=0)
+            # Couper IMMÉDIATEMENT les boucles de mission
+            drone.fin_mission = True
+            _valkyrie_done.set()                        # débloque les wait() de mission
+            _emergency_landing_event.set()
+            esp32.send_cgm(CGM.PC_URGENCY_LANDING_VALKYRIE.value)  # relai Valkyrie
+
+        time.sleep(0.05)
 
 
 # ==============================================================================
@@ -481,10 +577,24 @@ def main_loop(drone: Valhalla, esp32: ESP32_Link, ip_ordi: list[str]):
     """
     Boucle infinie d'écoute des CGMs radio.
     Chaque CGM déclenche une action puis retourne ici.
+    Les urgences sont gérées par emergency_watcher (thread de fond).
     """
     print("\n[MAIN] Boucle CGM active. En attente d'ordres radio...\n")
+    drone.send_cgm(CGM.VALHALLA_WAITING_MISSION)
 
     while True:
+
+        # Nettoyage post-urgence si déclenchée hors mission (stop ou landing)
+        if _emergency_stop_event.is_set():
+            _reset_after_emergency(drone)
+            _emergency_stop_event.clear()
+            drone.send_cgm(CGM.VALHALLA_WAITING_MISSION)
+            continue
+
+        if _emergency_landing_event.is_set():
+            _handle_emergency_landing_cleanup(drone)
+            drone.send_cgm(CGM.VALHALLA_WAITING_MISSION)
+            continue
 
         # --- Configurer Valhalla (connexion WiFi ponctuelle) ---
         if drone.check_cgm(CGM.PC_CONFIGURE_VALHALLA):
@@ -526,12 +636,6 @@ def main_loop(drone: Valhalla, esp32: ESP32_Link, ip_ordi: list[str]):
             drone.delete_cgm(CGM.PC_DEMANDE_MISSION_5_VALHALLA)
             run_mission(drone, esp32, num_mission=5)
 
-        # --- Arrêt d'urgence ---
-        elif drone.check_cgm(CGM.PC_A_DISARM_FORCE_VALHALLA):
-            drone.delete_cgm(CGM.PC_A_DISARM_FORCE_VALHALLA)
-            print("[CGM] ARRÊT D'URGENCE reçu !")
-            drone.disarm_force()
-
         time.sleep(0.1)
 
 
@@ -568,9 +672,10 @@ if __name__ == "__main__":
     esp32.set_fail_callback(lambda _: valhalla.send_cgm(CGM.VALHALLA_ESP32_FAIL))
 
     # Thread relais permanent (meurt avec le process principal)
-    threading.Thread(
-        target=run_relais_thread, args=(valhalla, esp32), daemon=True
-    ).start()
+    threading.Thread(target=run_relais_thread, args=(valhalla, esp32), daemon=True).start()
+
+    # Thread watcher d'urgence (surveille les CGMs d'urgence même pendant les missions)
+    threading.Thread(target=emergency_watcher, args=(valhalla, esp32), daemon=True).start()
 
     # Boucle principale (bloquante)
     main_loop(valhalla, esp32, ip_ordis)

@@ -170,7 +170,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             elif command == "urgency_landing":
                 gcs = await get_gcs()
                 if gcs:
-                    gcs.force_rtl()
+                    gcs.atterrissage_urgence()
                 await manager.send_to_target(
                     {"type": "status", "command": "landing", "source": "GCS"},
                     "dashboard",

@@ -1,2 +1,4 @@
 PLND_EST_TYPE 1 # 0 en Gazebo
 PLND_TYPE 1
+FOLL_VEL_MAX # a definir
+WPNAV_SPEED  # a definir

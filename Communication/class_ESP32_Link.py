@@ -41,21 +41,30 @@ class ESP32_Link:
         # Parametres pour le mode follow
         self.valhalla_lat = None
         self.valhalla_lon = None
-        self.valhalla_alt = None
+        self.valhalla_alt     = None  # altitude relative (above home, m) -- position()[2]
+        self.valhalla_alt_msl = None  # altitude MSL (m)                  -- position()[3]
+        self.valhalla_gps_timestamp: float | None = None
 
         # Watchdog de reconnexion automatique
         self.max_retries = 5
         self.retry_interval = 5.0
         self.reconnect_exhausted = threading.Event()
-        self._on_fail_cb = (
-            None  # callable(attempt: int) appelé à chaque tentative échouée
-        )
+        self._on_fail_cb = None  # callable(attempt: int) appelé à chaque tentative échouée
+
+        # Callbacks d'urgence : {cgm_value: callable()}
+        # Appelés immédiatement à la réception du CGM, sans passer par dernier_cgm.
+        self._emergency_callbacks: dict = {}
 
         self.lock = threading.Lock()
 
     def set_fail_callback(self, cb):
         """cb(attempt) est appelé à chaque tentative de reconnexion échouée."""
         self._on_fail_cb = cb
+
+    def register_emergency_cgm(self, cgm_value: int, callback):
+        """Enregistre un callback déclenché immédiatement à la réception d'un CGM d'urgence.
+        Le CGM n'est PAS stocké dans dernier_cgm (non pollable par get_and_clear_cgm)."""
+        self._emergency_callbacks[cgm_value] = callback
 
     def connect(self) -> bool:
         if self.mock:
@@ -114,8 +123,16 @@ class ESP32_Link:
         self._write_serial(msg)
         print(f"[ESP32-TX] Ordre de démarrage mission {num_mission} envoyé !")
 
-    def send_telemetry(self, lat: float, lng: float, alt: float):
-        msg = f"GPS:{lat}:{lng}:{alt}\n"
+    def send_telemetry(self, lat: float, lng: float, alt: float, alt_msl: float | None = None):
+        """
+        Envoie la position GPS via ESP-NOW.
+        alt     : altitude relative (au-dessus de la home), mètres
+        alt_msl : altitude MSL, mètres (optionnel -- requis pour FOLLOW mode)
+        """
+        if alt_msl is not None:
+            msg = f"GPS:{lat}:{lng}:{alt}:{alt_msl}\n"
+        else:
+            msg = f"GPS:{lat}:{lng}:{alt}\n"
         self._write_serial(msg)
 
     def send_cgm(self, cgm_value: int):
@@ -216,10 +233,16 @@ class ESP32_Link:
 
             elif message.startswith("CGM:"):  # Interception d'un CGM
                 try:
-                    self.dernier_cgm = int(message.split(":")[1])
-                    print(
-                        f"[ESP32-RX] CGM intercepté depuis l'essaim : {self.dernier_cgm}"
-                    )
+                    cgm_val = int(message.split(":")[1])
+                    cb = self._emergency_callbacks.get(cgm_val)
+                    if cb is not None:
+                        try:
+                            cb()
+                        except Exception:
+                            pass
+                    else:
+                        self.dernier_cgm = cgm_val
+                        print(f"[ESP32-RX] CGM intercepté depuis l'essaim : {cgm_val}")
                 except ValueError:
                     pass
 
@@ -238,9 +261,7 @@ class ESP32_Link:
                         print(f"[ESP32-RX] Ordre START mission {num} reçu.")
                     except ValueError as e:
                         # Envoi immédiat du CGM d'erreur à Valhalla (408 = VALKYRIE_MISSION_INVALID)
-                        print(
-                            f"[ESP32-RX] ERREUR CMD:START invalide ({e}) — CGM 408 envoyé à Valhalla !"
-                        )
+                        print(f"[ESP32-RX] ERREUR CMD:START invalide ({e}) -- CGM 408 envoyé à Valhalla !")
                         self._write_serial("CGM:408\n")
                 else:
                     self.derniere_commande = cmd_content
@@ -251,7 +272,10 @@ class ESP32_Link:
                 try:
                     self.valhalla_lat = float(parts[1])
                     self.valhalla_lon = float(parts[2])
-                    self.valhalla_alt = float(parts[3])
+                    self.valhalla_alt = float(parts[3])          # relative alt (m)
+                    if len(parts) >= 5:
+                        self.valhalla_alt_msl = float(parts[4])  # MSL alt (m)
+                    self.valhalla_gps_timestamp = time.time()
                 except (IndexError, ValueError):
                     pass
 

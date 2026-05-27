@@ -42,7 +42,7 @@ def read_config_safe() -> dict:
     for key, default_val in CONFIG_DEFAULTS.items():
         if config.get(key) is None:
             config[key] = default_val
-            print(f"[JSON] '{key}' manquant — valeur par défaut : {default_val}")
+            print(f"[JSON] '{key}' manquant -- valeur par défaut : {default_val}")
     return config
 
 
@@ -65,7 +65,7 @@ def check_esp32_or_rtl(esp32: ESP32_Link, drone) -> bool:
     """
     if esp32.reconnect_exhausted.is_set():
         print("[FAILSAFE] ESP32 perdu irrémédiablement. RTL déclenché.")
-        drone.rtl()
+        drone.return_to_launch()
         return False
     return True
 
@@ -177,8 +177,9 @@ def run_mission_4(drone: Valkyrie, esp32: ESP32_Link, config: dict):
 
 
 def run_mission_5(drone: Valkyrie, esp32: ESP32_Link, config: dict):
-    """Mission 5 : à implémenter."""
-    print("[MISSION 5] Non implémentée.")
+    """Mission 5 : FOLLOW mode -- Valkyrie suit Valhalla à 2m au-dessus."""
+    if not drone.follow_valhalla():
+        print("[MISSION 5] FOLLOW échoué ou GPS Valhalla perdu.")
 
 
 _MISSION_RUNNERS = {
@@ -196,7 +197,17 @@ def run_mission(drone: Valkyrie, esp32: ESP32_Link, num_mission: int):
     runner = _MISSION_RUNNERS.get(num_mission, run_mission_1)
     print(f"[MISSION] Lancement mission {num_mission}...")
     runner(drone, esp32, config)
+
+    # Si une urgence a coupé la mission, attendre l'atterrissage puis réinitialiser
+    if drone.fin_mission:
+        print("[MISSION] Urgence détectée -- attente désarmement Valkyrie...")
+        drone.fin_mission = False
+        drone.allow_actions = True
+        drone.wait_motors_disarmed(timeout=120.0)
+        print("[MISSION] Valkyrie désarmé. Retour à l'attente de mission.")
+
     print(f"[MISSION] Mission {num_mission} terminée. En attente du prochain ordre.")
+    drone.send_cgm(CGM.VALKYRIE_WAITING_MISSION)
 
 
 # ==============================================================================
@@ -207,10 +218,21 @@ def main_loop(drone: Valkyrie, esp32: ESP32_Link):
     Boucle infinie d'écoute des messages ESP-NOW de Valhalla.
     - CFG:json      --> mise à jour de la config locale
     - CMD:START:N   --> lancement de la mission N
+    Les urgences (CGM 213/214) sont gérées par les callbacks ESP32 enregistrés dans __main__.
     """
     print("\n[MAIN] Valkyrie en attente d'ordres de Valhalla (ESP-NOW)...\n")
+    drone.send_cgm(CGM.VALKYRIE_WAITING_MISSION)
 
     while True:
+        # Nettoyage post-urgence si déclenchée hors mission
+        if drone.fin_mission:
+            print("[MAIN] fin_mission hors mission -- attente désarmement...")
+            drone.fin_mission = False
+            drone.allow_actions = True
+            drone.wait_motors_disarmed(timeout=120.0)
+            print("[MAIN] Valkyrie désarmé. Retour à l'attente.")
+            drone.send_cgm(CGM.VALKYRIE_WAITING_MISSION)
+
         # Mise à jour de la configuration
         new_config = esp32.get_and_clear_config()
         if new_config:
@@ -256,6 +278,20 @@ if __name__ == "__main__":
     print("[MAIN] ESP32 connecté.")
 
     esp32.set_fail_callback(lambda _: drone.send_cgm(CGM.VALKYRIE_ESP32_FAIL))
+
+    # Callbacks d'urgence -- déclenchés immédiatement par le thread ESP32, sans polling
+    def _on_emergency_stop():
+        print("[URGENCE] Désarmement forcé Valkyrie !")
+        drone.disarm(force=True)
+        drone.fin_mission = True
+
+    def _on_emergency_landing():
+        print("[URGENCE] Atterrissage d'urgence Valkyrie !")
+        drone.return_to_launch()
+        drone.fin_mission = True
+
+    esp32.register_emergency_cgm(CGM.PC_A_DISARM_FORCE_VALKYRIE.value, _on_emergency_stop)
+    esp32.register_emergency_cgm(CGM.PC_URGENCY_LANDING_VALKYRIE.value, _on_emergency_landing)
 
     drone.set_esp32_link(esp32)
 

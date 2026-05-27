@@ -428,6 +428,14 @@ VALKYRIE_YAW_ALIGNED = CGM(
     potential_sender="valkyrie"
 )
 
+VALKYRIE_FOLLOW_STARTED = CGM(
+    value=112,
+    name="VALKYRIE_FOLLOW_STARTED",
+    short_description="Valkyrie mode FOLLOW activé",
+    long_description="Valkyrie a réussi à passer en mode FOLLOW et commence à suivre Valhalla à 2m au-dessus.",
+    potential_sender="valkyrie"
+)
+
 # --- Messages (200-299) -------------------------------------------------------
 
 VALKYRIE_OUTER_ARUCO_DETECTED = CGM(
@@ -470,4 +478,56 @@ VALKYRIE_LOITER_LOST_TARGET = CGM(
     short_description="Cible perdue en LOITER -- requadrillage",
     long_description="La cible ArUco a été perdue trop longtemps en phase de centrage. Valkyrie relance un quadrillage complet.",
     potential_sender="valkyrie"
+)
+
+VALKYRIE_FOLLOW_GPS_LOST = CGM(
+    value=303,
+    name="VALKYRIE_FOLLOW_GPS_LOST",
+    short_description="GPS Valhalla perdu en FOLLOW -- RTL",
+    long_description="Le signal GPS de Valhalla (reçu via ESP32) est perdu depuis trop longtemps. Valkyrie déclenche un RTL.",
+    potential_sender="valkyrie"
+)
+
+# ==============================================================================
+# URGENCES  (sender : pc --> valhalla --> valkyrie)
+# ==============================================================================
+
+VALHALLA_WAITING_MISSION = CGM(
+    value=215,
+    name="VALHALLA_WAITING_MISSION",
+    short_description="Valhalla en attente d'un ordre de mission",
+    long_description="Valhalla a terminé ses initialisations et est prêt à recevoir une commande.",
+    potential_sender="valhalla"
+)
+
+VALKYRIE_WAITING_MISSION = CGM(
+    value=216,
+    name="VALKYRIE_WAITING_MISSION",
+    short_description="Valkyrie en attente d'un ordre de mission",
+    long_description="Valkyrie a terminé ses initialisations et est prêt à recevoir une commande via ESP-NOW.",
+    potential_sender="valkyrie"
+)
+
+PC_URGENCY_LANDING_VALHALLA = CGM(
+    value=212,
+    name="PC_URGENCY_LANDING_VALHALLA",
+    short_description="Atterrissage d'urgence Valhalla (RTL + retour attente)",
+    long_description="Le Dashboard ordonne à Valhalla de couper sa mission, de rentrer en RTL et de revenir en boucle d'attente.",
+    potential_sender="pc"
+)
+
+PC_A_DISARM_FORCE_VALKYRIE = CGM(
+    value=213,
+    name="PC_A_DISARM_FORCE_VALKYRIE",
+    short_description="Désarmement forcé Valkyrie relayé par Valhalla",
+    long_description="Valhalla relaie l'ordre de désarmement immédiat à Valkyrie via ESP-NOW.",
+    potential_sender="valhalla"
+)
+
+PC_URGENCY_LANDING_VALKYRIE = CGM(
+    value=214,
+    name="PC_URGENCY_LANDING_VALKYRIE",
+    short_description="Atterrissage d'urgence Valkyrie relayé par Valhalla",
+    long_description="Valhalla relaie l'ordre RTL à Valkyrie via ESP-NOW. Valkyrie coupe sa mission et rentre.",
+    potential_sender="valhalla"
 )
