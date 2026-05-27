@@ -401,8 +401,8 @@ class Valkyrie(Drone):
                 else:
                     if target_lost_since is None:
                         target_lost_since = now
-                    # Grâce de 1 s : une perte brève ne remet pas le timer à zéro
-                    if now - target_lost_since >= 1.0:
+                    # Grâce de 2 s : une perte brève ne remet pas le timer à zéro
+                    if now - target_lost_since >= 2.0:
                         target_locked_since = None
 
                     if now - target_lost_since >= _LOITER_LOST_TIMEOUT:
