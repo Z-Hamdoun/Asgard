@@ -111,6 +111,16 @@ class GroundStation:
         cgm = CGM.PC_CONFIGURE_VALHALLA
         self.valhalla.send_cgm(cgm)
 
+    def ouvrir_pince(self):
+        """Ordonne l'ouverture manuelle de la pince Valkyrie (relayé par Valhalla via ESP-NOW)."""
+        print("[GCS-RADIO] Ouverture pince Valkyrie.")
+        self.valhalla.send_cgm(CGM.PC_OPEN_GRIPPER_VALKYRIE)
+
+    def fermer_pince(self):
+        """Ordonne la fermeture manuelle de la pince Valkyrie (relayé par Valhalla via ESP-NOW)."""
+        print("[GCS-RADIO] Fermeture pince Valkyrie.")
+        self.valhalla.send_cgm(CGM.PC_CLOSE_GRIPPER_VALKYRIE)
+
     def close(self):
         """Coupe proprement la connexion MAVLink."""
         print("[GCS] Fermeture du port MAVLink.")
