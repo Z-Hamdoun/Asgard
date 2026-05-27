@@ -13,6 +13,7 @@ from utils.geopy_fct import conv_cart_to_geo
 from utils.spirale import spirale
 
 from class_Drone import Drone
+from pnp.algo import PnPLandingSystem
 
 if TYPE_CHECKING:
     from Communication.class_ESP32_Link import ESP32_Link
@@ -660,6 +661,170 @@ class Valkyrie(Drone):
                         self.master.mav.srcComponent = orig_comp
 
             time.sleep(0.1)  # 10 Hz
+
+    # =========================================================================
+    # APPROCHE VALHALLA EN FOLLOW MODE (Mission 1 -- phase livraison)
+    # =========================================================================
+    def approach_valhalla_follow(self, timeout: float = 120.0) -> bool:
+        """
+        Configure et active le mode FOLLOW pour s'approcher de Valhalla à
+        _FOLLOW_ALTITUDE_OFFSET mètres au-dessus. Retourne dès que Valkyrie
+        est à moins de 2.5m (GPS horizontal) de Valhalla.
+
+        Prérequis : FOLL_ENABLE=1 préconfiguré sur le FC (nécessite reboot).
+        Prérequis : GPS Valhalla disponible via ESP32 (valhalla_lat/lon/alt).
+
+        Returns:
+            True  : Valkyrie positionné au-dessus de Valhalla
+            False : timeout ou GPS Valhalla non disponible
+        """
+        if self._esp32_link is None:
+            print("[FOLLOW] Lien ESP32 non configuré. Abandon.")
+            return False
+
+        self.write_parameter("FOLL_SYSID",     1,                               mavutil.mavlink.MAV_PARAM_TYPE_INT32)
+        self.write_parameter("FOLL_ALT_TYPE",  0,                               mavutil.mavlink.MAV_PARAM_TYPE_INT8)
+        self.write_parameter("FOLL_OFS_Z",     float(-_FOLLOW_ALTITUDE_OFFSET), mavutil.mavlink.MAV_PARAM_TYPE_REAL32)
+        self.write_parameter("FOLL_OFS_TYPE",  0,                               mavutil.mavlink.MAV_PARAM_TYPE_INT8)
+        self.write_parameter("FOLL_YAW_BEHAV", 0,                               mavutil.mavlink.MAV_PARAM_TYPE_INT8)
+        time.sleep(0.5)
+
+        # Attente du premier GPS Valhalla
+        print("[FOLLOW] Attente GPS Valhalla...")
+        deadline_gps = time.time() + _FOLLOW_GPS_INIT_TIMEOUT
+        while time.time() < deadline_gps:
+            if self.fin_mission:
+                return False
+            if self._esp32_link.valhalla_gps_timestamp is not None:
+                break
+            time.sleep(0.1)
+        else:
+            print("[FOLLOW] GPS Valhalla non disponible. Abandon.")
+            return False
+
+        # Passage en FOLLOW
+        for _ in range(5):
+            if self.change_mode("FOLLOW"):
+                break
+            time.sleep(1.0)
+        else:
+            print("[FOLLOW] Impossible de passer en mode FOLLOW.")
+            self.send_cgm(CGM.VALKYRIE_MODE_CHANGE_FAIL)
+            return False
+
+        print("[FOLLOW] Mode FOLLOW activé. Injection GPS Valhalla en cours...")
+        self.send_cgm(CGM.VALKYRIE_FOLLOW_STARTED)
+
+        _PROXIMITY_M = 2.5  # distance GPS horizontale pour considérer "arrivé"
+        deadline = time.time() + timeout
+
+        while time.time() < deadline:
+            if self.fin_mission:
+                return False
+
+            ts = self._esp32_link.valhalla_gps_timestamp
+            if ts is None or (time.time() - ts) > _FOLLOW_GPS_STALENESS:
+                print("[FOLLOW] GPS Valhalla perdu. RTL.")
+                self.send_cgm(CGM.VALKYRIE_FOLLOW_GPS_LOST)
+                self.return_to_launch()
+                return False
+
+            lat_v = self._esp32_link.valhalla_lat
+            lon_v = self._esp32_link.valhalla_lon
+            rel_v = self._esp32_link.valhalla_alt
+            msl_v = self._esp32_link.valhalla_alt_msl
+
+            if lat_v is not None and lon_v is not None and rel_v is not None and msl_v is not None:
+                # Injection du GPS Valhalla avec srcSystem=1
+                with self._mavlink_lock:
+                    orig_sys  = self.master.mav.srcSystem
+                    orig_comp = self.master.mav.srcComponent
+                    try:
+                        self.master.mav.srcSystem    = 1
+                        self.master.mav.srcComponent = 1
+                        self.master.mav.global_position_int_send(
+                            self.time_boot_ms,
+                            int(lat_v * 1e7),
+                            int(lon_v * 1e7),
+                            int(msl_v * 1000),
+                            int(rel_v * 1000),
+                            0, 0, 0, 0xFFFF,
+                        )
+                    finally:
+                        self.master.mav.srcSystem    = orig_sys
+                        self.master.mav.srcComponent = orig_comp
+
+                # Vérification de proximité (distance GPS horizontale)
+                dist = self.get_distance_with(lat_v, lon_v)
+                if not math.isnan(dist) and dist < _PROXIMITY_M:
+                    print(f"[FOLLOW] Valkyrie au-dessus de Valhalla (dist={dist:.1f}m). Passage LOITER.")
+                    self.change_mode("LOITER")
+                    return True
+
+            time.sleep(0.1)
+
+        print("[FOLLOW] Timeout approche Valhalla.")
+        return False
+
+    # =========================================================================
+    # CENTRAGE PnP AU-DESSUS DE VALHALLA (Mission 1 -- phase livraison)
+    # =========================================================================
+    def pnp_center_over_valhalla(self, timeout: float = 60.0) -> bool:
+        """
+        En mode LOITER, utilise PnPLandingSystem pour détecter les 4 marqueurs
+        circulaires de Valhalla et corriger la position via LANDING_TARGET jusqu'à
+        être bien centré.
+
+        Returns:
+            True  : centré (|dx| < 0.15m et |dy| < 0.15m pendant 3s consécutives)
+            False : timeout ou fin_mission
+        """
+        _CENTER_THRESHOLD_M  = 0.15  # m
+        _CENTER_LOCK_DURATION = 3.0  # s consécutives sous le seuil
+
+        pnp = PnPLandingSystem(marker_distance=self.square_pnp_size / 100.0)
+        centered_since = None
+        deadline = time.time() + timeout
+
+        print("[PnP] Centrage sur Valhalla en cours...")
+
+        while time.time() < deadline:
+            if self.fin_mission:
+                return False
+
+            frame = self.camera.get_frame(timeout=2)
+            if frame is None:
+                time.sleep(0.05)
+                continue
+
+            result = pnp.get_landing_vector(frame)
+
+            # Erreurs internes du PnP (< 4 points, échec solvePnP...)
+            if not isinstance(result, tuple) or len(result) != 3:
+                time.sleep(0.05)
+                continue
+            dx, dy, dz = result
+            if not (isinstance(dx, float) and isinstance(dy, float)):
+                time.sleep(0.05)
+                continue
+
+            self.send_landing_target(dx, dy, dz)
+            print(f"[PnP] dx={dx:.3f}m dy={dy:.3f}m dz={dz:.3f}m", end="\r")
+
+            now = time.time()
+            if abs(dx) < _CENTER_THRESHOLD_M and abs(dy) < _CENTER_THRESHOLD_M:
+                if centered_since is None:
+                    centered_since = now
+                elif now - centered_since >= _CENTER_LOCK_DURATION:
+                    print(f"\n[PnP] Centré sur Valhalla ({_CENTER_LOCK_DURATION:.0f}s stable).")
+                    return True
+            else:
+                centered_since = None
+
+            time.sleep(0.05)
+
+        print("\n[PnP] Timeout centrage PnP.")
+        return False
 
     # Utilitaire
     def _rc_override_loop(self):
