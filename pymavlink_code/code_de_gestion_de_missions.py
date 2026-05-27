@@ -531,3 +531,19 @@ PC_URGENCY_LANDING_VALKYRIE = CGM(
     long_description="Valhalla relaie l'ordre RTL à Valkyrie via ESP-NOW. Valkyrie coupe sa mission et rentre.",
     potential_sender="valhalla"
 )
+
+PC_OPEN_GRIPPER_VALKYRIE = CGM(
+    value=217,
+    name="PC_OPEN_GRIPPER_VALKYRIE",
+    short_description="Ordre d'ouverture de la pince Valkyrie",
+    long_description="Le Dashboard demande l'ouverture manuelle de la pince. Valhalla relaie via ESP-NOW à Valkyrie.",
+    potential_sender="pc"
+)
+
+PC_CLOSE_GRIPPER_VALKYRIE = CGM(
+    value=218,
+    name="PC_CLOSE_GRIPPER_VALKYRIE",
+    short_description="Ordre de fermeture de la pince Valkyrie",
+    long_description="Le Dashboard demande la fermeture manuelle de la pince. Valhalla relaie via ESP-NOW à Valkyrie.",
+    potential_sender="pc"
+)
