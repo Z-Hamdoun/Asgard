@@ -263,7 +263,7 @@ def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
 
     if drone.takeoff_pc(altitude=3):
         print(f"[MISSION 1] Décollage OK. En route vers {lat}, {lng}...")
-        if drone.execute_goto_from_config(radius_acceptance=2.0):
+        if drone.execute_goto_from_config(radius_acceptance=2.0) and not drone.fin_mission:
             print("[MISSION 1] Point atteint. Envoi config à Valkyrie...")
             _valkyrie_done.clear()
             _valkyrie_result[0] = None
@@ -426,11 +426,13 @@ def emergency_watcher(drone: Valhalla, esp32: ESP32_Link):
         if drone.check_cgm(CGM.PC_URGENCY_LANDING_VALHALLA):
             drone.delete_cgm(CGM.PC_URGENCY_LANDING_VALHALLA)
             print("[URGENCE-WD] Atterrissage d'urgence Valhalla !")
-            drone.return_to_launch()                    # RTL avant de couper les loops
-            esp32.send_cgm(CGM.PC_URGENCY_LANDING_VALKYRIE.value)  # relai Valkyrie
+            # timeout=0 : envoie la commande RTL sans bloquer
+            drone.return_to_launch(timeout=0)
+            # Couper IMMÉDIATEMENT les boucles de mission
+            drone.fin_mission = True
             _valkyrie_done.set()                        # débloque les wait() de mission
             _emergency_landing_event.set()
-            drone.fin_mission = True                    # coupe les boucles de mission
+            esp32.send_cgm(CGM.PC_URGENCY_LANDING_VALKYRIE.value)  # relai Valkyrie
 
         time.sleep(0.05)
 
