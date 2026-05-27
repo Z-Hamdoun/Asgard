@@ -39,7 +39,7 @@ def read_config_safe() -> dict:
     for key, default_val in CONFIG_DEFAULTS.items():
         if config.get(key) is None:
             config[key] = default_val
-            print(f"[JSON] '{key}' manquant — valeur par défaut : {default_val}")
+            print(f"[JSON] '{key}' manquant -- valeur par défaut : {default_val}")
     return config
 
 def update_config(new_data: dict):
@@ -173,8 +173,9 @@ def run_mission_4(drone: Valkyrie, esp32: ESP32_Link, config: dict):
 
 
 def run_mission_5(drone: Valkyrie, esp32: ESP32_Link, config: dict):
-    """Mission 5 : à implémenter."""
-    print("[MISSION 5] Non implémentée.")
+    """Mission 5 : FOLLOW mode -- Valkyrie suit Valhalla à 2m au-dessus."""
+    if not drone.follow_valhalla():
+        print("[MISSION 5] FOLLOW échoué ou GPS Valhalla perdu.")
 
 
 _MISSION_RUNNERS = {
@@ -195,7 +196,7 @@ def run_mission(drone: Valkyrie, esp32: ESP32_Link, num_mission: int):
 
     # Si une urgence a coupé la mission, attendre l'atterrissage puis réinitialiser
     if drone.fin_mission:
-        print("[MISSION] Urgence détectée — attente désarmement Valkyrie...")
+        print("[MISSION] Urgence détectée -- attente désarmement Valkyrie...")
         drone.fin_mission = False
         drone.allow_actions = True
         drone.wait_motors_disarmed(timeout=120.0)
@@ -221,7 +222,7 @@ def main_loop(drone: Valkyrie, esp32: ESP32_Link):
     while True:
         # Nettoyage post-urgence si déclenchée hors mission
         if drone.fin_mission:
-            print("[MAIN] fin_mission hors mission — attente désarmement...")
+            print("[MAIN] fin_mission hors mission -- attente désarmement...")
             drone.fin_mission = False
             drone.allow_actions = True
             drone.wait_motors_disarmed(timeout=120.0)
@@ -269,7 +270,7 @@ if __name__ == "__main__":
 
     esp32.set_fail_callback(lambda _: drone.send_cgm(CGM.VALKYRIE_ESP32_FAIL))
 
-    # Callbacks d'urgence — déclenchés immédiatement par le thread ESP32, sans polling
+    # Callbacks d'urgence -- déclenchés immédiatement par le thread ESP32, sans polling
     def _on_emergency_stop():
         print("[URGENCE] Désarmement forcé Valkyrie !")
         drone.disarm(force=True)
