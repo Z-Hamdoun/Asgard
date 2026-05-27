@@ -14,7 +14,7 @@ echo "stop launcher.service"
 sleep 3
 
 # 3. Déplacement dans le dossier
-cd DASSAULT-HELICS-2026 || { 
+cd ~/dassault-helics-2026 || { 
     echo "git pull error: cd a pas marche"
     sudo systemctl start launcher.service
     echo "start launcher.service"

@@ -409,3 +409,65 @@ VALKYRIE_ESP32_FAIL = CGM(
     long_description="Connexion UART/USB vers l'ESP32 de Valkyrie échouée. Retry en cours.",
     potential_sender="valkyrie"
 )
+
+# --- Successes (100-199) ------------------------------------------------------
+
+VALKYRIE_PRECISION_LAND_STARTING = CGM(
+    value=109,
+    name="VALKYRIE_PRECISION_LAND_STARTING",
+    short_description="Valkyrie centré, passage en LAND",
+    long_description="Le centrage sur la cible ArUco est validé. Valkyrie bascule en mode LAND pour la descente de précision.",
+    potential_sender="valkyrie"
+)
+
+VALKYRIE_YAW_ALIGNED = CGM(
+    value=111,
+    name="VALKYRIE_YAW_ALIGNED",
+    short_description="Valkyrie aligné yaw (pince vers la cible)",
+    long_description="L'alignement du cap du drone a convergé dans la tolérance. La pince est orientée vers la cible avant la descente.",
+    potential_sender="valkyrie"
+)
+
+# --- Messages (200-299) -------------------------------------------------------
+
+VALKYRIE_OUTER_ARUCO_DETECTED = CGM(
+    value=210,
+    name="VALKYRIE_OUTER_ARUCO_DETECTED",
+    short_description="Marqueur ArUco extérieur détecté",
+    long_description="Le marqueur e-ArUco outer (DICT_7X7_50 ID=5) est visible depuis l'altitude de quadrillage.",
+    potential_sender="valkyrie"
+)
+
+VALKYRIE_INNER_ARUCO_DETECTED = CGM(
+    value=211,
+    name="VALKYRIE_INNER_ARUCO_DETECTED",
+    short_description="Marqueur ArUco intérieur détecté",
+    long_description="Le marqueur e-ArUco inner (DICT_4X4_50 ID=17) est visible. Valkyrie est à faible altitude au-dessus de la cible.",
+    potential_sender="valkyrie"
+)
+
+# --- Warnings (300-399) -------------------------------------------------------
+
+VALKYRIE_YAW_ALIGN_TIMEOUT = CGM(
+    value=300,
+    name="VALKYRIE_YAW_ALIGN_TIMEOUT",
+    short_description="Timeout alignement yaw -- LAND quand même",
+    long_description="L'alignement du cap n'a pas convergé dans le délai imparti. Valkyrie passe en LAND sans alignement optimal.",
+    potential_sender="valkyrie"
+)
+
+VALKYRIE_LAND_ABORTED = CGM(
+    value=301,
+    name="VALKYRIE_LAND_ABORTED",
+    short_description="LAND avorté -- cible perdue en descente",
+    long_description="La cible ArUco a été perdue pendant la descente. Valkyrie remonte à l'altitude de quadrillage et retente le centrage.",
+    potential_sender="valkyrie"
+)
+
+VALKYRIE_LOITER_LOST_TARGET = CGM(
+    value=302,
+    name="VALKYRIE_LOITER_LOST_TARGET",
+    short_description="Cible perdue en LOITER -- requadrillage",
+    long_description="La cible ArUco a été perdue trop longtemps en phase de centrage. Valkyrie relance un quadrillage complet.",
+    potential_sender="valkyrie"
+)

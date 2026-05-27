@@ -244,34 +244,34 @@ class Camera:
                     dtype=np.float64,
                 )
                 self._dist_coeffs = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
-
-            # =========================================================================
-            # PARAMÈTRES E-ARUCO
-            # =========================================================================
-            # Dictionnaires
-            self._aruco_dict_outer = aruco.getPredefinedDictionary(aruco.DICT_7X7_50)
-            self._aruco_dict_inner = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
-            self._aruco_params = aruco.DetectorParameters()
-
-            # Tailles physiques (en m)
-            self.outer_aruco_size = 0.36  # Le grand marqueur de 36 cm
-            self.inner_aruco_size = 0.04  # Le petit marqueur au centre de 4 cm
-
-            # Identifiants des marqueurs (selon generate_e_aruco.py)
-            # DICT_7X7_50 ID=1 a le bit central noir → compatible e-ArUco
-            self.outer_aruco_id = 1
-            self.inner_aruco_id = 4
-
-            # États de crop indépendants pour inner et outer
-            # (portées très différentes : outer ~2-5m, inner <1m)
-            self._inner_crop = None
-            self._inner_scale_down = None
-            self._outer_crop = None
-            self._outer_scale_down = None
-            # =========================================================================
-            # FIN E-ARUCO
-            # =========================================================================
-
+            
+            
+            # -- Parametres e-aruco ----------------------
+            # Outer: DICT_7X7_50 ID=5  - bit central noir, 61% surface noire
+            # Inner: DICT_4X4_50 ID=17 - 75% surface noire, précision close-range
+            #
+            # Tailles physiques selon mode :
+            #   SITL (Gazebo fx=205) : outer=70cm, inner=10cm  --> détectables aux
+            #                          altitudes de quadrillage/atterrissage SITL
+            #   Réel (Pi Camera fx=963): outer=35cm, inner=5cm
+            self._aruco_dict_outer   = aruco.getPredefinedDictionary(aruco.DICT_7X7_50)
+            self._aruco_dict_inner   = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+            self._detector_outer     = aruco.ArucoDetector(self._aruco_dict_outer,  aruco.DetectorParameters())
+            self._detector_inner     = aruco.ArucoDetector(self._aruco_dict_inner, aruco.DetectorParameters())
+            self.outer_aruco_id      = 5
+            self.inner_aruco_id      = 17
+            if simulation:
+                self.outer_aruco_size = 0.70   # Gazebo : 70cm - ~29px à 5m (fx=205)
+                self.inner_aruco_size = 0.10   # Gazebo : 10cm - ~41px à 0.4m
+            else:
+                self.outer_aruco_size = 0.35   # Réel : 7 × 5cm
+                self.inner_aruco_size = 0.05   # Réel : length_inner
+            self._inner_crop         = None
+            self._inner_scale_down   = None
+            self._outer_crop         = None
+            self._outer_scale_down   = None
+            # -------------------------------------------------------------------
+            
             # Créer le dictionnaire ArUco et les paramètres de détection
             self._aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_250)
             """Dictionnaire ArUco."""
@@ -436,29 +436,31 @@ class Camera:
             return dx, dy, dz  # A vérifier
 
     def _detect_aruco_marker(
-        self,
-        frame: np.ndarray,
-        aruco_dict,
-        target_id: int,
-        marker_size: float,
-        crop_state: str,
-    ):
+            self,
+            frame: np.ndarray,
+            crop_state: str,
+        ):
         """
-        Tente de détecter un marqueur ArUco donné dans la frame.
-        Gère le crop intelligent (ROI + scale-down) pour accélérer la détection.
+        Détecte le marqueur e-ArUco correspondant à crop_state dans frame.
 
         Args:
-            frame       : image en niveaux de gris (full-res).
-            aruco_dict  : dictionnaire ArUco à utiliser.
-            target_id   : ID du marqueur recherché.
-            marker_size : taille physique du marqueur en mètres.
-            crop_state  : 'inner' ou 'outer' — sélectionne les variables d'état de crop.
+            frame      : image en niveaux de gris (full-res).
+            crop_state : 'inner' ou 'outer'.
 
         Returns:
             (dx, dy, dz, taille_px, corner) si trouvé, None sinon.
         """
-        last_crop = getattr(self, f"_{crop_state}_crop")
-        last_scale_down = getattr(self, f"_{crop_state}_scale_down")
+        if crop_state == 'outer':
+            detector   = self._detector_outer
+            target_id  = self.outer_aruco_id
+            marker_size = self.outer_aruco_size
+        else:
+            detector   = self._detector_inner
+            target_id  = self.inner_aruco_id
+            marker_size = self.inner_aruco_size
+
+        last_crop       = getattr(self, f'_{crop_state}_crop')
+        last_scale_down = getattr(self, f'_{crop_state}_scale_down')
 
         # --- Appliquer le crop si on a une estimation précédente ---
         if last_crop is not None and last_scale_down is not None and self.DO_CROP:
@@ -470,7 +472,6 @@ class Camera:
                     frame_crop, (new_w, new_h), interpolation=cv2.INTER_AREA
                 )
             else:
-                # Zone trop petite → reset et recherche plein cadre
                 frame_search = frame
                 last_crop = None
                 setattr(self, f"_{crop_state}_crop", None)
@@ -478,10 +479,7 @@ class Camera:
         else:
             frame_search = frame
 
-        # --- Détection ArUco ---
-        corners, ids, _ = cv2.aruco.detectMarkers(
-            frame_search, aruco_dict, parameters=self._aruco_params
-        )
+        corners, ids, _ = detector.detectMarkers(frame_search)
 
         if ids is None:
             return None
@@ -490,19 +488,17 @@ class Camera:
             if int(aruco_id) != target_id:
                 continue
 
-            # Reconvertir les coordonnées en référentiel de la frame originale
+            # Reconvertir en référentiel full-frame si crop actif
             if last_crop is not None and last_scale_down is not None and self.DO_CROP:
                 corner = corner.copy()
                 corner[:, :, 0] = corner[:, :, 0] * last_scale_down + last_crop[1]
                 corner[:, :, 1] = corner[:, :, 1] * last_scale_down + last_crop[0]
 
-            # --- Estimation de pose ---
             _, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
                 [corner], marker_size, self._camera_matrix, self._dist_coeffs
             )
             tvec = tvec[0][0]
 
-            # --- Mettre à jour l'état de crop pour la prochaine frame ---
             bbox = (
                 int(corner[:, :, 1].min()),
                 int(corner[:, :, 0].min()),
@@ -517,9 +513,8 @@ class Camera:
                 min(bbox[2] + margin, self._resolution[1]),
                 min(bbox[3] + margin, self._resolution[0]),
             )
-            new_scale = max(min(min(taille_px) // 32, 10), 1)
-            setattr(self, f"_{crop_state}_crop", new_crop)
-            setattr(self, f"_{crop_state}_scale_down", new_scale)
+            setattr(self, f'_{crop_state}_crop',       new_crop)
+            setattr(self, f'_{crop_state}_scale_down', max(min(min(taille_px) // 32, 10), 1))
 
             dx, dy, dz = self._camera_to_drone(tvec)
             return dx, dy, dz, taille_px, corner
@@ -531,9 +526,9 @@ class Camera:
         Détecte les marqueurs e-ArUco (outer 7x7 + inner 4x4) dans une frame.
 
         Stratégie double marqueur (cf. papier Khazetdinov et al., SIBCON 2021) :
-          - Outer (DICT_7X7_50, 36 cm) → détectable de loin (~2-5 m),
+          - Outer (DICT_7X7_50, 36 cm) --> détectable de loin (~2-5 m),
             utilisé pour le centrage en Loiter.
-          - Inner (DICT_4X4_50, 4 cm)  → détectable de près (<~1 m),
+          - Inner (DICT_4X4_50, 4 cm)  --> détectable de près (<~1 m),
             utilisé pour le guidage Precision Land final.
 
         Priorité : inner > outer (inner est plus précis, si visible on l'utilise).
@@ -557,14 +552,8 @@ class Camera:
         frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2GRAY)
         t_captured = self.time_boot_ms
 
-        # ── 1. Priorité : marqueur INNER (précision finale) ──────────────────
-        result = self._detect_aruco_marker(
-            frame,
-            self._aruco_dict_inner,
-            self.inner_aruco_id,
-            self.inner_aruco_size,
-            "inner",
-        )
+        # -- Priorité : marqueur INNER (précision finale, DICT_4X4_50 ID=17) -
+        result = self._detect_aruco_marker(frame, 'inner')
         if result is not None:
             dx, dy, dz, taille_px, _ = result
             t_det = self.time_boot_ms
@@ -580,14 +569,8 @@ class Camera:
             )
             return dx, dy, dz, info, frame
 
-        # ── 2. Fallback : marqueur OUTER (centrage loiter) ───────────────────
-        result = self._detect_aruco_marker(
-            frame,
-            self._aruco_dict_outer,
-            self.outer_aruco_id,
-            self.outer_aruco_size,
-            "outer",
-        )
+        # Fallback : marqueur OUTER (centrage loiter, DICT_7X7_50 ID=5)
+        result = self._detect_aruco_marker(frame, 'outer')
         if result is not None:
             dx, dy, dz, taille_px, _ = result
             t_det = self.time_boot_ms
@@ -603,7 +586,7 @@ class Camera:
             )
             return dx, dy, dz, info, frame
 
-        # ── Rien détecté ─────────────────────────────────────────────────────
+        # -- Rien détecté -----------------------------------------------------
         if not self._simulation:
             try:
                 meta = self._picam2.capture_metadata()

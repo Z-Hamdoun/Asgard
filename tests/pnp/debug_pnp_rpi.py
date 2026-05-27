@@ -14,9 +14,19 @@ import numpy as np
 
 app = Flask(__name__)
 picam2 = Picamera2()
+video_config = picam2.create_video_configuration(
+    sensor={"output_size": (4608, 2592), "bit_depth": 10},
+    main={"size": (848, 480), "format": "RGB888"},
+    controls={"FrameRate": 60},
+    buffer_count=6,
+)
 
-picam2.configure(picam2.create_video_configuration(main={"size": (848, 480)}))
+picam2.configure(video_config)
+
 picam2.start()
+
+# FORCE FULL SENSOR CROP
+picam2.set_controls({"ScalerCrop": (0, 0, 4608, 2592)})
 
 
 def generate_frames():
@@ -121,6 +131,19 @@ def generate_frames():
         )
 
 
+def testcaméra():
+    while True:
+        frame = picam2.capture_array()
+        output_frame = frame
+        ret, buffer = cv2.imencode(".jpg", output_frame)
+        if not ret:
+            continue
+        yield (
+            b"--frame\r\n"
+            b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
+        )
+
+
 def generate_vector():
     detector = PnPLandingSystem()
     while True:
@@ -138,13 +161,63 @@ def generate_vector():
             print(vector[2])
 
 
-@app.route("/video")
-def video():
+def testcaméraandgenerate_vector():
+    detector = PnPLandingSystem()
+    while True:
+        t = time.time()
+        frame = picam2.capture_array()
+        vector = detector.get_landing_vector(frame, areamin=4)
+        if not isinstance(vector[2], str):
+            couleur_texte = (0, 255, 0)
+            vector_text = f"({vector[0]:.3f}, {vector[1]:.3f}, {vector[2]:.3f})"
+        else:
+            couleur_texte = (0, 0, 255)
+            vector_text = vector[2]
+        print(
+            vector_text,
+            1 / (time.time() - t),
+        )
+        output_frame = frame
+
+        cv2.putText(
+            output_frame,
+            vector_text,
+            (20, 80),  # Position (x, y) en pixels depuis le coin haut-gauche
+            cv2.FONT_HERSHEY_SIMPLEX,  # Police de caractères
+            0.8,  # Taille de la police
+            couleur_texte,  # Couleur (BGR)
+            2,  # Épaisseur du trait
+            cv2.LINE_AA,  # Antialiasing pour un texte plus lisse
+        )
+        ret, buffer = cv2.imencode(".jpg", output_frame)
+        if not ret:
+            continue
+        yield (
+            b"--frame\r\n"
+            b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
+        )
+
+
+@app.route("/debug_pnp")
+def debug():
     return Response(
         generate_frames(), mimetype="multipart/x-mixed-replace; boundary=frame"
     )
 
 
+@app.route("/video")
+def video():
+    return Response(
+        testcaméraandgenerate_vector(),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+    )
+
+
+@app.route("/test_camera")
+def cam():
+    return Response(testcaméra(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
 if __name__ == "__main__":
-    # app.run(host="0.0.0.0", port=5000)
-    generate_vector()
+    app.run(host="0.0.0.0", port=5000)
+    # generate_vector()

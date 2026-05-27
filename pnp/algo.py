@@ -186,13 +186,15 @@ class PnPLandingSystem:
         # )
         return results_corrects_grande_tache
 
-    def get_landing_vector(self, frame, overpoint=True):
+    def get_landing_vector(
+        self, frame, overpoint=True, normalization=True, areamax=5000, areamin=10
+    ):
         """
         C'est ici qu'on calcule la distance en mètres entre la caméra et la cible.
         """
         # t = time.time()
         # a, b, Taches, d = self.get_contours(frame)
-        Taches = self.get_contours(frame)
+        Taches = self.get_contours(frame, normalization, areamax, areamin)
 
         if overpoint and len(Taches) > 4:
             Taches = sorted(Taches, key=lambda x: x["area"], reverse=True)[:4]
