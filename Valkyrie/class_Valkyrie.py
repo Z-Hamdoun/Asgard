@@ -24,6 +24,11 @@ _LAND_LOST_TIMEOUT    = 5.0   # s -- cible perdue en LAND --> remontée
 _YAW_TOLERANCE_DEG    = 5.0   # ° -- tolérance d'alignement yaw
 _ARUCO_CGM_INTERVAL   = 5.0   # s -- intervalle minimum entre deux CGMs ArUco du même type
 
+# Seuils FOLLOW mode
+_FOLLOW_ALTITUDE_OFFSET  = 2.0   # m au-dessus de Valhalla (FOLL_OFS_Z = -2.0 en NED)
+_FOLLOW_GPS_INIT_TIMEOUT = 10.0  # s max pour recevoir le premier GPS Valhalla
+_FOLLOW_GPS_STALENESS    = 5.0   # s sans update GPS Valhalla avant failsafe RTL
+
 
 class Valkyrie(Drone):
     def __init__(self, address, source_system=255, source_component=mavutil.mavlink.MAV_COMP_ID_MISSIONPLANNER, target_system=None, baud=57600, timeout_heartbeat=None, send_automatic_timesync=True, timesync_delay=3, send_automatic_home_request=True, home_request_delay=3, sysid_to_request_home=None, pos_rate=4, dialect="ardupilotmega", logger = Logger(), camera_topic="/world/iris_runway/model/drone1/model/gimbal/link/pitch_link/sensor/camera/image"):
@@ -53,6 +58,9 @@ class Valkyrie(Drone):
         # Rate-limiting CGMs ArUco (évite le spam)
         self._last_outer_cgm = 0.0
         self._last_inner_cgm = 0.0
+
+        # Lock MAVLink partagé entre les threads (ex: follow_valhalla et heartbeat)
+        self._mavlink_lock = threading.Lock()
 
     def set_esp32_link(self, esp32: ESP32_Link):
         """Enregistre le lien ESP32 utilisé pour router les CGMs via Valhalla."""
@@ -542,6 +550,116 @@ class Valkyrie(Drone):
         print("[VALKYRIE] Timeout alignement yaw -- passage en LAND quand même.")
         self.send_cgm(CGM.VALKYRIE_YAW_ALIGN_TIMEOUT)
         return False
+
+    # =========================================================================
+    # FOLLOW MODE (Mission 5)
+    # =========================================================================
+    def follow_valhalla(self) -> bool:
+        """
+        Mission 5 : suit Valhalla à _FOLLOW_ALTITUDE_OFFSET mètres au-dessus.
+
+        ArduPilot FOLLOW mode suit un drone en lisant ses messages GLOBAL_POSITION_INT
+        sur le bus MAVLink. On injecte ces messages avec srcSystem=1 (sysid Valhalla)
+        en utilisant le GPS reçu via ESP32
+
+        Prérequis FC : FOLL_ENABLE=1 doit être préconfiguré (nécessite un reboot).
+
+        Returns:
+            True  : mission terminée normalement (fin_mission reçu)
+            False : erreur (ESP32 absent, décollage échoué, GPS Valhalla perdu)
+        """
+        if self._esp32_link is None:
+            print("[FOLLOW] Lien ESP32 non configuré. Abandon.")
+            return False
+
+        # Paramètres FOLLOW -- FOLL_ENABLE doit être à 1 avant reboot
+        # FOLL_SYSID=1 : on va injecter des GLOBAL_POSITION_INT avec srcSystem=1
+        # FOLL_ALT_TYPE=0 : utilise relative_alt (altitude au-dessus de la home)
+        #   valhalla_alt reçu via ESP32 = résultat de drone.position()[2] = relative_alt
+        self.write_parameter("FOLL_SYSID",     1,                               mavutil.mavlink.MAV_PARAM_TYPE_INT32)
+        self.write_parameter("FOLL_ALT_TYPE",  0,                               mavutil.mavlink.MAV_PARAM_TYPE_INT8)
+        self.write_parameter("FOLL_OFS_Z",     float(-_FOLLOW_ALTITUDE_OFFSET), mavutil.mavlink.MAV_PARAM_TYPE_REAL32)
+        self.write_parameter("FOLL_OFS_TYPE",  0,                               mavutil.mavlink.MAV_PARAM_TYPE_INT8)
+        self.write_parameter("FOLL_YAW_BEHAV", 0,                               mavutil.mavlink.MAV_PARAM_TYPE_INT8)
+        time.sleep(0.5)
+
+        if not self.takeoff_autonome(self.alt_quadrillage):
+            return False
+
+        # Attente du premier GPS Valhalla reçu via ESP32
+        print("[FOLLOW] En attente du GPS Valhalla (ESP32)...")
+        deadline = time.time() + _FOLLOW_GPS_INIT_TIMEOUT
+        while time.time() < deadline:
+            if self.fin_mission:
+                return True
+            if self._esp32_link.valhalla_gps_timestamp is not None:
+                break
+            time.sleep(0.1)
+        else:
+            print("[FOLLOW] GPS Valhalla non disponible. RTL.")
+            self.send_cgm(CGM.VALKYRIE_NO_TARGET_FOUND)
+            self.return_to_launch()
+            return False
+
+        # Passage en mode FOLLOW
+        follow_engaged = False
+        for _ in range(5):
+            if self.change_mode("FOLLOW"):
+                follow_engaged = True
+                break
+            time.sleep(1.0)
+
+        if not follow_engaged:
+            print("[FOLLOW] Impossible de passer en mode FOLLOW. RTL.")
+            self.send_cgm(CGM.VALKYRIE_MODE_CHANGE_FAIL)
+            self.return_to_launch()
+            return False
+
+        print("[FOLLOW] Mode FOLLOW activé. Injection GPS Valhalla (srcSystem=1) démarrée.")
+        self.send_cgm(CGM.VALKYRIE_FOLLOW_STARTED)
+
+        # Boucle principale : injection GLOBAL_POSITION_INT à 10 Hz
+        # On usurpe temporairement srcSystem=1 (sysid Valhalla) avec un Lock pour
+        # éviter qu'un autre thread envoie un message avec la mauvaise identité.
+        while True:
+            if self.fin_mission:
+                return True
+
+            ts = self._esp32_link.valhalla_gps_timestamp
+            if ts is None or (time.time() - ts) > _FOLLOW_GPS_STALENESS:
+                print(f"[FOLLOW] GPS Valhalla perdu (>{_FOLLOW_GPS_STALENESS:.0f}s). RTL.")
+                self.send_cgm(CGM.VALKYRIE_FOLLOW_GPS_LOST)
+                self.return_to_launch()
+                return False
+
+            lat     = self._esp32_link.valhalla_lat
+            lon     = self._esp32_link.valhalla_lon
+            rel_alt = self._esp32_link.valhalla_alt      # m above home -- position()[2]
+            alt_msl = self._esp32_link.valhalla_alt_msl  # m MSL        -- position()[3]
+
+            if lat is not None and lon is not None and rel_alt is not None and alt_msl is not None:
+                with self._mavlink_lock:
+                    orig_sysid = self.master.mav.srcSystem
+                    orig_comp  = self.master.mav.srcComponent
+                    try:
+                        self.master.mav.srcSystem    = 1  # usurpe l'identité de Valhalla
+                        self.master.mav.srcComponent = 1
+                        self.master.mav.global_position_int_send(
+                            self.time_boot_ms,      # time_boot_ms
+                            int(lat * 1e7),         # lat          (degE7)
+                            int(lon * 1e7),         # lon          (degE7)
+                            int(alt_msl  * 1000),   # alt          (mm MSL) <-- EKF sanity check
+                            int(rel_alt  * 1000),   # relative_alt (mm above home) <-- FOLL_ALT_TYPE=0
+                            0,                      # vx  (cm/s)
+                            0,                      # vy  (cm/s)
+                            0,                      # vz  (cm/s)
+                            0xFFFF                  # hdg 
+                        )
+                    finally:
+                        self.master.mav.srcSystem    = orig_sysid 
+                        self.master.mav.srcComponent = orig_comp
+
+            time.sleep(0.1)  # 10 Hz
 
     # Utilitaire
     def _rc_override_loop(self):
