@@ -12,11 +12,9 @@
 #define SW0_PIN      0
 #define SW1_PIN      1
 
-// Configuration UART matériel (Broches reliées à l'UART3 de la Raspberry Pi)
-#define RPI_RX_PIN 20 // L'ESP32 ÉCOUTE ici (à relier au TX3 de la RPi - Pin 7)
-#define RPI_TX_PIN 21 // L'ESP32 PARLE ici (à relier au RX3 de la RPi - Pin 29)
-
-HardwareSerial PI_SERIAL(0); // Utilisation de l'UART physique
+// Configuration UART matériel 
+// On instancie l'UART0 qui est physiquement lié aux broches TX0 et RX0 de la carte
+HardwareSerial PI_SERIAL(0); 
 
 // ═══════════════════════════════════════════════════════════════
 //  PARAMÈTRES PINCE
@@ -112,8 +110,10 @@ void OnDataSent(const uint8_t *mac, esp_now_send_status_t status) {}
 void setup() {
     PI_SERIAL.setRxBufferSize(1024);
     PI_SERIAL.setTxBufferSize(1024);
-    // On démarre l'UART sur les broches spécifiées
-    PI_SERIAL.begin(115200, SERIAL_8N1, RPI_RX_PIN, RPI_TX_PIN);
+    
+    // En appelant begin() sans préciser de broches, l'ESP32 utilise 
+    // automatiquement ses broches TX0 et RX0 par défaut.
+    PI_SERIAL.begin(115200);
     
     delay(500);
 
