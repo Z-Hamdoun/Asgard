@@ -433,6 +433,14 @@ def main_loop(drone: Valkyrie, esp32: ESP32_Link, gripper: GripperESP32 | None =
             print("[MAIN] ESP32_PING reçu. Envoi du PONG...")
             esp32.send_cgm(CGM.ESP32_PONG.value)
 
+        # Connexion WiFi ponctuelle pour les logs (Dashboard → Valhalla → ESP-NOW → ici)
+        elif cgm_recu == CGM.PC_CONFIGURE_VALKYRIE.value:
+            print("[MAIN] Connexion WiFi Dashboard demandée...")
+            if _ip_ordi:
+                fetch_log_from_dashboard(_ip_ordi)
+            else:
+                print("[MAIN] IP Dashboard inconnue -- ignoré.")
+
         # Commandes manuelles pince depuis le Dashboard
         elif cgm_recu == CGM.PC_CALIB_GRIPPER_VALKYRIE.value:
             print("[MAIN] Calibration de la pince...")
