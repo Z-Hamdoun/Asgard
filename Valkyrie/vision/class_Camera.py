@@ -123,25 +123,33 @@ class Camera:
                 # On importe le module
                 from picamera2 import Picamera2
 
-                # Initialisation de la Pi Camera 2
                 self._picam2 = Picamera2()
-                self._picam2.preview_configuration.main.size = (
-                    self._resolution[0],
-                    self._resolution[1],
+                
+                # Configuration spécifique pour forcer l'utilisation de tout le capteur
+                # (Mode 1 - Pleine résolution native, puis réduction à 848x480)
+                video_config = self._picam2.create_video_configuration(
+                    sensor={
+                        # Demander la taille native max force le capteur à s'activer en entier
+                        "output_size": (4608, 2592), 
+                        "bit_depth": 10
+                    },
+                    main={
+                        "size": (640, 480), # La taille que OpenCV recevra
+                        "format": "RGB888"
+                    },
+                    controls={
+                        "FrameRate": 30,
+                        # On force l'auto-exposition pour éviter les images noires/blanches
+                        "AeEnable": True,
+                        "ExposureValue": -1 # Sous-exposer légèrement pour mieux voir le noir de l'ArUco
+                    },
+                    buffer_count=6
                 )
-                self._picam2.preview_configuration.main.format = "RGB888"
-                self._picam2.preview_configuration.controls.FrameRate = 30
-                self._picam2.configure("preview")
+                
+                self._picam2.configure(video_config)
                 self._picam2.start()
-                # self._picam2.set_controls({"ExposureTime": 3500})
-                self._picam2.set_controls(
-                    {
-                        "AeEnable": True,  # Keep auto-exposure ON
-                        "ExposureValue": -1,
-                    }
-                )
-                # "AeExposureMode": "Short"})
-                time.sleep(2)  # Laisser le temps à la caméra de s'initialiser
+                
+                time.sleep(2)
             elif simulation == "SITL":  # On est sur Gazebo via topic
                 self.logger.log("[INFO] Intializing Gazebo camera")
                 # On importe les modules
@@ -208,24 +216,20 @@ class Camera:
             """Matrice de distorsion de la caméra"""
 
             if simulation is None:
-                # self._camera_matrix = np.array([
-                #     [600.0,   0.0, 320.0],  # Fx ~420, Cx = 320 (Largeur/2)
-                #     [  0.0, 600.0, 240.0],  # Fy ~420, Cy = 240 (Hauteur/2)
-                #     [  0.0,   0.0,   1.0]
-                # ], dtype=np.float64)
-                # self._dist_coeffs = np.array([0, 0, 0, 0, 0], dtype=np.float64) # Celle-là non plus
-
+                
+                # Camera V3 resolution 640x480
                 self._camera_matrix = np.array(
                     [
-                        [376.91194, 0.00000, 425.07994],
-                        [0.00000, 380.07917, 245.66015],
-                        [0.00000, 0.00000, 1.00000],
+                    [961.20937, 0.00000, 327.96329],
+                    [0.00000, 963.93177, 239.74834],
+                    [0.00000, 0.00000, 1.00000]
+
                     ],
                     dtype=np.float64,
                 )
 
                 self._dist_coeffs = np.array(
-                    [-0.00284, 0.09082, 0.00265, -0.00063, -0.07958], dtype=np.float64
+                    [-0.02022, 1.12933, -0.00053, 0.00310, -5.27641], dtype=np.float64
                 )
 
             else:
@@ -566,17 +570,19 @@ class Camera:
                 self._inner_scale_down = None
                 self.logger.log(
                     f"[e-ArUco INNER] rejeté (taille={taille_px} < {_MIN_INNER_PX}px)",
-                    wanna_print=True
+                    wanna_print=True,
                 )
             else:
                 t_det = self.time_boot_ms
-                info = (f"INNER:id{self.inner_aruco_id},"
-                        f"sz{taille_px},"
-                        f"rec{round(t_captured - t_begin, 3)},"
-                        f"det{round(t_det - t_captured, 3)}")
+                info = (
+                    f"INNER:id{self.inner_aruco_id},"
+                    f"sz{taille_px},"
+                    f"rec{round(t_captured - t_begin, 3)},"
+                    f"det{round(t_det - t_captured, 3)}"
+                )
                 self.logger.log(
                     f"[e-ArUco INNER] dx={dx:.3f}m dy={dy:.3f}m dz={dz:.3f}m taille={taille_px}",
-                    wanna_print=True
+                    wanna_print=True,
                 )
                 return dx, dy, dz, info, frame
 
