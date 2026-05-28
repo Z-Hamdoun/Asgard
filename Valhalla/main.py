@@ -707,11 +707,11 @@ def main_loop(drone: Valhalla, esp32: ESP32_Link, ip_ordi: list[str]):
 # POINT D'ENTRÉE
 # ==============================================================================
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python main.py <IP_PC>")
-        sys.exit(1)
-
-    ip_ordis = sys.argv[1:]
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dashboard-ip", required=True, help="IP du PC Dashboard")
+    args = parser.parse_args()
+    ip_ordis = [args.dashboard_ip]
 
     _logger = make_logger(os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs.log"))
     _logger.log("[VALHALLA] Démarrage.")

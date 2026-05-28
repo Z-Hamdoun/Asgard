@@ -475,10 +475,11 @@ def main_loop(drone: Valkyrie, esp32: ESP32_Link, gripper: GripperESP32 | None =
 # POINT D'ENTRÉE
 # ==============================================================================
 if __name__ == "__main__":
-    if len(sys.argv) >= 2:
-        _ip_ordi = sys.argv[1]
-    else:
-        print("[MAIN] Avertissement : IP Dashboard non fournie. Les logs WiFi seront désactivés.")
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dashboard-ip", required=True, help="IP du PC Dashboard")
+    args = parser.parse_args()
+    _ip_ordi = args.dashboard_ip
 
     _logger = make_logger(os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs.log"))
     _logger.log("[VALKYRIE] Démarrage.")
