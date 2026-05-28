@@ -1,14 +1,16 @@
-import serial
 import threading
 import time
+
+from Communication.class_ESP32_Link import ESP32_Link
 
 
 class GripperESP32:
     """
-    Pilote la pince servo de Valkyrie via l'ESP32-C3 (UART/USB, 115200 baud).
+    Pilote la pince servo de Valkyrie via l'ESP32 déjà connecté (ESP32_Link).
 
-    Protocole : toutes les commandes pince sont préfixées "GRIP:" pour ne pas
-    être confondues avec les messages bridge ESP-NOW qui transitent sur le même port.
+    La pince et le bridge ESP-NOW transitent sur le même UART physique (/dev/ttyAMA3).
+    GripperESP32 s'enregistre comme callback GRIP: auprès d'ESP32_Link pour recevoir
+    les retours de la pince, et envoie ses commandes via ESP32_Link._write_serial.
 
     Envoi Pi -->ESP32 :
         GRIP:CALIB   ferme jusqu'au contact, puis ouvre automatiquement (27s)
@@ -26,17 +28,11 @@ class GripperESP32:
         GRIP:TIMEOUT_CLOSE  timeout fermeture (rien saisi en 35s)
         GRIP:STOPPED        arrêt d'urgence effectué
         GRIP:ERR_*          erreur (ex : OPEN envoyé sans calibration)
-
-    Tous les autres messages reçus (non préfixés GRIP:) sont des relais ESP-NOW
-    et sont ignorés par cette classe -- ils appartiennent à class_ESP32_Link.
     """
 
-    def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 115200):
-        self._port     = port
-        self._baudrate = baudrate
-        self._serial: serial.Serial | None = None
+    def __init__(self, esp32_link: ESP32_Link):
+        self._esp32 = esp32_link
         self._connected = False
-        self._write_lock = threading.Lock()
 
         # Événements pour débloquer les appels bloquants
         self._ev_ready     = threading.Event()
@@ -44,47 +40,34 @@ class GripperESP32:
         self._ev_caught    = threading.Event()
         self._ev_timeout   = threading.Event()
 
-        self._reader_thread: threading.Thread | None = None
-
     # ------------------------------------------------------------------
     # Connexion / déconnexion
     # ------------------------------------------------------------------
 
     def connect(self, wait_ready: float = 3.0) -> bool:
         """
-        Ouvre le port UART et attend le signal GRIP:READY de l'ESP32.
+        Enregistre le callback GRIP: auprès d'ESP32_Link et attend GRIP:READY.
         wait_ready : temps maximum d'attente du signal de boot (secondes).
         """
-        try:
-            self._serial = serial.Serial(
-                self._port, self._baudrate, timeout=1,
-                dsrdtr=False, rtscts=False,
-            )
-            self._connected = True
-            self._reader_thread = threading.Thread(
-                target=self._read_loop, daemon=True, name="gripper-reader"
-            )
-            self._reader_thread.start()
-
-            if not self._ev_ready.wait(timeout=wait_ready):
-                # L'ESP32 était peut-être déjà démarré avant la connexion série ;
-                # on continue quand même.
-                print("[PINCE] Signal GRIP:READY non reçu -- ESP32 déjà démarré ?")
-
-            print(f"[PINCE] Connectée sur {self._port}")
-            return True
-        except Exception as e:
-            print(f"[PINCE] Connexion impossible sur {self._port} : {e}")
+        if not self._esp32.connected:
+            print("[PINCE] ESP32_Link non connecté -- pince indisponible.")
             return False
 
+        self._esp32.set_grip_callback(self._parse_grip_line)
+        self._connected = True
+
+        if not self._ev_ready.wait(timeout=wait_ready):
+            # L'ESP32 était peut-être déjà démarré avant la connexion ;
+            # on continue quand même.
+            print("[PINCE] Signal GRIP:READY non reçu -- ESP32 déjà démarré ?")
+
+        print("[PINCE] Connectée (via ESP32_Link)")
+        return True
+
     def close(self):
-        """Ferme proprement le port UART."""
+        """Désenregistre le callback GRIP:."""
         self._connected = False
-        if self._serial:
-            try:
-                self._serial.close()
-            except Exception:
-                pass
+        self._esp32.set_grip_callback(None)
 
     # ------------------------------------------------------------------
     # Commandes principales (bloquantes)
@@ -146,31 +129,15 @@ class GripperESP32:
     # ------------------------------------------------------------------
 
     def _send(self, sub_cmd: str):
-        """Envoie une commande pince avec le préfixe GRIP:."""
-        if not self._connected or self._serial is None:
+        """Envoie une commande pince via ESP32_Link (préfixe GRIP:)."""
+        if not self._connected:
             print(f"[PINCE] Non connectée -- commande '{sub_cmd}' ignorée.")
             return
-        msg = f"GRIP:{sub_cmd}\n"
-        with self._write_lock:
-            self._serial.write(msg.encode("utf-8"))
+        self._esp32._write_serial(f"GRIP:{sub_cmd}\n")
         print(f"[PINCE-TX] GRIP:{sub_cmd}")
 
-    def _read_loop(self):
-        while self._connected:
-            try:
-                if self._serial.in_waiting > 0:
-                    raw = self._serial.readline().decode("utf-8", errors="ignore").strip()
-                    if raw.startswith("GRIP:"):
-                        self._parse_grip_line(raw[5:])  # retire le préfixe "GRIP:"
-                    # Les autres lignes (relais ESP-NOW) sont ignorées ici
-            except Exception as e:
-                print(f"[PINCE-UART] Erreur lecture : {e}")
-                self._connected = False
-                break
-            time.sleep(0.01)
-
     def _parse_grip_line(self, payload: str):
-        """Traite la partie après 'GRIP:' dans un message de l'ESP32."""
+        """Appelé par ESP32_Link pour chaque ligne GRIP:<payload> reçue de l'ESP32."""
         print(f"[PINCE-RX] GRIP:{payload}")
         if payload == "READY":
             self._ev_ready.set()
