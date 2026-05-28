@@ -1,8 +1,8 @@
 // ==========================================
 // VARIABLES GLOBALES ET ELEMENTS DU DOM
 // ==========================================
-let valkTimer; 
-let valhTimer; 
+let valkTimer;
+let valhTimer;
 
 const dassaultLat=47.6013
 const dassaultLong=2.0085
@@ -180,8 +180,14 @@ ws.onmessage = function(event) {
         case "connecting_valhalla":
             uiLog("GCS", "INFO", "CONFIG", "CGM connexion WiFi envoyé à Valhalla");
             break;
+        case "connecting_valkyrie":
+            uiLog("GCS", "INFO", "CONFIG", "CGM connexion WiFi envoyé à Valkyrie");
+            break;
         case "valhalla_ready":
             uiLog("VALHALLA", "INFO", "CONFIG", "Connecté — en attente de la configuration");
+            break;
+        case "valkyrie_ready":
+            uiLog("VALKYRIE", "INFO", "CONFIG", "Connecté — en attente de commandes");
             break;
         case "config_ack":
             uiLog(data.source, "SUCCESS", "CONFIG", "Configuration appliquée");
