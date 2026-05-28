@@ -328,6 +328,13 @@ def main_loop(drone: Valkyrie, esp32: ESP32_Link, gripper: GripperESP32 | None =
             esp32.send_cgm(CGM.ESP32_PONG.value)
 
         # Commandes manuelles pince depuis le Dashboard
+        elif cgm_recu == CGM.PC_CALIB_GRIPPER_VALKYRIE.value:
+            print("[MAIN] Calibration de la pince...")
+            if gripper is not None:
+                gripper.calibrate()
+            else:
+                print("[MAIN] Pince non connectée.")
+
         elif cgm_recu == CGM.PC_OPEN_GRIPPER_VALKYRIE.value:
             print("[MAIN] Ouverture manuelle de la pince...")
             if gripper is not None:
