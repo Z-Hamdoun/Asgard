@@ -9,8 +9,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from Communication.class_ESP32_Link import ESP32_Link
 from class_Valhalla import Valhalla
 import pymavlink_code.code_de_gestion_de_missions as CGM
+from utils.class_Logger import Logger, make_logger
 
 CONFIG_FILE = "Valhalla/mission_config.json"
+
+_logger: Logger | None = None
 
 SIMU = True  # True = SITL, False = REEL
 
@@ -192,6 +195,15 @@ async def _fetch_config_async(ip_ordi: str, esp32: ESP32_Link, timeout_s: float 
                             await ws.send(json.dumps({"type": "status", "command": "esp32_timeout",
                                                       "source": "Valhalla",
                                                       "output": "ESP32 Link TIMEOUT (>5s)"}))
+
+                    elif command == "print_log":
+                        log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs.log")
+                        try:
+                            with open(log_path, "r", encoding="utf-8") as f:
+                                content = f.read()
+                        except Exception:
+                            content = "(aucun log disponible)"
+                        await sendlog(ws, "log_ack", content)
 
                     elif command == "disconnect":
                         print("[WIFI] Déconnexion demandée par le Dashboard.")
@@ -504,6 +516,11 @@ def emergency_watcher(drone: Valhalla, esp32: ESP32_Link):
             drone.delete_cgm(CGM.PC_CALIB_GRIPPER_VALKYRIE)
             print("[PINCE-WD] Ordre calibration pince → relai Valkyrie.")
             esp32.send_cgm(CGM.PC_CALIB_GRIPPER_VALKYRIE.value)
+
+        if drone.check_cgm(CGM.PC_CONFIGURE_VALKYRIE):
+            drone.delete_cgm(CGM.PC_CONFIGURE_VALKYRIE)
+            print("[WD] Connexion WiFi Valkyrie → relai ESP-NOW.")
+            esp32.send_cgm(CGM.PC_CONFIGURE_VALKYRIE.value)
 
         time.sleep(0.05)
 
