@@ -2819,7 +2819,7 @@ class MAVLinCS:
             elif m.get_type() == "NAMED_VALUE_INT":
                 if m.name == "CGM": # C'est un CGM
                     cgm = CGM.CGM.get(value=m.value)
-                    self.logger.log(cgm.description)
+                    self.logger.log(cgm.short_description_str)
                     self.cgm.add(cgm)
                     if self._cgm_hook and cgm.value != 0:
                         try:
@@ -2839,7 +2839,7 @@ class MAVLinCS:
             if m.get_type() == "NAMED_VALUE_INT":
                 if m.name == "CGM": # CGM
                     cgm = CGM.CGM.get(value=m.value)
-                    self.logger.log(cgm.description)
+                    self.logger.log(cgm.short_description_str)
                     self.cgm.add(cgm)
             elif m.get_type() == "TIMESYNC":
                 self.timesync_handler._send_callback(m)
