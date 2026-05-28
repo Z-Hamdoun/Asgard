@@ -482,6 +482,11 @@ def emergency_watcher(drone: Valhalla, esp32: ESP32_Link):
             print("[PINCE-WD] Ordre fermeture pince → relai Valkyrie.")
             esp32.send_cgm(CGM.PC_CLOSE_GRIPPER_VALKYRIE.value)
 
+        if drone.check_cgm(CGM.PC_CALIB_GRIPPER_VALKYRIE):
+            drone.delete_cgm(CGM.PC_CALIB_GRIPPER_VALKYRIE)
+            print("[PINCE-WD] Ordre calibration pince → relai Valkyrie.")
+            esp32.send_cgm(CGM.PC_CALIB_GRIPPER_VALKYRIE.value)
+
         time.sleep(0.05)
 
 
