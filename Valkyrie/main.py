@@ -521,7 +521,7 @@ if __name__ == "__main__":
 
     drone.set_esp32_link(esp32)
 
-    gripper = GripperESP32(port="/dev/ttyACM1")
+    gripper = GripperESP32(esp32)
     if not gripper.connect():
         print("[MAIN] Pince non connectée -- fonctions pince désactivées.")
         gripper = None
