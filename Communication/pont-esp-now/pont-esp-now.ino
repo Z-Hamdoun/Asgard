@@ -9,7 +9,7 @@ char rx_buffer[250];
 int rx_index = 0;
 
 // ============================================================================
-// CALLBACK : RÉCEPTION RADIO -> ENVOI VERS RASPBERRY PI (USB CDC)
+// CALLBACK : RÉCEPTION RADIO -> ENVOI VERS USB
 // ============================================================================
 void OnDataRecv(const esp_now_recv_info * info, const uint8_t *incomingData, int len) {
     for(int i=0; i<len; i++) {
@@ -22,7 +22,7 @@ void OnDataRecv(const esp_now_recv_info * info, const uint8_t *incomingData, int
 // CALLBACK : ENVOI RADIO
 // ============================================================================
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-
+    // Vide, pour ne pas polluer l'USB
 }
 
 void setup() {
@@ -41,7 +41,6 @@ void setup() {
         return; // Si échec, on s'arrête en silence
     }
 
-    // Enregistrement des callbacks
     esp_now_register_recv_cb(OnDataRecv);
     esp_now_register_send_cb((esp_now_send_cb_t)OnDataSent);
 
@@ -52,16 +51,18 @@ void setup() {
     peerInfo.encrypt = false;
 
     esp_now_add_peer(&peerInfo);
+    
+    Serial.println("[SYS] ESP32-C3 PRET (USB NATIF)");
 }
 
 // ============================================================================
-// LECTURE RASPBERRY PI (USB CDC) -> ENVOI RADIO
+// LECTURE USB -> ENVOI RADIO
 // ============================================================================
 void loop() {
     while (Serial.available() > 0) {
         char c = Serial.read();
 
-        // Si on détecte la fin d'une ligne envoyée par Python
+        // Si on détecte la fin d'une ligne
         if (c == '\n') {
             rx_buffer[rx_index] = '\0';
             String msg = String(rx_buffer);

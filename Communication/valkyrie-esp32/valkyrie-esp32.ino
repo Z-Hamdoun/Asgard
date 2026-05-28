@@ -12,10 +12,11 @@
 #define SW0_PIN      0
 #define SW1_PIN      1
 
-// Connexion série vers la Raspberry Pi.
-// Sur ESP32-C3 : Serial = USB CDC (option "USB CDC On Boot" activée dans l'IDE).
-// Si la Pi est branchée sur UART2, remplacer Serial par Serial2 et configurer les pins.
-#define PI_SERIAL    Serial
+// Configuration UART matériel (Broches reliées à l'UART3 de la Raspberry Pi)
+#define RPI_RX_PIN 20 // L'ESP32 ÉCOUTE ici (à relier au TX3 de la RPi - Pin 7)
+#define RPI_TX_PIN 21 // L'ESP32 PARLE ici (à relier au RX3 de la RPi - Pin 29)
+
+HardwareSerial PI_SERIAL(0); // Utilisation de l'UART physique
 
 // ═══════════════════════════════════════════════════════════════
 //  PARAMÈTRES PINCE
@@ -96,7 +97,7 @@ bool readSwitch(Switch &sw) {
 //  CALLBACKS ESP-NOW
 // ═══════════════════════════════════════════════════════════════
 
-// Réception radio → envoi vers la Raspberry Pi
+// Réception radio → envoi vers la Raspberry Pi via UART matériel
 void OnDataRecv(const esp_now_recv_info *info, const uint8_t *data, int len) {
     for (int i = 0; i < len; i++) PI_SERIAL.write(data[i]);
     PI_SERIAL.write('\n');
@@ -111,7 +112,9 @@ void OnDataSent(const uint8_t *mac, esp_now_send_status_t status) {}
 void setup() {
     PI_SERIAL.setRxBufferSize(1024);
     PI_SERIAL.setTxBufferSize(1024);
-    PI_SERIAL.begin(115200);
+    // On démarre l'UART sur les broches spécifiées
+    PI_SERIAL.begin(115200, SERIAL_8N1, RPI_RX_PIN, RPI_TX_PIN);
+    
     delay(500);
 
     // --- Pince ---
