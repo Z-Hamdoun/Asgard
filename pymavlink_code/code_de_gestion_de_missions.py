@@ -563,3 +563,11 @@ VALKYRIE_GRIP_OK = CGM(
     long_description="La pince s'est fermée et les interrupteurs de contact ont confirmé la saisie de l'objet.",
     potential_sender="valkyrie"
 )
+
+PC_CONFIGURE_VALKYRIE = CGM(
+    value=220,
+    name="PC_CONFIGURE_VALKYRIE",
+    short_description="Connexion WiFi ponctuelle Valkyrie (config / logs)",
+    long_description="Le Dashboard demande à Valkyrie de se connecter en WiFi pour une session ponctuelle (récupération de logs, config). Valhalla relaie via ESP-NOW.",
+    potential_sender="pc"
+)
