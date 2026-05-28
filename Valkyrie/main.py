@@ -306,13 +306,13 @@ def run_mission_3(drone: Valkyrie, esp32: ESP32_Link, config: dict):
 
     # Boucle requadrillage : on retente si la cible est perdue en LOITER
     while True:
-        cible_trouvee = drone.executer_quadrillage(e_analyse=True)
+        cible_trouvee = drone.executer_quadrillage(e_analyse=False)
         if not cible_trouvee:
             print("[MISSION 3] Quadrillage terminé sans trouver la cible.")
             drone.send_cgm(CGM.VALKYRIE_NO_TARGET_FOUND)
             return
 
-        resultat = drone.precision_loiter_and_land(e_analyse=True)
+        resultat = drone.precision_loiter_and_land(e_analyse=False)
 
         if resultat is True:
             print("[MISSION 3] Atterrissage de précision réussi.")
