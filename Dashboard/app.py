@@ -138,9 +138,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             target = data.get("target")
 
             # ======================================================
-            # Messages venant de Valhalla (relais WebSocket → Dashboard)
+            # Messages venant des drones (relais WebSocket → Dashboard)
             # ======================================================
-            if client_id == "Valhalla":
+            if client_id in ("Valhalla", "Valkyrie"):
                 await manager.send_to_target(data, "dashboard")
                 continue
 
@@ -211,6 +211,25 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                             gcs.connect_valhalla()
                             await manager.send_to_target(
                                 {"type": "status", "command": "connecting_valhalla", "source": "GCS"},
+                                "dashboard",
+                            )
+                        except Exception as e:
+                            await manager.send_to_target(
+                                {"type": "status", "command": "gcs_error", "source": "GCS", "output": str(e)},
+                                "dashboard",
+                            )
+                    else:
+                        await manager.send_to_target(
+                            {"type": "status", "command": "gcs_unavailable", "source": "GCS"},
+                            "dashboard",
+                        )
+                elif target == "Valkyrie":
+                    gcs = await get_gcs()
+                    if gcs:
+                        try:
+                            gcs.configurer_valkyrie()
+                            await manager.send_to_target(
+                                {"type": "status", "command": "connecting_valkyrie", "source": "GCS"},
                                 "dashboard",
                             )
                         except Exception as e:
