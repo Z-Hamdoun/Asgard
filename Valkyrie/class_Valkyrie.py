@@ -50,7 +50,7 @@ class Valkyrie(Drone):
         # Offsets mécaniques (m, repère body FRD)
         self.cam_x_m  = 0.0   # camera : offset X par rapport au centre du drone
         self.cam_y_m  = 0.0   # camera : offset Y par rapport au centre du drone
-        self.grip_x_m = 0.05   # pince  : offset X sur l'axe du nez (avant positif)
+        self.grip_x_m = 0.06   # pince  : offset X sur l'axe du nez (avant positif)
 
         # Gestion du thread RC
         self._precision_active = False
