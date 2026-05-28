@@ -1,4 +1,6 @@
 import os, sys, time, threading
+import asyncio
+import websockets
 import json
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
@@ -7,10 +9,14 @@ from class_Valkyrie import Valkyrie
 from Communication.class_ESP32_Link import ESP32_Link
 from Communication.class_GripperESP32 import GripperESP32
 import pymavlink_code.code_de_gestion_de_missions as CGM
+from utils.class_Logger import Logger, make_logger
 
 CONFIG_FILE = "Valkyrie/mission_config.json"
 
-SIMU = False  # True = SITL, False = REEL
+_logger: Logger | None = None
+_ip_ordi: str = ""
+
+SIMU = True  # True = SITL, False = REEL
 
 # Valeurs par défaut appliquées si un paramètre est absent ou null
 CONFIG_DEFAULTS = {
@@ -72,38 +78,213 @@ def check_esp32_or_rtl(esp32: ESP32_Link, drone) -> bool:
 
 
 # ==============================================================================
+# CONNEXION WIFI PONCTUELLE (logs)
+# ==============================================================================
+async def _fetch_log_async(ip_ordi: str, timeout_s: float = 60.0) -> None:
+    """Se connecte au Dashboard, attend la commande print_log, envoie le fichier de logs."""
+    uri = f"ws://{ip_ordi}:8000/ws/Valkyrie"
+    print(f"[WIFI] Connexion ponctuelle à {uri}...")
+    deadline = time.time() + timeout_s
+    try:
+        async with websockets.connect(uri, close_timeout=2) as ws:
+            await ws.send(json.dumps({"type": "status", "command": "valkyrie_ready", "source": "Valkyrie"}))
+            print("[WIFI] Connecté. En attente de commandes...")
+            while time.time() < deadline:
+                try:
+                    raw = await asyncio.wait_for(ws.recv(), timeout=1.0)
+                    data = json.loads(raw)
+                    command = data.get("command")
+
+                    if data.get("type") == "ping":
+                        await ws.send(json.dumps({"type": "pong", "source": "Valkyrie",
+                                                   "sent_at": data.get("sent_at")}))
+
+                    elif command == "print_log":
+                        log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs.log")
+                        try:
+                            with open(log_path, "r", encoding="utf-8") as f:
+                                content = f.read()
+                        except Exception:
+                            content = "(aucun log disponible)"
+                        await ws.send(json.dumps({"type": "log", "command": "log_ack",
+                                                   "source": "Valkyrie", "output": content}))
+                        break
+
+                    elif command == "disconnect":
+                        break
+
+                except asyncio.TimeoutError:
+                    pass  # Normal, on reboucle
+    except Exception as e:
+        print(f"[WIFI] Erreur connexion Valkyrie : {e}")
+
+
+def fetch_log_from_dashboard(ip_ordi: str, timeout_s: float = 60.0) -> None:
+    """Wrapper synchrone pour _fetch_log_async."""
+    loop = asyncio.new_event_loop()
+    try:
+        loop.run_until_complete(_fetch_log_async(ip_ordi, timeout_s))
+    finally:
+        loop.close()
+
+
+# ==============================================================================
 # MISSIONS
 # ==============================================================================
-def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict):
-    """Mission 1 : quadrillage spirale et atterrissage de précision sur ArUco."""
+def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
+                  gripper: "GripperESP32 | None" = None):
+    """
+    Mission 1 complète :
+      1. Décollage + quadrillage spirale
+      2. Precision land avec alignement yaw (nez/pince vers la cible)
+      3. Fermeture pince -- si saisie échoue --> réouverture + nouvelle tentative
+      4. Décollage avec objet saisi --> FOLLOW mode vers Valhalla (2m au-dessus)
+      5. Centrage PnP sur les 4 marqueurs de Valhalla
+      6. Ouverture pince (lâcher) --> RTL
+    """
+    _MAX_GRIP_RETRIES = 3
+
+    if _logger:
+        _logger.log("[MISSION 1] Démarrage.")
     if not drone.load_config(config):
         print("[MISSION 1] Configuration invalide. Abandon.")
+        if _logger:
+            _logger.log("[MISSION 1] Configuration invalide. Abandon.")
         return
 
+    # --- Phase 1 : Décollage ---
     if not drone.takeoff_autonome(config["alt_quadrillage"]):
         print("[MISSION 1] Échec du décollage.")
+        if _logger:
+            _logger.log("[MISSION 1] ECHEC décollage.")
+        return
+    print("[MISSION 1] Décollage OK.")
+    if _logger:
+        _logger.log("[MISSION 1] Décollage OK.")
+
+    # --- Phase 2 : Quadrillage + precision land avec pince ---
+    # Boucle requadrillage : recommence si cible perdue en LOITER
+    # Boucle saisie : recommence si la pince ne saisit pas l'objet
+    objet_saisi = False
+    for tentative in range(_MAX_GRIP_RETRIES):
+        if _logger:
+            _logger.log(f"[MISSION 1] Tentative saisie {tentative + 1}/{_MAX_GRIP_RETRIES} -- quadrillage.")
+        print(f"[MISSION 1] Tentative precision land {tentative + 1}/{_MAX_GRIP_RETRIES}")
+
+        # Quadrillage (toujours sur la 1ère tentative ; retentatives recommencent au début)
+        while True:
+            cible_trouvee = drone.executer_quadrillage()
+            if not cible_trouvee:
+                print("[MISSION 1] Quadrillage terminé sans trouver la cible.")
+                if _logger:
+                    _logger.log("[MISSION 1] Quadrillage terminé : cible introuvable.")
+                drone.send_cgm(CGM.VALKYRIE_NO_TARGET_FOUND)
+                return
+
+            # Precision loiter + alignement yaw + LAND
+            resultat = drone.precision_loiter_and_land_gripper()
+
+            if resultat is False:
+                print("[MISSION 1] Mission interrompue (urgence).")
+                if _logger:
+                    _logger.log("[MISSION 1] Mission interrompue (urgence).")
+                return
+            if resultat is True:
+                if _logger:
+                    _logger.log("[MISSION 1] Atterri sur cible. Tentative saisie pince.")
+                break  # atterri --> passer à la pince
+            # None : cible perdue en LOITER --> requadrillage
+            print("[MISSION 1] Cible perdue. Requadrillage...")
+            if _logger:
+                _logger.log("[MISSION 1] Cible perdue en LOITER. Requadrillage.", wanna_print=False)
+
+        # Atterri, moteurs coupés -- tenter la saisie
+        if gripper is None:
+            # Pince indisponible : on simule la saisie et on continue la mission
+            print("[MISSION 1] Pince non connectée. Simulation de saisie -- mission continue.")
+            if _logger:
+                _logger.log("[MISSION 1] Pince absente : saisie simulée, mission continue.")
+            objet_saisi = True
+            break
+
+        print("[MISSION 1] Atterri. Fermeture de la pince...")
+        caught = gripper.close_gripper()
+
+        if caught:
+            print("[MISSION 1] Objet saisi avec succès !")
+            if _logger:
+                _logger.log("[MISSION 1] Objet saisi avec succès (pince fermée + contact).")
+            drone.send_cgm(CGM.VALKYRIE_GRIP_OK)
+            objet_saisi = True
+            break
+
+        print(f"[MISSION 1] Saisie échouée (tentative {tentative + 1}). Réouverture...")
+        if _logger:
+            _logger.log(f"[MISSION 1] Saisie échouée tentative {tentative + 1}. Réouverture pince.")
+        gripper.open_gripper()
+
+        if tentative < _MAX_GRIP_RETRIES - 1:
+            if not drone.takeoff_autonome(config["alt_quadrillage"]):
+                print("[MISSION 1] Échec redécollage pour nouvelle tentative.")
+                if _logger:
+                    _logger.log("[MISSION 1] ECHEC redécollage pour nouvelle tentative saisie.")
+                return
+
+    if not objet_saisi:
+        print(f"[MISSION 1] Objet non saisi après {_MAX_GRIP_RETRIES} tentatives. Abandon.")
+        if _logger:
+            _logger.log(f"[MISSION 1] Objet non saisi après {_MAX_GRIP_RETRIES} tentatives. Abandon.")
+        drone.send_cgm(CGM.VALKYRIE_NO_TARGET_FOUND)
         return
 
-    print("[MISSION 1] Décollage OK.")
+    # --- Phase 3 : Redécollage avec l'objet ---
+    print("[MISSION 1] Redécollage avec objet saisi...")
+    if _logger:
+        _logger.log("[MISSION 1] Phase 3 : redécollage avec objet.")
+    if not drone.takeoff_autonome(config["alt_quadrillage"]):
+        print("[MISSION 1] Échec redécollage avec objet. Lâcher et abandon.")
+        if _logger:
+            _logger.log("[MISSION 1] ECHEC redécollage avec objet. Lâcher et abandon.")
+        if gripper is not None:
+            gripper.open_gripper()
+        return
 
-    while True:
-        cible_trouvee = drone.executer_quadrillage()
-        if not cible_trouvee:
-            print("[MISSION 1] Quadrillage terminé sans trouver la cible.")
-            drone.send_cgm(CGM.VALKYRIE_NO_TARGET_FOUND)
-            return
+    # --- Phase 4 : FOLLOW mode --> approche Valhalla (2m au-dessus) ---
+    print("[MISSION 1] Passage en FOLLOW --> approche de Valhalla...")
+    if _logger:
+        _logger.log("[MISSION 1] Phase 4 : FOLLOW mode vers Valhalla.")
+    if not drone.approach_valhalla_follow(timeout=120.0):
+        print("[MISSION 1] Approche FOLLOW échouée. Lâcher et RTL.")
+        if _logger:
+            _logger.log("[MISSION 1] FOLLOW échoué (GPS Valhalla perdu ou timeout). Lâcher + RTL.")
+        if gripper is not None:
+            gripper.open_gripper()
+        drone.return_to_launch()
+        return
 
-        resultat = drone.precision_loiter_and_land()
+    # --- Phase 5 : Centrage PnP sur les 4 coins de Valhalla ---
+    print("[MISSION 1] Centrage PnP sur Valhalla...")
+    if _logger:
+        _logger.log("[MISSION 1] Phase 5 : centrage PnP sur Valhalla.")
+    centrage_ok = drone.pnp_center_over_valhalla(timeout=60.0)
+    if not centrage_ok:
+        print("[MISSION 1] Centrage PnP timeout -- lâcher quand même.")
+        if _logger:
+            _logger.log("[MISSION 1] Centrage PnP timeout -- lâcher quand même.")
 
-        if resultat is True:
-            print("[MISSION 1] Atterrissage de précision réussi.")
-            drone.send_cgm(CGM.VALKYRIE_LANDED)
-            return
-        elif resultat is False:
-            print("[MISSION 1] Mission interrompue (fin_mission).")
-            return
-        else:  # None --> cible perdue en LOITER --> requadrillage
-            print("[MISSION 1] Cible perdue. Relance du quadrillage...")
+    # --- Phase 6 : Lâcher l'objet ---
+    print("[MISSION 1] Ouverture pince --> lâcher de l'objet.")
+    if _logger:
+        _logger.log("[MISSION 1] Phase 6 : ouverture pince, lâcher de l'objet.")
+    if gripper is not None:
+        gripper.open_gripper()
+
+    # --- Phase 7 : RTL ---
+    drone.send_cgm(CGM.VALKYRIE_LANDED)
+    print("[MISSION 1] Objet livré à Valhalla. RTL Valkyrie.")
+    if _logger:
+        _logger.log("[MISSION 1] Objet livré. RTL.")
+    drone.return_to_launch()
 
 
 def run_mission_2(drone: Valkyrie, esp32: ESP32_Link, config: dict):
@@ -192,12 +373,17 @@ _MISSION_RUNNERS = {
 }
 
 
-def run_mission(drone: Valkyrie, esp32: ESP32_Link, num_mission: int):
+def run_mission(drone: Valkyrie, esp32: ESP32_Link, num_mission: int,
+                gripper: "GripperESP32 | None" = None):
     """Charge la config sécurisée et dispatche vers la bonne mission."""
     config = read_config_safe()
     runner = _MISSION_RUNNERS.get(num_mission, run_mission_1)
     print(f"[MISSION] Lancement mission {num_mission}...")
-    runner(drone, esp32, config)
+    # run_mission_1 accepte gripper ; les autres non (signature générique)
+    if num_mission == 1:
+        runner(drone, esp32, config, gripper)
+    else:
+        runner(drone, esp32, config)
 
     # Si une urgence a coupé la mission, attendre l'atterrissage puis réinitialiser
     if drone.fin_mission:
@@ -243,7 +429,7 @@ def main_loop(drone: Valkyrie, esp32: ESP32_Link, gripper: GripperESP32 | None =
         # Ordre de lancement de mission
         num_mission = esp32.get_and_clear_mission_start()
         if num_mission is not None:
-            run_mission(drone, esp32, num_mission)
+            run_mission(drone, esp32, num_mission, gripper)
 
         # Ping-pong ESP32 : réponse automatique
         cgm_recu = esp32.get_and_clear_cgm()
@@ -251,7 +437,22 @@ def main_loop(drone: Valkyrie, esp32: ESP32_Link, gripper: GripperESP32 | None =
             print("[MAIN] ESP32_PING reçu. Envoi du PONG...")
             esp32.send_cgm(CGM.ESP32_PONG.value)
 
+        # Connexion WiFi ponctuelle pour les logs (Dashboard → Valhalla → ESP-NOW → ici)
+        elif cgm_recu == CGM.PC_CONFIGURE_VALKYRIE.value:
+            print("[MAIN] Connexion WiFi Dashboard demandée...")
+            if _ip_ordi:
+                fetch_log_from_dashboard(_ip_ordi)
+            else:
+                print("[MAIN] IP Dashboard inconnue -- ignoré.")
+
         # Commandes manuelles pince depuis le Dashboard
+        elif cgm_recu == CGM.PC_CALIB_GRIPPER_VALKYRIE.value:
+            print("[MAIN] Calibration de la pince...")
+            if gripper is not None:
+                gripper.calibrate()
+            else:
+                print("[MAIN] Pince non connectée.")
+
         elif cgm_recu == CGM.PC_OPEN_GRIPPER_VALKYRIE.value:
             print("[MAIN] Ouverture manuelle de la pince...")
             if gripper is not None:
@@ -274,6 +475,14 @@ def main_loop(drone: Valkyrie, esp32: ESP32_Link, gripper: GripperESP32 | None =
 # POINT D'ENTRÉE
 # ==============================================================================
 if __name__ == "__main__":
+    if len(sys.argv) >= 2:
+        _ip_ordi = sys.argv[1]
+    else:
+        print("[MAIN] Avertissement : IP Dashboard non fournie. Les logs WiFi seront désactivés.")
+
+    _logger = make_logger(os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs.log"))
+    _logger.log("[VALKYRIE] Démarrage.")
+
     print("[MAIN] Connexion MAVLink à Valkyrie...")
     if SIMU:
         drone = Valkyrie(address="127.0.0.1:14560", target_system=2)
@@ -314,7 +523,7 @@ if __name__ == "__main__":
 
     gripper = GripperESP32(port="/dev/ttyACM1")
     if not gripper.connect():
-        print("[MAIN] Pince non connectée — fonctions pince désactivées.")
+        print("[MAIN] Pince non connectée -- fonctions pince désactivées.")
         gripper = None
 
     main_loop(drone, esp32, gripper)

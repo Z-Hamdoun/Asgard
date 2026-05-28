@@ -111,6 +111,16 @@ class GroundStation:
         cgm = CGM.PC_CONFIGURE_VALHALLA
         self.valhalla.send_cgm(cgm)
 
+    def configurer_valkyrie(self):
+        """Ordonne à Valkyrie de se connecter au Dashboard (relayé par Valhalla via ESP-NOW)."""
+        print("[GCS-RADIO] Demande de connexion WiFi Valkyrie.")
+        self.valhalla.send_cgm(CGM.PC_CONFIGURE_VALKYRIE)
+
+    def calibrer_pince(self):
+        """Ordonne la calibration (homing) de la pince Valkyrie (relayé par Valhalla via ESP-NOW)."""
+        print("[GCS-RADIO] Calibration pince Valkyrie.")
+        self.valhalla.send_cgm(CGM.PC_CALIB_GRIPPER_VALKYRIE)
+
     def ouvrir_pince(self):
         """Ordonne l'ouverture manuelle de la pince Valkyrie (relayé par Valhalla via ESP-NOW)."""
         print("[GCS-RADIO] Ouverture pince Valkyrie.")

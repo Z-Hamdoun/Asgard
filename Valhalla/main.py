@@ -9,10 +9,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 from Communication.class_ESP32_Link import ESP32_Link
 from class_Valhalla import Valhalla
 import pymavlink_code.code_de_gestion_de_missions as CGM
+from utils.class_Logger import Logger, make_logger
 
 CONFIG_FILE = "Valhalla/mission_config.json"
 
-SIMU = False  # True = SITL, False = REEL
+_logger: Logger | None = None
+
+SIMU = True  # True = SITL, False = REEL
 
 # CGMs qui signalent la fin de la mission Valkyrie (succès ou échec terminal)
 _VALKYRIE_TERMINAL_CGMS = frozenset({
@@ -264,16 +267,18 @@ async def _fetch_config_async(
                             )
                         else:
                             print("[WIFI] ESP32 PONG timeout (5s).")
-                            await ws.send(
-                                json.dumps(
-                                    {
-                                        "type": "status",
-                                        "command": "esp32_timeout",
-                                        "source": "Valhalla",
-                                        "output": "ESP32 Link TIMEOUT (>5s)",
-                                    }
-                                )
-                            )
+                            await ws.send(json.dumps({"type": "status", "command": "esp32_timeout",
+                                                      "source": "Valhalla",
+                                                      "output": "ESP32 Link TIMEOUT (>5s)"}))
+
+                    elif command == "print_log":
+                        log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs.log")
+                        try:
+                            with open(log_path, "r", encoding="utf-8") as f:
+                                content = f.read()
+                        except Exception:
+                            content = "(aucun log disponible)"
+                        await sendlog(ws, "log_ack", content)
 
                     elif command == "disconnect":
                         print("[WIFI] Déconnexion demandée par le Dashboard.")
@@ -352,12 +357,18 @@ def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
     alt = config["alt_quadrillage"]
 
     print(f"[MISSION 1] Cible -> Lat: {lat}, Lng: {lng}, Alt: {alt}m")
+    if _logger:
+        _logger.log(f"[MISSION 1] Démarrage. Cible GPS lat={lat} lng={lng} alt={alt}m")
     drone.config = config
 
     if drone.takeoff_pc(altitude=3):
         print(f"[MISSION 1] Décollage OK. En route vers {lat}, {lng}...")
+        if _logger:
+            _logger.log("[MISSION 1] Décollage OK. En route vers la cible GPS.")
         if drone.execute_goto_from_config(radius_acceptance=2.0) and not drone.fin_mission:
             print("[MISSION 1] Point atteint. Envoi config à Valkyrie...")
+            if _logger:
+                _logger.log("[MISSION 1] Point GPS atteint. Envoi config + ordre décollage à Valkyrie.")
             _valkyrie_done.clear()
             _valkyrie_result[0] = None
             esp32.send_config(_config_valkyrie(config))
@@ -367,21 +378,53 @@ def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
             esp32.send_start_mission(num_mission=1)
             drone.land_and_wait_valkyrie()
 
+            # Diffusion GPS Valhalla pendant toute l'attente :
+            # Valkyrie en a besoin pour le mode FOLLOW (Phase 4 de sa mission).
+            _gps_running = [True]
+            _gps_log_last = [0.0]
+
+            def _gps_broadcast():
+                while _gps_running[0] and not drone.fin_mission:
+                    lat, lon, rel_alt, alt_msl = drone.position()
+                    if not (math.isnan(lat) or math.isnan(lon)
+                            or math.isnan(rel_alt) or math.isnan(alt_msl)):
+                        esp32.send_telemetry(lat, lon, rel_alt, alt_msl)
+                        now = time.time()
+                        if _logger and now - _gps_log_last[0] >= 1.0:
+                            _logger.log(f"[GPS] Valhalla lat={lat:.6f} lon={lon:.6f} alt_rel={rel_alt:.1f}m", wanna_print=False)
+                            _gps_log_last[0] = now
+                    time.sleep(0.1)
+
+            gps_thread = threading.Thread(target=_gps_broadcast, daemon=True)
+            gps_thread.start()
+
             print("[MISSION 1] En attente de la fin de mission Valkyrie (max 15min)...")
+            if _logger:
+                _logger.log("[MISSION 1] Atterri. GPS diffusé. Attente fin de mission Valkyrie (max 15min).")
             completed = _valkyrie_done.wait(timeout=900.0)
+            _gps_running[0] = False
+            gps_thread.join(timeout=2.0)
+
             if not completed:
                 print("[MISSION 1] Timeout -- aucune réponse de Valkyrie. Retour à l'attente.")
+                if _logger:
+                    _logger.log("[MISSION 1] TIMEOUT -- pas de réponse Valkyrie après 15min.")
             else:
                 cgm = _valkyrie_result[0]
                 if cgm == CGM.VALKYRIE_LANDED.value:
                     print("[MISSION 1] Valkyrie a atterri avec succès sur l'ArUco !")
+                    if _logger:
+                        _logger.log("[MISSION 1] Valkyrie a atterri avec succès sur l'ArUco.")
                 else:
                     obj = CGM.CGM.get(cgm)
-                    print(
-                        f"[MISSION 1] Mission Valkyrie terminée en échec : {obj.name if obj else cgm}"
-                    )
+                    msg = obj.name if obj else str(cgm)
+                    print(f"[MISSION 1] Mission Valkyrie terminée en échec : {msg}")
+                    if _logger:
+                        _logger.log(f"[MISSION 1] Mission Valkyrie terminée en échec : {msg}")
     else:
         print("[MISSION 1] Échec du décollage.")
+        if _logger:
+            _logger.log("[MISSION 1] ECHEC décollage Valhalla.")
 
 
 def run_mission_2(drone: Valhalla, esp32: ESP32_Link, config: dict):
@@ -578,6 +621,16 @@ def emergency_watcher(drone: Valhalla, esp32: ESP32_Link):
             print("[PINCE-WD] Ordre fermeture pince → relai Valkyrie.")
             esp32.send_cgm(CGM.PC_CLOSE_GRIPPER_VALKYRIE.value)
 
+        if drone.check_cgm(CGM.PC_CALIB_GRIPPER_VALKYRIE):
+            drone.delete_cgm(CGM.PC_CALIB_GRIPPER_VALKYRIE)
+            print("[PINCE-WD] Ordre calibration pince → relai Valkyrie.")
+            esp32.send_cgm(CGM.PC_CALIB_GRIPPER_VALKYRIE.value)
+
+        if drone.check_cgm(CGM.PC_CONFIGURE_VALKYRIE):
+            drone.delete_cgm(CGM.PC_CONFIGURE_VALKYRIE)
+            print("[WD] Connexion WiFi Valkyrie → relai ESP-NOW.")
+            esp32.send_cgm(CGM.PC_CONFIGURE_VALKYRIE.value)
+
         time.sleep(0.05)
 
 
@@ -659,6 +712,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     ip_ordis = sys.argv[1:]
+
+    _logger = make_logger(os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs.log"))
+    _logger.log("[VALHALLA] Démarrage.")
 
     print("[MAIN] Connexion MAVLink à Valhalla...")
     if SIMU:

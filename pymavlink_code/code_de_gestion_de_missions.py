@@ -547,3 +547,27 @@ PC_CLOSE_GRIPPER_VALKYRIE = CGM(
     long_description="Le Dashboard demande la fermeture manuelle de la pince. Valhalla relaie via ESP-NOW à Valkyrie.",
     potential_sender="pc"
 )
+
+PC_CALIB_GRIPPER_VALKYRIE = CGM(
+    value=219,
+    name="PC_CALIB_GRIPPER_VALKYRIE",
+    short_description="Calibration de la pince Valkyrie",
+    long_description="Le Dashboard demande la calibration initiale de la pince (homing servo). Valhalla relaie via ESP-NOW à Valkyrie.",
+    potential_sender="pc"
+)
+
+VALKYRIE_GRIP_OK = CGM(
+    value=113,
+    name="VALKYRIE_GRIP_OK",
+    short_description="Valkyrie a saisi l'objet avec succès",
+    long_description="La pince s'est fermée et les interrupteurs de contact ont confirmé la saisie de l'objet.",
+    potential_sender="valkyrie"
+)
+
+PC_CONFIGURE_VALKYRIE = CGM(
+    value=220,
+    name="PC_CONFIGURE_VALKYRIE",
+    short_description="Connexion WiFi ponctuelle Valkyrie (config / logs)",
+    long_description="Le Dashboard demande à Valkyrie de se connecter en WiFi pour une session ponctuelle (récupération de logs, config). Valhalla relaie via ESP-NOW.",
+    potential_sender="pc"
+)
