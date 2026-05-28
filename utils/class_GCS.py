@@ -46,7 +46,7 @@ class GroundStation:
     def __init__(self, use_simu: bool = False):
         print("[GCS] Initialisation de l'antenne radio...")
 
-        addr_valhalla = "0.0.0.0:14554"  # ATTENTION UDP
+        addr_valhalla = "127.0.0.1:14556" 
 
         print(f"[GCS] Tentative de connexion à Valhalla sur {addr_valhalla}")
         self.valhalla = MAVLinCS(
