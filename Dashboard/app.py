@@ -194,6 +194,15 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     "dashboard",
                 )
 
+            elif command == "calib_gripper":
+                gcs = await get_gcs()
+                if gcs:
+                    gcs.calibrer_pince()
+                await manager.send_to_target(
+                    {"type": "status", "command": "gripper_calibrating", "source": "GCS"},
+                    "dashboard",
+                )
+
             elif command == "co_V":
                 if target == "Valhalla":
                     gcs = await get_gcs()
