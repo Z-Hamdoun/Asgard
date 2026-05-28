@@ -55,11 +55,19 @@ class ESP32_Link:
         # Appelés immédiatement à la réception du CGM, sans passer par dernier_cgm.
         self._emergency_callbacks: dict = {}
 
+        # Callback appelé pour chaque ligne "GRIP:*" reçue (ex: GripperESP32.on_grip_line)
+        self._grip_callback = None
+
         self.lock = threading.Lock()
+        self._write_lock = threading.Lock()  # protège les écritures série concurrentes
 
     def set_fail_callback(self, cb):
         """cb(attempt) est appelé à chaque tentative de reconnexion échouée."""
         self._on_fail_cb = cb
+
+    def set_grip_callback(self, cb):
+        """cb(payload) est appelé pour chaque ligne 'GRIP:<payload>' reçue de l'ESP32."""
+        self._grip_callback = cb
 
     def register_emergency_cgm(self, cgm_value: int, callback):
         """Enregistre un callback déclenché immédiatement à la réception d'un CGM d'urgence.
@@ -151,8 +159,8 @@ class ESP32_Link:
             # Mode Simulation
             self.sock.sendto(message.encode("utf-8"), ("127.0.0.1", self.udp_tx_port))
         elif not self.mock and self.serial_conn:
-            # Mode Réel : Envoi par le câble physique UART
-            self.serial_conn.write(message.encode("utf-8"))
+            with self._write_lock:
+                self.serial_conn.write(message.encode("utf-8"))
 
     # Methodes de reception
     def _ecoute_continue(self):
@@ -220,6 +228,15 @@ class ESP32_Link:
 
     def _traiter_message(self, message: str):
         with self.lock:
+            # Retour pince : délégué au callback GripperESP32 si enregistré
+            if message.startswith("GRIP:"):
+                if self._grip_callback is not None:
+                    try:
+                        self._grip_callback(message[5:])  # retire le préfixe "GRIP:"
+                    except Exception:
+                        pass
+                return
+
             # Si on recoit une config json
             if message.startswith("CFG:"):
                 json_str = message[4:]  # On retire "CFG:"
