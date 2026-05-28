@@ -16,7 +16,7 @@ CONFIG_FILE = "Valkyrie/mission_config.json"
 _logger: Logger | None = None
 _ip_ordi: str = ""
 
-SIMU = True  # True = SITL, False = REEL
+SIMU = False  # True = SITL, False = REEL
 
 # Valeurs par défaut appliquées si un paramètre est absent ou null
 CONFIG_DEFAULTS = {
@@ -491,7 +491,7 @@ if __name__ == "__main__":
 
     print("[MAIN] Connexion ESP32...")
     esp32 = ESP32_Link(
-        port="/dev/ttyACM0",
+        port="/dev/ttyAMA3",
         baudrate=115200,
         mock_simulation=SIMU,
         udp_rx_port=5002,

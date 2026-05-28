@@ -15,7 +15,7 @@ CONFIG_FILE = "Valhalla/mission_config.json"
 
 _logger: Logger | None = None
 
-SIMU = True  # True = SITL, False = REEL
+SIMU = False  # True = SITL, False = REEL
 
 # CGMs qui signalent la fin de la mission Valkyrie (succès ou échec terminal)
 _VALKYRIE_TERMINAL_CGMS = frozenset({
@@ -724,7 +724,7 @@ if __name__ == "__main__":
 
     print("[MAIN] Connexion ESP32...")
     esp32 = ESP32_Link(
-        port="/dev/ttyACM0",
+        port="/dev/ttyAMA3",
         baudrate=115200,
         mock_simulation=SIMU,
         udp_rx_port=5001,
