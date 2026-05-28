@@ -1,4 +1,6 @@
 import os, sys, time, threading
+import asyncio
+import websockets
 import json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
@@ -6,8 +8,12 @@ from class_Valkyrie import Valkyrie
 from Communication.class_ESP32_Link import ESP32_Link
 from Communication.class_GripperESP32 import GripperESP32
 import pymavlink_code.code_de_gestion_de_missions as CGM
+from utils.class_Logger import Logger, make_logger
 
 CONFIG_FILE = "Valkyrie/mission_config.json"
+
+_logger: Logger | None = None
+_ip_ordi: str = ""
 
 SIMU = True  # True = SITL, False = REEL
 
@@ -65,6 +71,57 @@ def check_esp32_or_rtl(esp32: ESP32_Link, drone) -> bool:
         drone.return_to_launch()
         return False
     return True
+
+
+# ==============================================================================
+# CONNEXION WIFI PONCTUELLE (logs)
+# ==============================================================================
+async def _fetch_log_async(ip_ordi: str, timeout_s: float = 60.0) -> None:
+    """Se connecte au Dashboard, attend la commande print_log, envoie le fichier de logs."""
+    uri = f"ws://{ip_ordi}:8000/ws/Valkyrie"
+    print(f"[WIFI] Connexion ponctuelle à {uri}...")
+    deadline = time.time() + timeout_s
+    try:
+        async with websockets.connect(uri, close_timeout=2) as ws:
+            await ws.send(json.dumps({"type": "status", "command": "valkyrie_ready", "source": "Valkyrie"}))
+            print("[WIFI] Connecté. En attente de commandes...")
+            while time.time() < deadline:
+                try:
+                    raw = await asyncio.wait_for(ws.recv(), timeout=1.0)
+                    data = json.loads(raw)
+                    command = data.get("command")
+
+                    if data.get("type") == "ping":
+                        await ws.send(json.dumps({"type": "pong", "source": "Valkyrie",
+                                                   "sent_at": data.get("sent_at")}))
+
+                    elif command == "print_log":
+                        log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs.log")
+                        try:
+                            with open(log_path, "r", encoding="utf-8") as f:
+                                content = f.read()
+                        except Exception:
+                            content = "(aucun log disponible)"
+                        await ws.send(json.dumps({"type": "log", "command": "log_ack",
+                                                   "source": "Valkyrie", "output": content}))
+                        break
+
+                    elif command == "disconnect":
+                        break
+
+                except asyncio.TimeoutError:
+                    pass  # Normal, on reboucle
+    except Exception as e:
+        print(f"[WIFI] Erreur connexion Valkyrie : {e}")
+
+
+def fetch_log_from_dashboard(ip_ordi: str, timeout_s: float = 60.0) -> None:
+    """Wrapper synchrone pour _fetch_log_async."""
+    loop = asyncio.new_event_loop()
+    try:
+        loop.run_until_complete(_fetch_log_async(ip_ordi, timeout_s))
+    finally:
+        loop.close()
 
 
 # ==============================================================================
