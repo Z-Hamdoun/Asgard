@@ -22,7 +22,8 @@ const sendCoordsBTN = document.getElementById("sendCoordsBtn")
 const requestCoordsBTN = document.getElementById("requestCoordsBtn")
 const coValkBtn = document.getElementById("co-valk-btn")
 const coValhBtn = document.getElementById("co-valh-btn")
-const checkEvrnBtn = document.getElementById("check-evrn-btn")  // null si absent du HTML
+const checkEvrnBtn    = document.getElementById("check-evrn-btn")   // null si absent du HTML
+const calibGripperBtn = document.getElementById("calib-gripper-btn")
 
 const input = document.getElementById('term-input');
 const cursor = document.getElementById('cursor');
@@ -201,6 +202,18 @@ ws.onmessage = function(event) {
             break;
         case "landing":
             uiLog("GCS", "WARN", "FLIGHT", "RTL forcé");
+            break;
+
+        case "gripper_calibrating":
+            uiLog("GCS", "INFO", "ESP32", "Calibration pince envoyée");
+            break;
+
+        case "gripper_opening":
+            uiLog("GCS", "INFO", "ESP32", "Ouverture pince envoyée");
+            break;
+
+        case "gripper_closing":
+            uiLog("GCS", "INFO", "ESP32", "Fermeture pince envoyée");
             break;
 
         case "esp32_pong":
@@ -591,6 +604,17 @@ if (checkEvrnBtn) {
         if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ command: "check_E", target: "Valkyrie" }));
             uiLog("GCS", "INFO", "SYSTEM", "Check environnement envoyé");
+        } else {
+            uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
+        }
+    };
+}
+
+if (calibGripperBtn) {
+    calibGripperBtn.onclick = function() {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ command: "calib_gripper", target: "Valkyrie" }));
+            uiLog("GCS", "INFO", "ESP32", "Calibration pince envoyée");
         } else {
             uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");
         }
