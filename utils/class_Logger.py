@@ -1,5 +1,6 @@
 import traceback
 import time
+import os
 
 class Logger:
     """Classe permettant une meilleure gestion des logs."""
@@ -64,3 +65,27 @@ class Logger:
                 file.write(f"{int((time.time() - self._time_boot) * 1e3)} ms\n")
                 file.write(f"{str_to_print}\n")
                 file.write("\n")
+
+
+def make_logger(filepath: str, max_sessions: int = 3) -> Logger:
+    """Crée un Logger avec rotation automatique des sessions.
+
+    Si le fichier contient déjà max_sessions sessions (séparées par
+    '--------New logs--------'), il est effacé et la numérotation repart de zéro.
+
+    Args:
+        filepath:     Chemin du fichier .log à créer ou à compléter.
+        max_sessions: Nombre maximum de sessions conservées (défaut 3).
+    """
+    clear = True
+    if os.path.exists(filepath):
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                content = f.read()
+            # Chaque séparateur correspond à une session supplémentaire après la première
+            nb_separateurs = content.count("--------New logs--------")
+            clear = (nb_separateurs >= max_sessions - 1)
+        except Exception:
+            clear = True
+
+    return Logger(log_file=filepath, clear_existing_logs=clear)
