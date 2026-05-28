@@ -121,15 +121,17 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
 
         # Atterri, moteurs coupés -- tenter la saisie
         if gripper is None:
-            print("[MISSION 1] Pince non connectée. Mission abandonnée.")
-            drone.send_cgm(CGM.VALKYRIE_NO_TARGET_FOUND)
-            return
+            # Pince indisponible : on simule la saisie et on continue la mission
+            print("[MISSION 1] Pince non connectée. Simulation de saisie -- mission continue.")
+            objet_saisi = True
+            break
 
         print("[MISSION 1] Atterri. Fermeture de la pince...")
         caught = gripper.close_gripper()
 
         if caught:
             print("[MISSION 1] Objet saisi avec succès !")
+            drone.send_cgm(CGM.VALKYRIE_GRIP_OK)
             objet_saisi = True
             break
 
@@ -150,14 +152,16 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
     print("[MISSION 1] Redécollage avec objet saisi...")
     if not drone.takeoff_autonome(config["alt_quadrillage"]):
         print("[MISSION 1] Échec redécollage avec objet. Lâcher et abandon.")
-        gripper.open_gripper()
+        if gripper is not None:
+            gripper.open_gripper()
         return
 
     # --- Phase 4 : FOLLOW mode --> approche Valhalla (2m au-dessus) ---
     print("[MISSION 1] Passage en FOLLOW --> approche de Valhalla...")
     if not drone.approach_valhalla_follow(timeout=120.0):
         print("[MISSION 1] Approche FOLLOW échouée. Lâcher et RTL.")
-        gripper.open_gripper()
+        if gripper is not None:
+            gripper.open_gripper()
         drone.return_to_launch()
         return
 
@@ -169,7 +173,8 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
 
     # --- Phase 6 : Lâcher l'objet ---
     print("[MISSION 1] Ouverture pince --> lâcher de l'objet.")
-    gripper.open_gripper()
+    if gripper is not None:
+        gripper.open_gripper()
 
     # --- Phase 7 : RTL ---
     drone.send_cgm(CGM.VALKYRIE_LANDED)
