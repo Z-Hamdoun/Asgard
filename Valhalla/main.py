@@ -275,8 +275,26 @@ def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
             esp32.send_start_mission(num_mission=1)
             drone.land_and_wait_valkyrie()
 
+            # Diffusion GPS Valhalla pendant toute l'attente :
+            # Valkyrie en a besoin pour le mode FOLLOW (Phase 4 de sa mission).
+            _gps_running = [True]
+
+            def _gps_broadcast():
+                while _gps_running[0] and not drone.fin_mission:
+                    lat, lon, rel_alt, alt_msl = drone.position()
+                    if not (math.isnan(lat) or math.isnan(lon)
+                            or math.isnan(rel_alt) or math.isnan(alt_msl)):
+                        esp32.send_telemetry(lat, lon, rel_alt, alt_msl)
+                    time.sleep(0.1)
+
+            gps_thread = threading.Thread(target=_gps_broadcast, daemon=True)
+            gps_thread.start()
+
             print("[MISSION 1] En attente de la fin de mission Valkyrie (max 15min)...")
             completed = _valkyrie_done.wait(timeout=900.0)
+            _gps_running[0] = False
+            gps_thread.join(timeout=2.0)
+
             if not completed:
                 print("[MISSION 1] Timeout -- aucune réponse de Valkyrie. Retour à l'attente.")
             else:
