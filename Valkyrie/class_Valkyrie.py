@@ -784,7 +784,11 @@ class Valkyrie(Drone):
         _CENTER_THRESHOLD_M  = 0.15  # m
         _CENTER_LOCK_DURATION = 3.0  # s consécutives sous le seuil
 
-        pnp = PnPLandingSystem(marker_distance=self.square_pnp_size / 100.0)
+        pnp = PnPLandingSystem(
+            marker_distance=self.square_pnp_size / 100.0,
+            camera_matrix=self.camera._camera_matrix,
+            dist_coeffs=self.camera._dist_coeffs,
+        )
         centered_since = None
         deadline = time.time() + timeout
 

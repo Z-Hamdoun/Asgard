@@ -48,33 +48,39 @@ class PnPLandingSystem:
     sait repérer les cercles imbriqués, et calcule la distance en 3D.
     """
 
-    def __init__(self, marker_distance=0.33):
-        # 1. LA FORME DE LA CIBLE (Modèle 3D)
-        # On explique à l'ordinateur à quoi ressemble notre cible dans la vraie vie.
-        # marker_distance : La taille du carré (40 cm).
+    def __init__(self, marker_distance=0.33, camera_matrix=None, dist_coeffs=None):
+        # marker_distance : côté du carré formé par les 4 marqueurs circulaires (en mètres).
         half = marker_distance / 2
-        # On définit les 5 points dans l'espace (X, Y, Z) en mètres.
         self.object_points = np.array(
             [
-                [-half, -half, 0],  # Point 2 : Coin Haut-Gauche
-                [half, -half, 0],  # Point 3 : Coin Haut-Droit
-                [half, half, 0],  # Point 4 : Coin Bas-Droit
-                [-half, half, 0],  # Point 5 : Coin Bas-Gauche
+                [-half, -half, 0],  # Coin Haut-Gauche
+                [half,  -half, 0],  # Coin Haut-Droit
+                [half,   half, 0],  # Coin Bas-Droit
+                [-half,  half, 0],  # Coin Bas-Gauche
             ],
             dtype=np.float32,
         )
-        self.camera_matrix = np.array(
-            [
-                [376.91194, 0.00000, 425.07994],
-                [0.00000, 380.07917, 245.66015],
-                [0.00000, 0.00000, 1.00000],
-            ],
-            dtype=np.float64,
-        )
 
-        self.dist_coeffs = np.array(
-            [-0.00284, 0.09082, 0.00265, -0.00063, -0.07958], dtype=np.float64
-        )
+        # Matrice caméra : utilise la matrice passée en paramètre si disponible,
+        # sinon fallback sur les valeurs de calibration initiale (ancienne caméra SITL).
+        if camera_matrix is not None:
+            self.camera_matrix = np.array(camera_matrix, dtype=np.float64)
+        else:
+            self.camera_matrix = np.array(
+                [
+                    [376.91194, 0.00000, 425.07994],
+                    [0.00000, 380.07917, 245.66015],
+                    [0.00000, 0.00000,   1.00000  ],
+                ],
+                dtype=np.float64,
+            )
+
+        if dist_coeffs is not None:
+            self.dist_coeffs = np.array(dist_coeffs, dtype=np.float64)
+        else:
+            self.dist_coeffs = np.array(
+                [-0.00284, 0.09082, 0.00265, -0.00063, -0.07958], dtype=np.float64
+            )
 
     def _is_circular(self, cnt, area):
         """Vérifie si une forme est approximativement ronde."""
