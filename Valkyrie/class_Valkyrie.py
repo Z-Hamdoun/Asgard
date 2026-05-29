@@ -13,7 +13,7 @@ from utils.geopy_fct import conv_cart_to_geo
 from utils.spirale import spirale
 
 from class_Drone import Drone
-#from pnp.algo import PnPLandingSystem
+from pnp.algo import PnPLandingSystem
 
 if TYPE_CHECKING:
     from Communication.class_ESP32_Link import ESP32_Link

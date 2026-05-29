@@ -26,18 +26,20 @@ import os
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 lib_path = os.path.join(current_dir, "logic.so")
+_lib_load_error = None
 try:
     lib = ctypes.CDLL(lib_path)
+    lib.find_nested_triplets.argtypes = [
+        ctypes.POINTER(BBox),
+        ctypes.c_int,
+        ctypes.POINTER(Result),
+        ctypes.c_int,
+    ]
+    lib.find_nested_triplets.restype = ctypes.c_int
 except OSError as e:
-    print(f"Erreur : Impossible de trouver la lib C à l'adresse {lib_path}")
-    raise e
-lib.find_nested_triplets.argtypes = [
-    ctypes.POINTER(BBox),
-    ctypes.c_int,
-    ctypes.POINTER(Result),
-    ctypes.c_int,
-]
-lib.find_nested_triplets.restype = ctypes.c_int
+    lib = None
+    _lib_load_error = e
+    print(f"[PnP] Avertissement : logic.so non chargeable ({lib_path}) : {e}")
 
 
 class PnPLandingSystem:
@@ -83,6 +85,8 @@ class PnPLandingSystem:
         return 0.7 < circularity < 1.3
 
     def get_nested_squares(self, data):
+        if lib is None:
+            raise RuntimeError(f"[PnP] logic.so indisponible : {_lib_load_error}")
         n = len(data)
         # Préparation des données pour le C
         c_boxes = (BBox * n)()
