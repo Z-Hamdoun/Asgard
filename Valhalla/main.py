@@ -403,6 +403,10 @@ def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
                     print(f"[MISSION 1] Mission Valkyrie terminée en échec : {msg}")
                     if _logger:
                         _logger.log(f"[MISSION 1] Mission Valkyrie terminée en échec : {msg}")
+        else:
+            print("[MISSION 1] Goto annulé (urgence ou navigation impossible).")
+            if _logger:
+                _logger.log("[MISSION 1] ECHEC goto -- urgence ou navigation impossible.")
     else:
         print("[MISSION 1] Échec du décollage.")
         if _logger:
@@ -411,6 +415,8 @@ def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
 
 def run_mission_2(drone: Valhalla, esp32: ESP32_Link, config: dict):
     """Mission 2 : à implémenter."""
+    if _logger:
+        _logger.log("[MISSION 2] Démarrage -- mission non implémentée.")
     print("[MISSION 2] Non implémentée.")
     drone.send_cgm(CGM.VALHALLA_NO_TARGET_FOUND)
 

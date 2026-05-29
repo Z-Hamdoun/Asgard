@@ -307,79 +307,129 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
 
 def run_mission_2(drone: Valkyrie, esp32: ESP32_Link, config: dict):
     """Mission 2 : à implémenter."""
+    if _logger:
+        _logger.log("[MISSION 2] Démarrage -- mission non implémentée.")
     print("[MISSION 2] Non implémentée.")
 
 
 def run_mission_3(drone: Valkyrie, esp32: ESP32_Link, config: dict):
-    """Mission 3 : quadrillage spiral + Precision Land e-ArUco (inner/outer)."""
+    """Mission 3 : quadrillage spiral + Precision Land ArUco simple (4x4_250)."""
+    if _logger:
+        _logger.log("[MISSION 3] Démarrage.")
     if not drone.load_config(config):
         print("[MISSION 3] Configuration invalide. Abandon.")
+        if _logger:
+            _logger.log("[MISSION 3] ECHEC -- configuration invalide.")
         return
 
     if not drone.takeoff_autonome(config["alt_quadrillage"]):
         print("[MISSION 3] Échec du décollage.")
+        if _logger:
+            _logger.log("[MISSION 3] ECHEC décollage.")
         return
 
     print("[MISSION 3] Décollage OK.")
+    if _logger:
+        _logger.log(f"[MISSION 3] Décollage OK à {config['alt_quadrillage']}m.")
 
     # Boucle requadrillage : on retente si la cible est perdue en LOITER
     while True:
+        if _logger:
+            _logger.log("[MISSION 3] Début du quadrillage spiral.")
         cible_trouvee = drone.executer_quadrillage(e_analyse=False)
         if not cible_trouvee:
             print("[MISSION 3] Quadrillage terminé sans trouver la cible.")
+            if _logger:
+                _logger.log("[MISSION 3] Quadrillage terminé -- cible introuvable.")
             drone.send_cgm(CGM.VALKYRIE_NO_TARGET_FOUND)
             return
 
+        if _logger:
+            _logger.log("[MISSION 3] Cible ArUco trouvée. Début precision loiter/land.")
         resultat = drone.precision_loiter_and_land(e_analyse=False)
 
         if resultat is True:
             print("[MISSION 3] Atterrissage de précision réussi.")
+            if _logger:
+                _logger.log("[MISSION 3] Atterrissage de précision réussi.")
             drone.send_cgm(CGM.VALKYRIE_LANDED)
             return
         elif resultat is False:
             print("[MISSION 3] Mission interrompue (fin_mission).")
-            return  # GCS a déclenché l'arrêt, pas besoin de CGM
+            if _logger:
+                _logger.log("[MISSION 3] Mission interrompue par urgence.")
+            return
         else:  # None --> cible perdue en LOITER --> requadrillage
             print("[MISSION 3] Cible perdue. Relance du quadrillage...")
+            if _logger:
+                _logger.log("[MISSION 3] Cible perdue en LOITER -- requadrillage.")
 
 
 def run_mission_4(drone: Valkyrie, esp32: ESP32_Link, config: dict):
-    """Mission 4 : à implémenter."""
+    """Mission 4 : quadrillage spiral + Precision Land e-ArUco (inner/outer) + pince."""
+    if _logger:
+        _logger.log("[MISSION 4] Démarrage.")
     if not drone.load_config(config):
-        print("[MISSION 3] Configuration invalide. Abandon.")
+        print("[MISSION 4] Configuration invalide. Abandon.")
+        if _logger:
+            _logger.log("[MISSION 4] ECHEC -- configuration invalide.")
         return
 
     if not drone.takeoff_autonome(config["alt_quadrillage"]):
-        print("[MISSION 3] Échec du décollage.")
+        print("[MISSION 4] Échec du décollage.")
+        if _logger:
+            _logger.log("[MISSION 4] ECHEC décollage.")
         return
 
-    print("[MISSION 3] Décollage OK.")
+    print("[MISSION 4] Décollage OK.")
+    if _logger:
+        _logger.log(f"[MISSION 4] Décollage OK à {config['alt_quadrillage']}m.")
 
     # Boucle requadrillage : on retente si la cible est perdue en LOITER
     while True:
+        if _logger:
+            _logger.log("[MISSION 4] Début du quadrillage spiral (e-ArUco).")
         cible_trouvee = drone.executer_quadrillage(e_analyse=True)
         if not cible_trouvee:
             print("[MISSION 4] Quadrillage terminé sans trouver la cible.")
+            if _logger:
+                _logger.log("[MISSION 4] Quadrillage terminé -- cible introuvable.")
             drone.send_cgm(CGM.VALKYRIE_NO_TARGET_FOUND)
             return
 
+        if _logger:
+            _logger.log("[MISSION 4] Cible e-ArUco trouvée. Début precision loiter/land gripper.")
         resultat = drone.precision_loiter_and_land_gripper(e_analyse=True)
 
         if resultat is True:
-            print("[MISSION 3] Atterrissage de précision réussi.")
+            print("[MISSION 4] Atterrissage de précision réussi.")
+            if _logger:
+                _logger.log("[MISSION 4] Atterrissage de précision réussi.")
             drone.send_cgm(CGM.VALKYRIE_LANDED)
             return
         elif resultat is False:
             print("[MISSION 4] Mission interrompue (fin_mission).")
-            return  # GCS a déclenché l'arrêt, pas besoin de CGM
+            if _logger:
+                _logger.log("[MISSION 4] Mission interrompue par urgence.")
+            return
         else:  # None --> cible perdue en LOITER --> requadrillage
             print("[MISSION 4] Cible perdue. Relance du quadrillage...")
+            if _logger:
+                _logger.log("[MISSION 4] Cible perdue en LOITER -- requadrillage.")
 
 
 def run_mission_5(drone: Valkyrie, esp32: ESP32_Link, config: dict):
     """Mission 5 : FOLLOW mode -- Valkyrie suit Valhalla à 2m au-dessus."""
+    if _logger:
+        _logger.log("[MISSION 5] Démarrage FOLLOW mode.")
+    print("[MISSION 5] Démarrage FOLLOW mode.")
     if not drone.follow_valhalla():
         print("[MISSION 5] FOLLOW échoué ou GPS Valhalla perdu.")
+        if _logger:
+            _logger.log("[MISSION 5] ECHEC -- FOLLOW échoué ou GPS Valhalla perdu.")
+    else:
+        if _logger:
+            _logger.log("[MISSION 5] FOLLOW terminé normalement.")
 
 
 _MISSION_RUNNERS = {
