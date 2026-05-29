@@ -419,17 +419,68 @@ def run_mission_4(drone: Valkyrie, esp32: ESP32_Link, config: dict):
 
 
 def run_mission_5(drone: Valkyrie, esp32: ESP32_Link, config: dict):
-    """Mission 5 : FOLLOW mode -- Valkyrie suit Valhalla à 2m au-dessus."""
+    """Mission 5 : décollage → GCS positionne au-dessus de Valhalla → centrage PnP."""
     if _logger:
-        _logger.log("[MISSION 5] Démarrage FOLLOW mode.")
-    print("[MISSION 5] Démarrage FOLLOW mode.")
-    if not drone.follow_valhalla():
-        print("[MISSION 5] FOLLOW échoué ou GPS Valhalla perdu.")
+        _logger.log("[MISSION 5] Démarrage : goto Valhalla + PnP.")
+    print("[MISSION 5] Démarrage.")
+
+    if not drone.load_config(config):
+        print("[MISSION 5] Configuration invalide. Abandon.")
         if _logger:
-            _logger.log("[MISSION 5] ECHEC -- FOLLOW échoué ou GPS Valhalla perdu.")
+            _logger.log("[MISSION 5] ECHEC -- configuration invalide.")
+        return
+
+    if not drone.takeoff_autonome(config["alt_quadrillage"]):
+        print("[MISSION 5] Échec du décollage.")
+        if _logger:
+            _logger.log("[MISSION 5] ECHEC décollage.")
+        return
+
+    print("[MISSION 5] Décollage OK.")
+    if _logger:
+        _logger.log(f"[MISSION 5] Décollage OK à {config['alt_quadrillage']}m.")
+
+    # Le GCS appelle goto_valkyrie_au_dessus_valhalla() et met Valkyrie en LOITER.
+    # Valkyrie signale qu'il est prêt et attend ce changement de mode (max 120s).
+    print("[MISSION 5] En attente que le GCS positionne Valkyrie au-dessus de Valhalla...")
+    if _logger:
+        _logger.log("[MISSION 5] Attente LOITER posé par le GCS (goto Valhalla).")
+    drone.send_cgm(CGM.VALKYRIE_WAITING_MISSION)
+
+    deadline_loiter = time.time() + 120.0
+    en_loiter = False
+    while time.time() < deadline_loiter:
+        if drone.fin_mission:
+            return
+        if drone.mode() == "LOITER":
+            en_loiter = True
+            break
+        time.sleep(0.5)
+
+    if not en_loiter:
+        print("[MISSION 5] Timeout : LOITER non reçu depuis le GCS. LAND.")
+        if _logger:
+            _logger.log("[MISSION 5] ECHEC -- timeout LOITER. LAND.")
+        drone.change_mode("LAND")
+        return
+
+    print("[MISSION 5] LOITER confirmé. Début centrage PnP sur Valhalla...")
+    if _logger:
+        _logger.log("[MISSION 5] LOITER confirmé. Centrage PnP démarré.")
+
+    centrage_ok = drone.pnp_center_over_valhalla(timeout=60.0)
+
+    if centrage_ok:
+        print("[MISSION 5] Centrage PnP réussi.")
+        if _logger:
+            _logger.log("[MISSION 5] Centrage PnP réussi.")
+        drone.send_cgm(CGM.VALKYRIE_LANDED)
     else:
+        print("[MISSION 5] Centrage PnP timeout -- position non confirmée.")
         if _logger:
-            _logger.log("[MISSION 5] FOLLOW terminé normalement.")
+            _logger.log("[MISSION 5] Centrage PnP timeout.")
+
+    drone.change_mode("LAND")
 
 
 _MISSION_RUNNERS = {
