@@ -265,6 +265,11 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
                 gripper.open_gripper()
             return
         if drone.mode() == "LOITER":
+            # CRITIQUE : activer le RC override immédiatement (sinon le drone tombe en LOITER)
+            drone._rc_throttle_pwm = 1500
+            drone._precision_active = True
+            drone._rc_thread = threading.Thread(target=drone._rc_override_loop, daemon=True)
+            drone._rc_thread.start()
             en_loiter = True
             break
         time.sleep(0.5)
@@ -278,7 +283,7 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
         drone.return_to_launch()
         return
 
-    print("[MISSION 1] LOITER confirmé -- Phase 4 terminée.")
+    print("[MISSION 1] LOITER confirmé -- RC override actif -- Phase 4 terminée.")
 
     # --- Phase 5 : Centrage PnP sur les 4 coins de Valhalla ---
     print("[MISSION 1] Centrage PnP sur Valhalla...")
@@ -453,6 +458,11 @@ def run_mission_5(drone: Valkyrie, esp32: ESP32_Link, config: dict):
         if drone.fin_mission:
             return
         if drone.mode() == "LOITER":
+            # CRITIQUE : activer le RC override immédiatement (sinon le drone tombe en LOITER)
+            drone._rc_throttle_pwm = 1500
+            drone._precision_active = True
+            drone._rc_thread = threading.Thread(target=drone._rc_override_loop, daemon=True)
+            drone._rc_thread.start()
             en_loiter = True
             break
         time.sleep(0.5)
@@ -464,11 +474,16 @@ def run_mission_5(drone: Valkyrie, esp32: ESP32_Link, config: dict):
         drone.change_mode("LAND")
         return
 
-    print("[MISSION 5] LOITER confirmé. Début centrage PnP sur Valhalla...")
+    print("[MISSION 5] LOITER confirmé -- RC override actif. Début centrage PnP sur Valhalla...")
     if _logger:
-        _logger.log("[MISSION 5] LOITER confirmé. Centrage PnP démarré.")
+        _logger.log("[MISSION 5] LOITER confirmé. RC override actif. Centrage PnP démarré.")
 
     centrage_ok = drone.pnp_center_over_valhalla(timeout=60.0)
+
+    # Arrêt du RC override avant LAND (le FC reprend le contrôle du throttle)
+    drone._precision_active = False
+    if drone._rc_thread:
+        drone._rc_thread.join(timeout=1.0)
 
     if centrage_ok:
         print("[MISSION 5] Centrage PnP réussi.")

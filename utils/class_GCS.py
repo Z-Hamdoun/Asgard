@@ -185,8 +185,17 @@ class GroundStation:
                 if not math.isnan(lat_vk) and not math.isnan(lon_vk):
                     dist = self.valkyrie.get_distance_with(lat_v, lon_v)
                     if not math.isnan(dist) and dist < seuil_m:
-                        print(f"[GCS] Valkyrie au-dessus de Valhalla (dist={dist:.1f}m). LOITER.")
+                        print(f"[GCS] Valkyrie au-dessus de Valhalla (dist={dist:.1f}m).")
+                        # CRITIQUE : activer le RC override AVANT le passage en LOITER
+                        # (canal 3 = 1500 = maintien altitude, sinon le drone tombe)
+                        self.valkyrie.master.mav.rc_channels_override_send(
+                            self.valkyrie.master.target_system,
+                            self.valkyrie.master.target_component,
+                            0, 0, 1500, 0, 0, 0, 0, 2000,
+                        )
+                        time.sleep(0.1)  # laisser le FC traiter le RC override
                         self.valkyrie.change_mode("LOITER")
+                        print("[GCS] LOITER activé.")
                         return True
                 # Rafraîchir la cible si Valhalla s'est déplacé
                 lat_nv, lon_nv, alt_nv, _ = self.valhalla.position(source_system=1)
