@@ -556,9 +556,9 @@ if __name__ == "__main__":
 
     print("[MAIN] Connexion MAVLink à Valkyrie...")
     if SIMU:
-        drone = Valkyrie(address="127.0.0.1:14560", target_system=2)
+        drone = Valkyrie(address="127.0.0.1:14560", target_system=2, logger=_logger)
     else:
-        drone = Valkyrie(address="/dev/ttyAMA0", target_system=2, baud=921600)
+        drone = Valkyrie(address="/dev/ttyAMA0", target_system=2, baud=921600, logger=_logger)
 
     print("[MAIN] Connexion ESP32...")
     esp32 = ESP32_Link(

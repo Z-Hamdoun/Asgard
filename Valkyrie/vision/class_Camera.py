@@ -721,8 +721,9 @@ class Camera:
 
                 dx, dy, dz = self._camera_to_drone(tvec=tvec)
                 self.logger.log(
-                    f"[LOG] ID {aruco_id[0]}, x={dx:.2f} m, y={dy:.2f} m, z={dz:.2f} m, aruco {taille_aruco_px}, last_crop:{last_crop}",
-                    wanna_print=False,
+                    f"[ArUco] ID={aruco_id[0]}  dx={dx:.3f}m  dy={dy:.3f}m  dz={dz:.3f}m  "
+                    f"px={taille_aruco_px}",
+                    wanna_print=True,
                 )
 
                 info = f"id:{int(aruco_id)},rec:{round(last_aruco_time-t_begin, 4)},det:{round(t_marker_detect-last_aruco_time, 4)},sd{self._last_scale_down}"

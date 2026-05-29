@@ -200,8 +200,14 @@ class Valkyrie(Drone):
                 # Cible trouvee
                 if info is not None:
                     print("\n==================================================")
-                    print(f"VALKYRIE] CIBLE ARUCO DÉTECTÉE (ID: {info}) !")
+                    print(f"[VALKYRIE] CIBLE ARUCO DÉTECTÉE (ID: {info}) !")
+                    print(f"[VALKYRIE] Déplacement nécessaire : dx={dx:.3f}m  dy={dy:.3f}m  dz={dz:.3f}m")
                     print("==================================================")
+                    self.logger.log(
+                        f"[QUADRILLAGE] Cible détectée : {info} | "
+                        f"dx={dx:.3f}m  dy={dy:.3f}m  dz={dz:.3f}m",
+                        wanna_print=False,
+                    )
 
                     self._rc_throttle_pwm = 1500 # Maintien d'altitude en Loiter
                     self._precision_active = True
@@ -270,14 +276,28 @@ class Valkyrie(Drone):
                     self.send_landing_target(dx, dy, dz)
                     if target_locked_since is None:
                         target_locked_since = now
+                        self.logger.log(
+                            f"[LOITER] Cible acquise — dx={dx:.3f}m  dy={dy:.3f}m  dz={dz:.3f}m",
+                            wanna_print=True,
+                        )
                     target_lost_since = None
 
                     elapsed = now - target_locked_since
-                    print(f"[LOITER] centrage {elapsed:.1f}/{_LOITER_LOCK_DURATION:.0f}s", end="\r")
+                    print(f"[LOITER] centrage {elapsed:.1f}/{_LOITER_LOCK_DURATION:.0f}s  "
+                          f"dx={dx:.3f}m  dy={dy:.3f}m", end="\r")
+                    self.logger.log(
+                        f"[LOITER] {elapsed:.1f}s — dx={dx:.3f}m  dy={dy:.3f}m  dz={dz:.3f}m",
+                        wanna_print=False,
+                    )
 
                     if elapsed >= _LOITER_LOCK_DURATION:
                         print()
                         print("[VALKYRIE] Centré ! Début de descente (LAND)...")
+                        self.logger.log(
+                            f"[LOITER] Centré après {elapsed:.1f}s — passage LAND. "
+                            f"dx={dx:.3f}m  dy={dy:.3f}m  dz={dz:.3f}m",
+                            wanna_print=False,
+                        )
                         self.send_cgm(CGM.VALKYRIE_PRECISION_LAND_STARTING)
                         self._rc_throttle_pwm = 0
                         self.change_mode("LAND")
@@ -290,6 +310,10 @@ class Valkyrie(Drone):
 
                     if now - target_lost_since >= _LOITER_LOST_TIMEOUT:
                         print(f"\n[VALKYRIE] Cible perdue en LOITER ({_LOITER_LOST_TIMEOUT:.0f}s) --> requadrillage.")
+                        self.logger.log(
+                            f"[LOITER] Cible perdue ({_LOITER_LOST_TIMEOUT:.0f}s) — requadrillage.",
+                            wanna_print=False,
+                        )
                         self.send_cgm(CGM.VALKYRIE_LOITER_LOST_TARGET)
                         self._precision_active = False
                         self.change_mode("GUIDED")
@@ -314,18 +338,27 @@ class Valkyrie(Drone):
                 if info is not None:
                     self._maybe_send_aruco_cgm(info)
                     self.send_landing_target(dx, dy, dz)
+                    self.logger.log(
+                        f"[LAND] dx={dx:.3f}m  dy={dy:.3f}m  dz={dz:.3f}m",
+                        wanna_print=False,
+                    )
                     land_lost_since = None
                 else:
                     if land_lost_since is None:
                         land_lost_since = now
                     if now - land_lost_since >= _LAND_LOST_TIMEOUT:
                         print(f"[VALKYRIE] Cible perdue en LAND ({_LAND_LOST_TIMEOUT:.0f}s) --> remontée.")
+                        self.logger.log(
+                            f"[LAND] Cible perdue ({_LAND_LOST_TIMEOUT:.0f}s) — remontée.",
+                            wanna_print=False,
+                        )
                         self.send_cgm(CGM.VALKYRIE_LAND_ABORTED)
                         land_aborted = True
                         break
 
                 if self.motors_disarmed():
                     print("[VALKYRIE] Pose sur l'aruco avec succès !")
+                    self.logger.log("[LAND] Moteurs désarmés — pose réussie sur l'ArUco.", wanna_print=False)
                     self._precision_active = False
                     if self._rc_thread:
                         self._rc_thread.join(timeout=1.0)
