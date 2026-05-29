@@ -6,13 +6,10 @@
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 // ============================================================================
-// CONFIGURATION UART MATÉRIEL (ESP32-C3)
+// CONFIGURATION UART MATÉRIEL
 // ============================================================================
-// On assigne manuellement l'UART aux broches 20 et 21
-#define RPI_RX_PIN 20 // L'ESP32 ÉCOUTE ici (à relier au TX de la RPi)
-#define RPI_TX_PIN 21 // L'ESP32 PARLE ici (à relier au RX de la RPi)
-
-HardwareSerial SerialRPI(0); 
+// On instancie l'UART0 qui est physiquement lié aux broches TX0 et RX0 de la carte
+HardwareSerial PI_SERIAL(0); 
 
 char rx_buffer[250];
 int rx_index = 0;
@@ -22,9 +19,9 @@ int rx_index = 0;
 // ============================================================================
 void OnDataRecv(const esp_now_recv_info * info, const uint8_t *incomingData, int len) {
     for(int i=0; i<len; i++) {
-        SerialRPI.write(incomingData[i]);
+        PI_SERIAL.write(incomingData[i]);
     }
-    SerialRPI.write('\n');
+    PI_SERIAL.write('\n');
 }
 
 // ============================================================================
@@ -35,11 +32,12 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 }
 
 void setup() {
-    SerialRPI.setRxBufferSize(1024);
-    SerialRPI.setTxBufferSize(1024);
+    PI_SERIAL.setRxBufferSize(1024);
+    PI_SERIAL.setTxBufferSize(1024);
     
-    // On active l'UART en forçant l'utilisation des broches 20 et 21
-    SerialRPI.begin(115200, SERIAL_8N1, RPI_RX_PIN, RPI_TX_PIN);
+    // En appelant begin() sans préciser de broches, l'ESP32 utilise 
+    // automatiquement ses broches TX0 et RX0 par défaut.
+    PI_SERIAL.begin(115200);
 
     delay(1000);
 
@@ -63,15 +61,15 @@ void setup() {
 
     esp_now_add_peer(&peerInfo);
     
-    SerialRPI.println("[SYS] ESP32-C3 PRET (UART MATERIEL 20/21)");
+    PI_SERIAL.println("[SYS] ESP32 PRET (UART MATERIEL TX0/RX0)");
 }
 
 // ============================================================================
 // LECTURE RASPBERRY PI (UART) -> ENVOI RADIO
 // ============================================================================
 void loop() {
-    while (SerialRPI.available() > 0) {
-        char c = SerialRPI.read();
+    while (PI_SERIAL.available() > 0) {
+        char c = PI_SERIAL.read();
 
         // Si on détecte la fin d'une ligne
         if (c == '\n') {

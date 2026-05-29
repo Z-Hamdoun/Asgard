@@ -1,4 +1,8 @@
 PLND_EST_TYPE 1 # 0 en Gazebo
 PLND_TYPE 1
+PLND_STRICT {
+    1: Retry landing (normal strictness)
+    2: Do not land (just Hover) (Very Strict)
+}
 FOLL_VEL_MAX # a definir
 WPNAV_SPEED  # a definir
