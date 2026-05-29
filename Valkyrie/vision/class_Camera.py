@@ -268,7 +268,7 @@ class Camera:
                 self.outer_aruco_size = 0.70   # Gazebo : 70cm - ~29px à 5m (fx=205)
                 self.inner_aruco_size = 0.10   # Gazebo : 10cm - ~41px à 0.4m
             else:
-                self.outer_aruco_size = 0.35   # Réel : 7 × 5cm
+                self.outer_aruco_size = 0.45  # Réel : 7 × 5cm
                 self.inner_aruco_size = 0.05   # Réel : length_inner
             self._inner_crop         = None
             self._inner_scale_down   = None
