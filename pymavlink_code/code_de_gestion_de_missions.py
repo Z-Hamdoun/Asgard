@@ -571,3 +571,43 @@ PC_CONFIGURE_VALKYRIE = CGM(
     long_description="Le Dashboard demande à Valkyrie de se connecter en WiFi pour une session ponctuelle (récupération de logs, config). Valhalla relaie via ESP-NOW.",
     potential_sender="pc"
 )
+
+PC_DEMANDE_MISSION_1_VALKYRIE = CGM(
+    value=221,
+    name="PC_DEMANDE_MISSION_1_VALKYRIE",
+    short_description="Lancement mission 1 sur Valkyrie (radio directe)",
+    long_description="Le GCS demande directement à Valkyrie de lancer la mission 1 via liaison MAVLink radio (sans ESP32).",
+    potential_sender="pc"
+)
+
+PC_DEMANDE_MISSION_2_VALKYRIE = CGM(
+    value=222,
+    name="PC_DEMANDE_MISSION_2_VALKYRIE",
+    short_description="Lancement mission 2 sur Valkyrie (radio directe)",
+    long_description="Le GCS demande directement à Valkyrie de lancer la mission 2 via liaison MAVLink radio (sans ESP32).",
+    potential_sender="pc"
+)
+
+PC_DEMANDE_MISSION_3_VALKYRIE = CGM(
+    value=223,
+    name="PC_DEMANDE_MISSION_3_VALKYRIE",
+    short_description="Lancement mission 3 sur Valkyrie (radio directe)",
+    long_description="Le GCS demande directement à Valkyrie de lancer la mission 3 via liaison MAVLink radio (sans ESP32).",
+    potential_sender="pc"
+)
+
+PC_DEMANDE_MISSION_4_VALKYRIE = CGM(
+    value=224,
+    name="PC_DEMANDE_MISSION_4_VALKYRIE",
+    short_description="Lancement mission 4 sur Valkyrie (radio directe)",
+    long_description="Le GCS demande directement à Valkyrie de lancer la mission 4 via liaison MAVLink radio (sans ESP32).",
+    potential_sender="pc"
+)
+
+PC_DEMANDE_MISSION_5_VALKYRIE = CGM(
+    value=225,
+    name="PC_DEMANDE_MISSION_5_VALKYRIE",
+    short_description="Lancement mission 5 sur Valkyrie (radio directe)",
+    long_description="Le GCS demande directement à Valkyrie de lancer la mission 5 via liaison MAVLink radio (sans ESP32).",
+    potential_sender="pc"
+)

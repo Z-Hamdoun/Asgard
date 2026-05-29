@@ -46,19 +46,27 @@ class GroundStation:
     def __init__(self, use_simu: bool = False):
         print("[GCS] Initialisation de l'antenne radio...")
 
-        addr_valhalla = "127.0.0.1:14556" 
+        addr_valhalla = "127.0.0.1:14556"
+        addr_valkyrie = "127.0.0.1:14557"
 
-        print(f"[GCS] Tentative de connexion à Valhalla sur {addr_valhalla}")
+        print(f"[GCS] Connexion Valhalla sur {addr_valhalla}")
         self.valhalla = MAVLinCS(
             address=addr_valhalla,
             target_system=1,
             timeout_heartbeat=10,
         )
-        print("[GCS] Connexion MAVLink (UDP) établie avec succès.")
+        print(f"[GCS] Connexion Valkyrie sur {addr_valkyrie}")
+        self.valkyrie = MAVLinCS(
+            address=addr_valkyrie,
+            target_system=2,
+            timeout_heartbeat=10,
+        )
+        print("[GCS] Connexions MAVLink (UDP) établies avec succès.")
 
-        # File thread-safe alimentée par le hook MAVLinCS - drainée par app.py
+        # File thread-safe alimentée par les hooks MAVLinCS - drainée par app.py
         self.cgm_event_queue: _queue.Queue = _queue.Queue()
         self.valhalla._cgm_hook = lambda cgm: self.cgm_event_queue.put(_format_cgm_event(cgm))
+        self.valkyrie._cgm_hook = lambda cgm: self.cgm_event_queue.put(_format_cgm_event(cgm))
 
     # ==========================================
     # COMMANDES RADIO DESCENDANTES (PC -> VALHALLA)
