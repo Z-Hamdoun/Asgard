@@ -21,13 +21,10 @@ SIMU = False  # True = SITL, False = REEL
 
 # Valeurs par défaut appliquées si un paramètre est absent ou null
 CONFIG_DEFAULTS = {
-    "alt_quadrillage": 5,
+    "alt_quadrillage":    5,
     "taille_quadrillage": 10,
-    "pas_quadrillage": 2,
-    "camera_resolution": [848, 480],
-    "square_pnp_size": 40,
-    "taille_aruco": [40, 10],
-    "id_aruco": [1, 1],
+    "pas_quadrillage":    2,
+    "camera_wide":        False,
 }
 
 
@@ -510,8 +507,12 @@ _MISSION_RUNNERS = {
 def run_mission(drone: Valkyrie, esp32: ESP32_Link, num_mission: int,
                 gripper: "GripperESP32 | None" = None):
     """Charge la config sécurisée et dispatche vers la bonne mission."""
+    if num_mission not in _MISSION_RUNNERS:
+        print(f"[MISSION] Numéro de mission invalide : {num_mission}")
+        drone.send_cgm(CGM.VALKYRIE_MISSION_INVALID)
+        return
     config = read_config_safe()
-    runner = _MISSION_RUNNERS.get(num_mission, run_mission_1)
+    runner = _MISSION_RUNNERS[num_mission]
     print(f"[MISSION] Lancement mission {num_mission}...")
     # run_mission_1 accepte gripper ; les autres non (signature générique)
     if num_mission == 1:
@@ -620,11 +621,16 @@ if __name__ == "__main__":
     _logger = make_logger(os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs.log"))
     _logger.log("[VALKYRIE] Démarrage.")
 
+    _startup_config = read_config_safe()
+    _camera_wide    = bool(_startup_config.get("camera_wide", False))
+    print(f"[MAIN] camera_wide={_camera_wide} (lu depuis {CONFIG_FILE})")
+
     print("[MAIN] Connexion MAVLink à Valkyrie...")
     if SIMU:
         drone = Valkyrie(address="127.0.0.1:14560", target_system=2, logger=_logger)
     else:
-        drone = Valkyrie(address="/dev/ttyAMA0", target_system=2, baud=921600, logger=_logger)
+        drone = Valkyrie(address="/dev/ttyAMA0", target_system=2, baud=921600, logger=_logger,
+                         camera_wide=_camera_wide)
 
     print("[MAIN] Connexion ESP32...")
     esp32 = ESP32_Link(

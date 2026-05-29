@@ -7,12 +7,17 @@ import pymavlink_code.code_de_gestion_de_missions as CGM
 
 def _cgm_category(name: str) -> str:
     n = name.upper()
-    if "ESP32"   in n: return "ESP32"
-    if "CONFIG"  in n: return "CONFIG"
-    if "TAKEOFF" in n or "LAND" in n or "ARM" in n: return "FLIGHT"
-    if "TARGET"  in n or "QUAD" in n: return "MISSION"
-    if "MISSION" in n: return "MISSION"
-    if "MODE"    in n: return "MODE"
+    if "ESP32" in n or "PING" in n or "PONG" in n or "GRIP" in n:
+        return "ESP32"
+    if "CONFIG" in n:
+        return "CONFIG"
+    if "ARUCO" in n or "DETECT" in n or "TARGET" in n or "QUAD" in n or "MISSION" in n:
+        return "MISSION"
+    if ("TAKEOFF" in n or "TOOKOFF" in n or "LAND" in n or "ARM" in n
+            or "YAW" in n or "LOITER" in n or "FOLLOW" in n or "GPS" in n):
+        return "FLIGHT"
+    if "MODE" in n:
+        return "MODE"
     return "SYSTEM"
 
 

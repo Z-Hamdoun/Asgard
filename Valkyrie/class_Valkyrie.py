@@ -32,17 +32,19 @@ _FOLLOW_GPS_STALENESS    = 5.0   # s sans update GPS Valhalla avant failsafe RTL
 
 
 class Valkyrie(Drone):
-    def __init__(self, address, source_system=255, source_component=mavutil.mavlink.MAV_COMP_ID_MISSIONPLANNER, target_system=None, baud=57600, timeout_heartbeat=None, send_automatic_timesync=True, timesync_delay=3, send_automatic_home_request=True, home_request_delay=3, sysid_to_request_home=None, pos_rate=4, dialect="ardupilotmega", logger = Logger(), camera_topic="/world/iris_runway/model/drone1/model/gimbal/link/pitch_link/sensor/camera/image"):
+    def __init__(self, address, source_system=255, source_component=mavutil.mavlink.MAV_COMP_ID_MISSIONPLANNER, target_system=None, baud=57600, timeout_heartbeat=None, send_automatic_timesync=True, timesync_delay=3, send_automatic_home_request=True, home_request_delay=3, sysid_to_request_home=None, pos_rate=4, dialect="ardupilotmega", logger = Logger(), camera_topic="/world/iris_runway/model/drone1/model/gimbal/link/pitch_link/sensor/camera/image", camera_wide: bool = False):
         super().__init__(address, source_system, mavutil.mavlink.MAV_COMP_ID_ONBOARD_COMPUTER, target_system, baud, timeout_heartbeat, send_automatic_timesync, timesync_delay, send_automatic_home_request, home_request_delay, sysid_to_request_home, pos_rate, dialect, logger, camera_topic)
 
         self.camera = Camera(simulation=None,
                              camera_topic="/world/iris_runway/model/drone1/model/gimbal/link/pitch_link/sensor/camera/image",
-                             logger=self.logger)
+                             logger=self.logger,
+                             wide=camera_wide)
 
-        # Parametres de la mission
+        # Parametres de la mission (écrasés par load_config)
         self.alt_quadrillage = 5.0
         self.pas_quadrillage = 2.0
-        self.taille_zone = 20.0
+        self.taille_zone     = 10.0
+        self.camera_wide     = camera_wide
 
         # Lien ESP32 pour relayer les CGMs vers Valhalla (pas de liaison radio directe)
         self._esp32_link: ESP32_Link | None = None
@@ -69,48 +71,31 @@ class Valkyrie(Drone):
         """Enregistre le lien ESP32 utilisé pour router les CGMs via Valhalla."""
         self._esp32_link = esp32
 
-    def send_cgm(self, cgm: CGM.CGM):
-        """
-        Override : envoie le CGM via ESP32 -> Valhalla -> GCS.
-        Fallback sur MAVLink si esp32_link non configuré.
-        """
-        if self._esp32_link is not None:
-            self._esp32_link.send_cgm(cgm.value)
-        else:
-            super().send_cgm(cgm)
-
     # =========================================================================
     # LECTURE DE LA CONFIGURATION (VENANT DE VALHALLA VIA ESP32)
     # =========================================================================
     def load_config(self, config_dict: dict) -> bool:
         """
-        Extrait les paramètres de la mission depuis le dictionnaire JSON
-        et les stocke comme attributs de la classe.
+        Extrait les paramètres de la mission depuis le dictionnaire JSON.
+        Clés attendues : alt_quadrillage, taille_quadrillage, pas_quadrillage, camera_wide.
         """
         if not config_dict:
             print("[VALKYRIE] Erreur : Dictionnaire de configuration vide.")
             return False
 
-        print("[VALKYRIE] Chargement des paramètres de mission...")
+        self.alt_quadrillage = float(config_dict.get("alt_quadrillage", 5.0))
+        self.pas_quadrillage = float(config_dict.get("pas_quadrillage", 2.0))
+        self.taille_zone     = float(config_dict.get("taille_quadrillage", 10.0))
+        self.camera_wide     = bool(config_dict.get("camera_wide", False))
 
-        self.alt_quadrillage   = config_dict.get("alt_quadrillage", 5.0)
-        self.pas_quadrillage   = config_dict.get("pas_quadrillage", 2.0)
-        self.taille_zone       = config_dict.get("taille_quadrillage", 20.0)
-        self.camera_resolution = config_dict.get("camera_resolution", [848, 480])
-        self.square_pnp_size   = config_dict.get("square_pnp_size", 40)
-        self.taille_aruco      = config_dict.get("taille_aruco", [40, 10])
-        self.id_aruco          = config_dict.get("id_aruco", [1, 1])
-
-        # PLND_LAND_OFS_X (cm) : le centre du drone se pose grip_x_m derrière la cible,
-        # ce qui amène la pince exactement sur la cible.
+        # Offset pince pour precision landing
         land_ofs_cm = int(self.grip_x_m * 100)
         self.write_parameter("PLND_LAND_OFS_X", land_ofs_cm,
                              mavutil.mavlink.MAV_PARAM_TYPE_INT8)
-        print(f"  cam_offset=({self.cam_x_m:.3f}, {self.cam_y_m:.3f})m  "
-              f"grip_x={self.grip_x_m:.3f}m  PLND_LAND_OFS_X={land_ofs_cm}cm")
 
-        print(f"  alt={self.alt_quadrillage}m  pas={self.pas_quadrillage}m  "
-              f"taille={self.taille_zone}m  aruco_id={self.id_aruco}")
+        print(f"[VALKYRIE] Config : alt={self.alt_quadrillage}m  "
+              f"taille={self.taille_zone}m  pas={self.pas_quadrillage}m  "
+              f"camera_wide={self.camera_wide}")
         return True
 
     def takeoff_autonome(self, altitude) -> bool:

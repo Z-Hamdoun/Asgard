@@ -40,13 +40,9 @@ _esp32_pong_event = threading.Event()
 
 # Valeurs par défaut appliquees si un paramètre est absent ou null
 CONFIG_DEFAULTS = {
-    "alt_quadrillage": 3,
-    "taille_quadrillage": 10,
-    "pas_quadrillage": 2,
-    "camera_resolution": [848, 480],
-    "square_pnp_size": 40,
-    "taille_aruco": [40, 10],
-    "id_aruco": [1, 1],
+    "lat_mission":     0.0,
+    "lng_mission":     0.0,
+    "alt_quadrillage": 5,
 }
 
 
@@ -332,23 +328,6 @@ def check_esp32_or_rtl(esp32: ESP32_Link, drone) -> bool:
 # EXÉCUTION DES MISSIONS
 # ==============================================================================
 
-_VALKYRIE_CONFIG_KEYS = {
-    "taille_quadrillage",
-    "pas_quadrillage",
-    "alt_quadrillage",
-    "square_pnp_size",
-    "taille_aruco",
-    "id_aruco",
-    "camera_type",
-    "camera_resolution",
-}
-
-
-def _config_valkyrie(config: dict) -> dict:
-    """Filtre la config pour Valkyrie : exclut lat/lng (inutiles + trop lourds pour ESP-NOW)."""
-    return {k: v for k, v in config.items() if k in _VALKYRIE_CONFIG_KEYS}
-
-
 def _check_coords(config: dict, drone: Valhalla) -> bool:
     """Vérifie que les coordonnées GPS cibles sont présentes. Envoie un CGM d'erreur sinon."""
     if config.get("lat_mission") is None or config.get("lng_mission") is None:
@@ -614,20 +593,17 @@ def main_loop(drone: Valhalla, esp32: ESP32_Link, ip_ordi: list[str]):
             drone.send_cgm(CGM.VALHALLA_WAITING_MISSION)
             continue
 
-        # --- Configurer Valhalla (connexion WiFi ponctuelle) ---
+        # --- Configurer Valhalla : sélection GPS via carte interactive ---
         if drone.check_cgm(CGM.PC_CONFIGURE_VALHALLA):
             drone.delete_cgm(CGM.PC_CONFIGURE_VALHALLA)
-            print("[CGM] PC_CONFIGURE_VALHALLA reçu. Connexion WiFi...")
+            print("[CGM] PC_CONFIGURE_VALHALLA reçu. Connexion WiFi (carte GPS)...")
             success = fetch_config_from_dashboard(ip_ordi[0], esp32, timeout_s=60.0)
             if success:
-                esp32.send_config(
-                    _config_valkyrie(read_config())
-                )  # Relai immediat vers Valkyrie
                 drone.send_cgm(CGM.VALHALLA_CONFIG_OK)
-                print("[CGM] Configuration OK. Retour à l'attente.")
+                print("[CGM] Configuration GPS OK.")
             else:
                 drone.send_cgm(CGM.VALHALLA_CONFIG_FAIL)
-                print("[CGM] Échec configuration. Retour à l'attente.")
+                print("[CGM] Échec configuration GPS.")
 
         # --- Lancer mission 1 ---
         elif drone.check_cgm(CGM.PC_DEMANDE_MISSION_1_VALHALLA):
