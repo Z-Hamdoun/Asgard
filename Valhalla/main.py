@@ -40,7 +40,7 @@ _esp32_pong_event = threading.Event()
 
 # Valeurs par défaut appliquees si un paramètre est absent ou null
 CONFIG_DEFAULTS = {
-    "alt_quadrillage": 5,
+    "alt_quadrillage": 3,
     "taille_quadrillage": 10,
     "pas_quadrillage": 2,
     "camera_resolution": [848, 480],
