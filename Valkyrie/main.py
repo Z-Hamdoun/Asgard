@@ -474,54 +474,19 @@ def main_loop(drone: Valkyrie, esp32: ESP32_Link, gripper: GripperESP32 | None =
             print("[MAIN] Config reçue de Valhalla. Sauvegarde...")
             update_config(new_config)
 
-        # Ordre de lancement de mission
-        num_mission = esp32.get_and_clear_mission_start()
-        if num_mission is not None:
-            run_mission(drone, esp32, num_mission, gripper)
-
-        # Fallback MAVLink radio : CGMs reçus directement depuis le GCS (sans ESP32)
+        # Ordres MAVLink radio : CGMs reçus directement depuis le GCS
         while not _cgm_radio_queue.empty():
             try:
                 _traiter_cgm_radio(drone, esp32, gripper, _cgm_radio_queue.get_nowait())
             except _queue.Empty:
                 break
 
-        # Ping-pong ESP32 : réponse automatique
+        # Ping-pong ESP32 : réponse automatique (santé du lien série UART pince)
+        # Toutes les commandes mission/pince arrivent par MAVLink radio via _traiter_cgm_radio.
         cgm_recu = esp32.get_and_clear_cgm()
         if cgm_recu == CGM.ESP32_PING.value:
             print("[MAIN] ESP32_PING reçu. Envoi du PONG...")
             esp32.send_cgm(CGM.ESP32_PONG.value)
-
-        # Connexion WiFi ponctuelle pour les logs (Dashboard → Valhalla → ESP-NOW → ici)
-        elif cgm_recu == CGM.PC_CONFIGURE_VALKYRIE.value:
-            print("[MAIN] Connexion WiFi Dashboard demandée...")
-            if _ip_ordi:
-                fetch_log_from_dashboard(_ip_ordi)
-            else:
-                print("[MAIN] IP Dashboard inconnue -- ignoré.")
-
-        # Commandes manuelles pince depuis le Dashboard
-        elif cgm_recu == CGM.PC_CALIB_GRIPPER_VALKYRIE.value:
-            print("[MAIN] Calibration de la pince...")
-            if gripper is not None:
-                gripper.calibrate()
-            else:
-                print("[MAIN] Pince non connectée.")
-
-        elif cgm_recu == CGM.PC_OPEN_GRIPPER_VALKYRIE.value:
-            print("[MAIN] Ouverture manuelle de la pince...")
-            if gripper is not None:
-                gripper.open_gripper()
-            else:
-                print("[MAIN] Pince non connectée.")
-
-        elif cgm_recu == CGM.PC_CLOSE_GRIPPER_VALKYRIE.value:
-            print("[MAIN] Fermeture manuelle de la pince...")
-            if gripper is not None:
-                caught = gripper.close_gripper()
-                print(f"[MAIN] Résultat fermeture pince : {'SAISIE OK' if caught else 'RIEN SAISI'}")
-            else:
-                print("[MAIN] Pince non connectée.")
 
         time.sleep(0.1)
 
@@ -561,7 +526,7 @@ if __name__ == "__main__":
 
     esp32.set_fail_callback(lambda _: drone.send_cgm(CGM.VALKYRIE_ESP32_FAIL))
 
-    # Callbacks d'urgence -- déclenchés immédiatement par le thread ESP32, sans polling
+    # Urgences et ordres de mission : arrivent par MAVLink radio (GCS direct)
     def _on_emergency_stop():
         print("[URGENCE] Désarmement forcé Valkyrie !")
         drone.disarm(force=True)
@@ -571,9 +536,6 @@ if __name__ == "__main__":
         print("[URGENCE] Atterrissage d'urgence Valkyrie !")
         drone.change_mode("LAND")
         drone.fin_mission = True
-
-    esp32.register_emergency_cgm(CGM.PC_A_DISARM_FORCE_VALKYRIE.value, _on_emergency_stop)
-    esp32.register_emergency_cgm(CGM.PC_URGENCY_LANDING_VALKYRIE.value, _on_emergency_landing)
 
     # Hook MAVLink radio : urgences traitées immédiatement, autres CGMs mis en file
     def _cgm_hook_radio(cgm):

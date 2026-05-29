@@ -1,4 +1,4 @@
-import os, sys, threading, time, math
+import os, sys, threading, time
 import asyncio
 import websockets
 import json
@@ -111,12 +111,12 @@ async def sendlog(socket, command, result):
 # ==============================================================================
 def run_relais_thread(drone, esp_link):
     """
-    Ce thread tourne en permanence sur Valhalla.
-    Il écoute les CGMs de Valkyrie (ESP-NOW primaire, MAVLink radio fallback) et les transfère au GCS.
-    Quand un CGM terminal de Valkyrie arrive, il signale aussi _valkyrie_done.
+    Détecte les CGMs terminaux de Valkyrie (ESP-NOW primaire, MAVLink radio fallback)
+    et signale _valkyrie_done pour débloquer les missions Valhalla en attente.
+    Le GCS reçoit les CGMs Valkyrie directement via son propre lien MAVLink (port 14557).
     """
-    print("[RELAIS] Thread de transfert ESP-NOW / MAVLink <-> GCS activé.")
-    _last_mav_cgm_ts: float = 0.0  # timestamp du dernier NAMED_VALUE_INT sysid=2 traité
+    print("[RELAIS] Thread de surveillance CGMs Valkyrie activé.")
+    _last_mav_cgm_ts: float = 0.0
 
     while True:
         # --- Primaire : CGMs Valkyrie via ESP32 ---
@@ -127,11 +127,8 @@ def run_relais_thread(drone, esp_link):
                 _esp32_pong_event.set()
             else:
                 objet_cgm = CGM.CGM.get(cgm_recu_int)
-                if objet_cgm is not None and objet_cgm.name != "EMPTY":
-                    print(f"[RELAIS] ESP32 : {objet_cgm.name} ({cgm_recu_int}) --> GCS.")
-                    drone.send_cgm(objet_cgm)
-                else:
-                    print(f"[RELAIS-ERREUR] CGM {cgm_recu_int} inconnu dans la bibliothèque locale !")
+                nom = objet_cgm.name if (objet_cgm and objet_cgm.name != "EMPTY") else str(cgm_recu_int)
+                print(f"[RELAIS] ESP32 : {nom} ({cgm_recu_int}).")
                 if cgm_recu_int in _VALKYRIE_TERMINAL_CGMS:
                     _valkyrie_result[0] = cgm_recu_int
                     _valkyrie_done.set()
@@ -148,11 +145,8 @@ def run_relais_thread(drone, esp_link):
                     cgm_radio_int = msg_vk.value
                     _last_mav_cgm_ts = ts
                     objet_cgm = CGM.CGM.get(cgm_radio_int)
-                    if objet_cgm is not None and objet_cgm.name != "EMPTY":
-                        print(f"[RELAIS] MAVLink : {objet_cgm.name} ({cgm_radio_int}) --> GCS.")
-                        drone.send_cgm(objet_cgm)
-                    else:
-                        print(f"[RELAIS-ERREUR] CGM radio {cgm_radio_int} inconnu !")
+                    nom = objet_cgm.name if (objet_cgm and objet_cgm.name != "EMPTY") else str(cgm_radio_int)
+                    print(f"[RELAIS] MAVLink : {nom} ({cgm_radio_int}).")
                     if cgm_radio_int in _VALKYRIE_TERMINAL_CGMS:
                         _valkyrie_result[0] = cgm_radio_int
                         _valkyrie_done.set()
@@ -385,39 +379,13 @@ def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
                 _logger.log("[MISSION 1] Point GPS atteint. Envoi config + ordre décollage à Valkyrie.")
             _valkyrie_done.clear()
             _valkyrie_result[0] = None
-            esp32.send_config(_config_valkyrie(config))
-            time.sleep(1.0)
-            print("[MISSION 1] Ordre décollage Valkyrie...")
-            drone.send_cgm(CGM.DEMANDE_TAKEOFF_VALKYRIE)
-            esp32.send_start_mission(num_mission=1)
+            # Valkyrie est lancé par le GCS simultanément -- Valhalla attend juste la fin
             drone.land_and_wait_valkyrie()
-
-            # Diffusion GPS Valhalla pendant toute l'attente :
-            # Valkyrie en a besoin pour le mode FOLLOW (Phase 4 de sa mission).
-            _gps_running = [True]
-            _gps_log_last = [0.0]
-
-            def _gps_broadcast():
-                while _gps_running[0] and not drone.fin_mission:
-                    lat, lon, rel_alt, alt_msl = drone.position()
-                    if not (math.isnan(lat) or math.isnan(lon)
-                            or math.isnan(rel_alt) or math.isnan(alt_msl)):
-                        esp32.send_telemetry(lat, lon, rel_alt, alt_msl)
-                        now = time.time()
-                        if _logger and now - _gps_log_last[0] >= 1.0:
-                            _logger.log(f"[GPS] Valhalla lat={lat:.6f} lon={lon:.6f} alt_rel={rel_alt:.1f}m", wanna_print=False)
-                            _gps_log_last[0] = now
-                    time.sleep(0.1)
-
-            gps_thread = threading.Thread(target=_gps_broadcast, daemon=True)
-            gps_thread.start()
 
             print("[MISSION 1] En attente de la fin de mission Valkyrie (max 15min)...")
             if _logger:
-                _logger.log("[MISSION 1] Atterri. GPS diffusé. Attente fin de mission Valkyrie (max 15min).")
+                _logger.log("[MISSION 1] Atterri. Attente fin de mission Valkyrie (max 15min).")
             completed = _valkyrie_done.wait(timeout=900.0)
-            _gps_running[0] = False
-            gps_thread.join(timeout=2.0)
 
             if not completed:
                 print("[MISSION 1] Timeout -- aucune réponse de Valkyrie. Retour à l'attente.")
@@ -448,102 +416,101 @@ def run_mission_2(drone: Valhalla, esp32: ESP32_Link, config: dict):
 
 
 def run_mission_3(drone: Valhalla, esp32: ESP32_Link, config: dict):
-    """Mission 3 : envoie config + ordre à Valkyrie, puis attend sa fin via ESP32."""
-    print("[MISSION 3] Valkyrie quadrillage et Aruco Precision Land")
+    """Mission 3 : lance Valkyrie (quadrillage + ArUco Precision Land) via MAVLink radio."""
+    if _logger:
+        _logger.log("[MISSION 3] Démarrage.")
+    print("[MISSION 3] Lancement mission 3 Valkyrie (MAVLink radio)...")
 
     _valkyrie_done.clear()
     _valkyrie_result[0] = None
-
-    esp32.send_config(_config_valkyrie(config))
-    time.sleep(1)
-    print("[MISSION 3] Ordre décollage Valkyrie...")
-    drone.send_cgm(CGM.DEMANDE_TAKEOFF_VALKYRIE)
-    esp32.send_start_mission(num_mission=3)
+    # Valkyrie est lancé par le GCS simultanément -- Valhalla attend juste la fin
 
     print("[MISSION 3] En attente de la fin de mission Valkyrie (max 10min)...")
+    if _logger:
+        _logger.log("[MISSION 3] Attente fin de mission Valkyrie (max 10min).")
     completed = _valkyrie_done.wait(timeout=600.0)
 
     if not completed:
-        print("[MISSION 3] Timeout - aucune réponse de Valkyrie. Retour à l'attente.")
+        print("[MISSION 3] Timeout -- aucune réponse de Valkyrie.")
+        if _logger:
+            _logger.log("[MISSION 3] TIMEOUT -- pas de réponse Valkyrie après 10min.")
         return
 
     cgm = _valkyrie_result[0]
     if cgm == CGM.VALKYRIE_LANDED.value:
         print("[MISSION 3] Valkyrie a atterri avec succès sur l'ArUco !")
+        if _logger:
+            _logger.log("[MISSION 3] Valkyrie a atterri avec succès.")
     else:
         obj = CGM.CGM.get(cgm)
-        print(
-            f"[MISSION 3] Mission Valkyrie terminée en échec : {obj.name if obj else cgm}"
-        )
+        msg = obj.name if obj else str(cgm)
+        print(f"[MISSION 3] Mission Valkyrie terminée en échec : {msg}")
+        if _logger:
+            _logger.log(f"[MISSION 3] Mission Valkyrie terminée en échec : {msg}")
 
 
 def run_mission_4(drone: Valhalla, esp32: ESP32_Link, config: dict):
-    """Mission 4 : à implémenter."""
-    print("[MISSION 4] Valkyrie quadrillage et Aruco Precision Land")
+    """Mission 4 : lance Valkyrie (quadrillage + e-ArUco Precision Land + pince) via MAVLink radio."""
+    if _logger:
+        _logger.log("[MISSION 4] Démarrage.")
+    print("[MISSION 4] Lancement mission 4 Valkyrie (MAVLink radio)...")
 
     _valkyrie_done.clear()
     _valkyrie_result[0] = None
-
-    esp32.send_config(_config_valkyrie(config))
-    time.sleep(1)
-    print("[MISSION 4] Ordre décollage Valkyrie...")
-    drone.send_cgm(CGM.DEMANDE_TAKEOFF_VALKYRIE)
-    esp32.send_start_mission(num_mission=4)
+    # Valkyrie est lancé par le GCS simultanément -- Valhalla attend juste la fin
 
     print("[MISSION 4] En attente de la fin de mission Valkyrie (max 10min)...")
+    if _logger:
+        _logger.log("[MISSION 4] Attente fin de mission Valkyrie (max 10min).")
     completed = _valkyrie_done.wait(timeout=600.0)
 
     if not completed:
-        print("[MISSION 4] Timeout - aucune réponse de Valkyrie. Retour à l'attente.")
+        print("[MISSION 4] Timeout -- aucune réponse de Valkyrie.")
+        if _logger:
+            _logger.log("[MISSION 4] TIMEOUT -- pas de réponse Valkyrie après 10min.")
         return
 
     cgm = _valkyrie_result[0]
     if cgm == CGM.VALKYRIE_LANDED.value:
         print("[MISSION 4] Valkyrie a atterri avec succès sur l'ArUco !")
+        if _logger:
+            _logger.log("[MISSION 4] Valkyrie a atterri avec succès.")
     else:
         obj = CGM.CGM.get(cgm)
-        print(f"[MISSION 4] Mission Valkyrie terminée en échec : {obj.name if obj else cgm}")
+        msg = obj.name if obj else str(cgm)
+        print(f"[MISSION 4] Mission Valkyrie terminée en échec : {msg}")
+        if _logger:
+            _logger.log(f"[MISSION 4] Mission Valkyrie terminée en échec : {msg}")
 
 
 def run_mission_5(drone: Valhalla, esp32: ESP32_Link, config: dict):
-    """Mission 5 : Valhalla RC-contrôlé, diffuse son GPS pour que Valkyrie le suive."""
-    if not check_esp32_or_rtl(esp32, drone):
-        return
+    """Mission 5 : Valkyrie suit Valhalla en FOLLOW mode.
+    Le GPS de Valhalla est diffusé à Valkyrie via le routeur MAVLink (GLOBAL_POSITION_INT sysid=1).
+    """
+    if _logger:
+        _logger.log("[MISSION 5] Démarrage FOLLOW mode.")
+    print("[MISSION 5] Lancement mission 5 Valkyrie (MAVLink radio)...")
 
     _valkyrie_done.clear()
     _valkyrie_result[0] = None
-
-    # Démarrage de Valkyrie en mode FOLLOW
-    print("[MISSION 5] Ordre mission FOLLOW à Valkyrie (CMD:START:5)...")
-    esp32.send_start_mission(num_mission=5)
-
-    # Diffusion GPS Valhalla à 10 Hz jusqu'à fin de mission
-    print("[MISSION 5] Diffusion GPS Valhalla via ESP32 démarrée.")
-    _gps_running = [True]
-
-    def _gps_broadcast():
-        while _gps_running[0] and not drone.fin_mission:
-            # position() retourne (lat, lon, relative_alt, alt_msl)
-            lat, lon, rel_alt, alt_msl = drone.position()
-            if not (math.isnan(lat) or math.isnan(lon) or math.isnan(rel_alt) or math.isnan(alt_msl)):
-                esp32.send_telemetry(lat, lon, rel_alt, alt_msl)
-            time.sleep(0.1)
-
-    gps_thread = threading.Thread(target=_gps_broadcast, daemon=True)
-    gps_thread.start()
+    # Valkyrie est lancé par le GCS simultanément -- Valhalla attend juste la fin
 
     print("[MISSION 5] En attente fin mission FOLLOW Valkyrie (max 8 min)...")
+    if _logger:
+        _logger.log("[MISSION 5] Attente fin de mission Valkyrie (max 8min).")
     _valkyrie_done.wait(timeout=480)
-
-    _gps_running[0] = False
-    gps_thread.join(timeout=2.0)
 
     cgm = _valkyrie_result[0]
     if cgm is not None:
         obj = CGM.CGM.get(cgm)
-        print(f"[MISSION 5] Fin Valkyrie : {obj.name if obj else cgm}")
+        msg = obj.name if obj else str(cgm)
+        print(f"[MISSION 5] Fin Valkyrie : {msg}")
+        if _logger:
+            _logger.log(f"[MISSION 5] Fin Valkyrie : {msg}")
     else:
         print("[MISSION 5] Timeout ou urgence -- fin mission FOLLOW.")
+        if _logger:
+            _logger.log("[MISSION 5] Timeout ou urgence.")
 
 
 _MISSION_RUNNERS = {
@@ -594,7 +561,7 @@ def run_mission(drone: Valhalla, esp32: ESP32_Link, num_mission: int):
 # ==============================================================================
 # WATCHER D'URGENCE (thread de fond)
 # ==============================================================================
-def emergency_watcher(drone: Valhalla, esp32: ESP32_Link):
+def emergency_watcher(drone: Valhalla):
     """
     Surveille en permanence les CGMs d'urgence, y compris pendant une mission active.
     Tourne dans un thread daemon indépendant de main_loop.
@@ -610,40 +577,7 @@ def emergency_watcher(drone: Valhalla, esp32: ESP32_Link):
             drone.fin_mission = True
             _emergency_stop_event.set()
             _valkyrie_done.set()       # débloque _valkyrie_done.wait() dans run_mission_*
-            esp32.send_cgm(CGM.PC_A_DISARM_FORCE_VALKYRIE.value)
-
-        # --- Atterrissage d'urgence : LAND Valhalla + relai Valkyrie (MAVLink radio, sans ESP32) ---
-        if drone.check_cgm(CGM.PC_URGENCY_LANDING_VALHALLA):
-            drone.delete_cgm(CGM.PC_URGENCY_LANDING_VALHALLA)
-            print("[URGENCE-WD] Atterrissage d'urgence Valhalla !")
-            drone.change_mode("LAND")
-            # Couper IMMÉDIATEMENT les boucles de mission
-            drone.fin_mission = True
-            _valkyrie_done.set()                        # débloque les wait() de mission
-            _emergency_landing_event.set()
-            # Relai vers Valkyrie via MAVLink radio (GCS intercepte et retransmet via port 14557)
-            drone.send_cgm(CGM.PC_URGENCY_LANDING_VALKYRIE)
-
-        # --- Commandes pince : relai direct vers Valkyrie via ESP-NOW ---
-        if drone.check_cgm(CGM.PC_OPEN_GRIPPER_VALKYRIE):
-            drone.delete_cgm(CGM.PC_OPEN_GRIPPER_VALKYRIE)
-            print("[PINCE-WD] Ordre ouverture pince → relai Valkyrie.")
-            esp32.send_cgm(CGM.PC_OPEN_GRIPPER_VALKYRIE.value)
-
-        if drone.check_cgm(CGM.PC_CLOSE_GRIPPER_VALKYRIE):
-            drone.delete_cgm(CGM.PC_CLOSE_GRIPPER_VALKYRIE)
-            print("[PINCE-WD] Ordre fermeture pince → relai Valkyrie.")
-            esp32.send_cgm(CGM.PC_CLOSE_GRIPPER_VALKYRIE.value)
-
-        if drone.check_cgm(CGM.PC_CALIB_GRIPPER_VALKYRIE):
-            drone.delete_cgm(CGM.PC_CALIB_GRIPPER_VALKYRIE)
-            print("[PINCE-WD] Ordre calibration pince → relai Valkyrie.")
-            esp32.send_cgm(CGM.PC_CALIB_GRIPPER_VALKYRIE.value)
-
-        if drone.check_cgm(CGM.PC_CONFIGURE_VALKYRIE):
-            drone.delete_cgm(CGM.PC_CONFIGURE_VALKYRIE)
-            print("[WD] Connexion WiFi Valkyrie → relai ESP-NOW.")
-            esp32.send_cgm(CGM.PC_CONFIGURE_VALKYRIE.value)
+            # Valkyrie est géré directement par le GCS (GroundStation.arret_urgence_valkyrie)
 
         time.sleep(0.05)
 
@@ -756,7 +690,7 @@ if __name__ == "__main__":
     threading.Thread(target=run_relais_thread, args=(valhalla, esp32), daemon=True).start()
 
     # Thread watcher d'urgence (surveille les CGMs d'urgence même pendant les missions)
-    threading.Thread(target=emergency_watcher, args=(valhalla, esp32), daemon=True).start()
+    threading.Thread(target=emergency_watcher, args=(valhalla,), daemon=True).start()
 
     # Boucle principale (bloquante)
     main_loop(valhalla, esp32, ip_ordis)

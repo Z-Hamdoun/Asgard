@@ -51,11 +51,13 @@ try:
         if msg_vk and msg_vk.get_type() != 'BAD_DATA':
             buf = msg_vk.get_msgbuf()
             link_mp_valkyrie.write(buf)      # Envoi à MP 2
-            link_dashboard.write(buf)        # Envoi au Dashboard
-            link_gcs_valkyrie.write(buf)     # Envoi au GCS Valkyrie (classe GCS)
-            # CGMs Valkyrie relayés vers Valhalla (run_relais_thread sans ESP32)
+            link_gcs_valkyrie.write(buf)     # Envoi au GCS Valkyrie → self.valkyrie._cgm_hook
+            # NAMED_VALUE_INT (CGMs) : seulement vers GCS Valkyrie et Valhalla (pas Dashboard)
+            # pour éviter le doublon dans la queue dashboard (self.valhalla voit aussi 14556)
             if msg_vk.get_type() == 'NAMED_VALUE_INT':
-                link_radio_valhalla.write(buf)
+                link_radio_valhalla.write(buf)  # run_relais_thread Valhalla (fallback MAVLink)
+            else:
+                link_dashboard.write(buf)   # GPS, heartbeat, etc. → dashboard + self.valhalla
 
         # --- Des Logiciels Locaux vers les Radios (Ordres/Gotos) ---
         # Ordres depuis MP Valhalla

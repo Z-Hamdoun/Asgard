@@ -67,35 +67,35 @@ class GroundStation:
         self.cgm_event_queue: _queue.Queue = _queue.Queue()
         self.valkyrie._cgm_hook = lambda cgm: self.cgm_event_queue.put(_format_cgm_event(cgm))
 
-        # Hook Valhalla : enfile le CGM ET relaie les urgences Valkyrie directement (sans ESP32)
-        def _valhalla_cgm_hook(cgm):
-            self.cgm_event_queue.put(_format_cgm_event(cgm))
-            if cgm.value == CGM.PC_URGENCY_LANDING_VALKYRIE.value:
-                print("[GCS] Relai urgence atterrissage → Valkyrie (MAVLink radio).")
-                self.valkyrie.send_cgm(CGM.PC_URGENCY_LANDING_VALKYRIE)
-            elif cgm.value == CGM.PC_A_DISARM_FORCE_VALKYRIE.value:
-                print("[GCS] Relai urgence désarmement → Valkyrie (MAVLink radio).")
-                self.valkyrie.send_cgm(CGM.PC_A_DISARM_FORCE_VALKYRIE)
-                self.valkyrie.disarm(force=True)
-
-        self.valhalla._cgm_hook = _valhalla_cgm_hook
+        # Hook Valhalla : enfile le CGM dans la queue dashboard uniquement.
+        # Toutes les commandes vers Valkyrie partent directement du GCS (jamais via Valhalla).
+        self.valhalla._cgm_hook = lambda cgm: self.cgm_event_queue.put(_format_cgm_event(cgm))
 
     # ==========================================
     # COMMANDES RADIO DESCENDANTES (PC -> VALHALLA)
     # ==========================================
 
     def lancer_mission(self, num: int = 1):
-        """Envoie l'ordre de lancement de mission à Valhalla selon le numéro choisi."""
-        cgm_map = {
+        """Envoie l'ordre de lancement de mission à Valhalla ET Valkyrie simultanément."""
+        cgm_map_v = {
             1: CGM.PC_DEMANDE_MISSION_1_VALHALLA,
             2: CGM.PC_DEMANDE_MISSION_2_VALHALLA,
             3: CGM.PC_DEMANDE_MISSION_3_VALHALLA,
             4: CGM.PC_DEMANDE_MISSION_4_VALHALLA,
             5: CGM.PC_DEMANDE_MISSION_5_VALHALLA,
         }
-        cgm = cgm_map.get(num, CGM.PC_DEMANDE_MISSION_1_VALHALLA)
-        print(f"[GCS-RADIO] Envoi mission {num} ({cgm.name}) à Valhalla...")
-        self.valhalla.send_cgm(cgm)
+        cgm_map_vk = {
+            1: CGM.PC_DEMANDE_MISSION_1_VALKYRIE,
+            2: CGM.PC_DEMANDE_MISSION_2_VALKYRIE,
+            3: CGM.PC_DEMANDE_MISSION_3_VALKYRIE,
+            4: CGM.PC_DEMANDE_MISSION_4_VALKYRIE,
+            5: CGM.PC_DEMANDE_MISSION_5_VALKYRIE,
+        }
+        cgm_v  = cgm_map_v.get(num,  CGM.PC_DEMANDE_MISSION_1_VALHALLA)
+        cgm_vk = cgm_map_vk.get(num, CGM.PC_DEMANDE_MISSION_1_VALKYRIE)
+        print(f"[GCS] Lancement mission {num} → Valhalla ({cgm_v.name}) + Valkyrie ({cgm_vk.name}).")
+        self.valhalla.send_cgm(cgm_v)
+        self.valkyrie.send_cgm(cgm_vk)
 
     def envoyer_goto_gps(self, lat: float, lon: float, alt: float):
         """
