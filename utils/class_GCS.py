@@ -65,8 +65,20 @@ class GroundStation:
 
         # File thread-safe alimentée par les hooks MAVLinCS - drainée par app.py
         self.cgm_event_queue: _queue.Queue = _queue.Queue()
-        self.valhalla._cgm_hook = lambda cgm: self.cgm_event_queue.put(_format_cgm_event(cgm))
         self.valkyrie._cgm_hook = lambda cgm: self.cgm_event_queue.put(_format_cgm_event(cgm))
+
+        # Hook Valhalla : enfile le CGM ET relaie les urgences Valkyrie directement (sans ESP32)
+        def _valhalla_cgm_hook(cgm):
+            self.cgm_event_queue.put(_format_cgm_event(cgm))
+            if cgm.value == CGM.PC_URGENCY_LANDING_VALKYRIE.value:
+                print("[GCS] Relai urgence atterrissage → Valkyrie (MAVLink radio).")
+                self.valkyrie.send_cgm(CGM.PC_URGENCY_LANDING_VALKYRIE)
+            elif cgm.value == CGM.PC_A_DISARM_FORCE_VALKYRIE.value:
+                print("[GCS] Relai urgence désarmement → Valkyrie (MAVLink radio).")
+                self.valkyrie.send_cgm(CGM.PC_A_DISARM_FORCE_VALKYRIE)
+                self.valkyrie.disarm(force=True)
+
+        self.valhalla._cgm_hook = _valhalla_cgm_hook
 
     # ==========================================
     # COMMANDES RADIO DESCENDANTES (PC -> VALHALLA)

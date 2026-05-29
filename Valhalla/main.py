@@ -112,36 +112,50 @@ async def sendlog(socket, command, result):
 def run_relais_thread(drone, esp_link):
     """
     Ce thread tourne en permanence sur Valhalla.
-    Il écoute les messages de Valkyrie (ESP-NOW) et les transfert à la GCS (MAVLink).
+    Il écoute les CGMs de Valkyrie (ESP-NOW primaire, MAVLink radio fallback) et les transfère au GCS.
     Quand un CGM terminal de Valkyrie arrive, il signale aussi _valkyrie_done.
     """
-    print("[RELAIS] Thread de transfert ESP-NOW <-> MAVLink activé.")
+    print("[RELAIS] Thread de transfert ESP-NOW / MAVLink <-> GCS activé.")
+    _last_mav_cgm_ts: float = 0.0  # timestamp du dernier NAMED_VALUE_INT sysid=2 traité
 
     while True:
+        # --- Primaire : CGMs Valkyrie via ESP32 ---
         cgm_recu_int = esp_link.get_and_clear_cgm()
-
         if cgm_recu_int is not None:
-            # Pong ESP32 : consommé localement, pas relayé vers la GCS
             if cgm_recu_int == CGM.ESP32_PONG.value:
-                print(f"[RELAIS] ESP32_PONG reçu.")
+                print("[RELAIS] ESP32_PONG reçu.")
                 _esp32_pong_event.set()
             else:
                 objet_cgm = CGM.CGM.get(cgm_recu_int)
-
                 if objet_cgm is not None and objet_cgm.name != "EMPTY":
-                    print(
-                        f"[RELAIS] Transfert du CGM {objet_cgm.name} ({cgm_recu_int}) vers la GCS (PC)..."
-                    )
+                    print(f"[RELAIS] ESP32 : {objet_cgm.name} ({cgm_recu_int}) --> GCS.")
                     drone.send_cgm(objet_cgm)
                 else:
-                    print(
-                        f"[RELAIS-ERREUR] Code CGM {cgm_recu_int} inconnu dans la bibliothèque locale !"
-                    )
-
-                # Signal de fin de mission Valkyrie pour débloquer run_mission_3
+                    print(f"[RELAIS-ERREUR] CGM {cgm_recu_int} inconnu dans la bibliothèque locale !")
                 if cgm_recu_int in _VALKYRIE_TERMINAL_CGMS:
                     _valkyrie_result[0] = cgm_recu_int
                     _valkyrie_done.set()
+
+        # --- Fallback : CGMs Valkyrie via MAVLink radio (routeur --> NAMED_VALUE_INT sysid=2) ---
+        msg_vk = drone.get_msg("NAMED_VALUE_INT", source_system=2)
+        if msg_vk is not None:
+            ts = getattr(msg_vk, '_timestamp', 0.0)
+            if ts > _last_mav_cgm_ts:
+                raw_name = getattr(msg_vk, 'name', b'')
+                if isinstance(raw_name, bytes):
+                    raw_name = raw_name.decode('ascii', errors='ignore')
+                if raw_name.rstrip('\x00').strip() == 'CGM':
+                    cgm_radio_int = msg_vk.value
+                    _last_mav_cgm_ts = ts
+                    objet_cgm = CGM.CGM.get(cgm_radio_int)
+                    if objet_cgm is not None and objet_cgm.name != "EMPTY":
+                        print(f"[RELAIS] MAVLink : {objet_cgm.name} ({cgm_radio_int}) --> GCS.")
+                        drone.send_cgm(objet_cgm)
+                    else:
+                        print(f"[RELAIS-ERREUR] CGM radio {cgm_radio_int} inconnu !")
+                    if cgm_radio_int in _VALKYRIE_TERMINAL_CGMS:
+                        _valkyrie_result[0] = cgm_radio_int
+                        _valkyrie_done.set()
 
         time.sleep(0.1)
 
@@ -598,17 +612,17 @@ def emergency_watcher(drone: Valhalla, esp32: ESP32_Link):
             _valkyrie_done.set()       # débloque _valkyrie_done.wait() dans run_mission_*
             esp32.send_cgm(CGM.PC_A_DISARM_FORCE_VALKYRIE.value)
 
-        # --- Atterrissage d'urgence : RTL Valhalla + relai Valkyrie ---
+        # --- Atterrissage d'urgence : LAND Valhalla + relai Valkyrie (MAVLink radio, sans ESP32) ---
         if drone.check_cgm(CGM.PC_URGENCY_LANDING_VALHALLA):
             drone.delete_cgm(CGM.PC_URGENCY_LANDING_VALHALLA)
             print("[URGENCE-WD] Atterrissage d'urgence Valhalla !")
-            # timeout=0 : envoie la commande RTL sans bloquer
-            drone.return_to_launch(timeout=0)
+            drone.change_mode("LAND")
             # Couper IMMÉDIATEMENT les boucles de mission
             drone.fin_mission = True
             _valkyrie_done.set()                        # débloque les wait() de mission
             _emergency_landing_event.set()
-            esp32.send_cgm(CGM.PC_URGENCY_LANDING_VALKYRIE.value)  # relai Valkyrie
+            # Relai vers Valkyrie via MAVLink radio (GCS intercepte et retransmet via port 14557)
+            drone.send_cgm(CGM.PC_URGENCY_LANDING_VALKYRIE)
 
         # --- Commandes pince : relai direct vers Valkyrie via ESP-NOW ---
         if drone.check_cgm(CGM.PC_OPEN_GRIPPER_VALKYRIE):

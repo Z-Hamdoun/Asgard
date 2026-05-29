@@ -1,4 +1,5 @@
-import os, sys, time, threading, math
+import os, sys, time, threading
+import queue as _queue
 import asyncio
 import websockets
 import json
@@ -71,8 +72,8 @@ def check_esp32_or_rtl(esp32: ESP32_Link, drone) -> bool:
     Retourne False si RTL déclenché, True si ESP32 opérationnel.
     """
     if esp32.reconnect_exhausted.is_set():
-        print("[FAILSAFE] ESP32 perdu irrémédiablement. RTL déclenché.")
-        drone.return_to_launch()
+        print("[FAILSAFE] ESP32 perdu irrémédiablement. LAND déclenché.")
+        drone.change_mode("LAND")
         return False
     return True
 
@@ -249,18 +250,35 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
             gripper.open_gripper()
         return
 
-    # --- Phase 4 : FOLLOW mode --> approche Valhalla (2m au-dessus) ---
-    print("[MISSION 1] Passage en FOLLOW --> approche de Valhalla...")
+    # --- Phase 4 : le GCS orchestre le goto via GroundStation.goto_valkyrie_au_dessus_valhalla()
+    #   puis met Valkyrie en LOITER. Valkyrie Python attend ce changement de mode (max 120s).
     if _logger:
-        _logger.log("[MISSION 1] Phase 4 : FOLLOW mode vers Valhalla.")
-    if not drone.approach_valhalla_follow(timeout=120.0):
-        print("[MISSION 1] Approche FOLLOW échouée. Lâcher et RTL.")
+        _logger.log("[MISSION 1] Phase 4 : attente LOITER posé par le GCS (goto Valhalla).")
+    print("[MISSION 1] Phase 4 : en attente que le GCS positionne Valkyrie au-dessus de Valhalla...")
+    drone.send_cgm(CGM.VALKYRIE_WAITING_MISSION)
+
+    deadline_loiter = time.time() + 120.0
+    en_loiter = False
+    while time.time() < deadline_loiter:
+        if drone.fin_mission:
+            if gripper is not None:
+                gripper.open_gripper()
+            return
+        if drone.mode() == "LOITER":
+            en_loiter = True
+            break
+        time.sleep(0.5)
+
+    if not en_loiter:
+        print("[MISSION 1] Timeout Phase 4 : LOITER non reçu depuis le GCS. Lâcher et RTL.")
         if _logger:
-            _logger.log("[MISSION 1] FOLLOW échoué (GPS Valhalla perdu ou timeout). Lâcher + RTL.")
+            _logger.log("[MISSION 1] Timeout Phase 4 : GCS n'a pas mis Valkyrie en LOITER. Lâcher + RTL.")
         if gripper is not None:
             gripper.open_gripper()
         drone.return_to_launch()
         return
+
+    print("[MISSION 1] LOITER confirmé -- Phase 4 terminée.")
 
     # --- Phase 5 : Centrage PnP sur les 4 coins de Valhalla ---
     print("[MISSION 1] Centrage PnP sur Valhalla...")
@@ -397,15 +415,45 @@ def run_mission(drone: Valkyrie, esp32: ESP32_Link, num_mission: int,
     drone.send_cgm(CGM.VALKYRIE_WAITING_MISSION)
 
 
+# File thread-safe alimentée par drone._cgm_hook (MAVLink radio fallback)
+_cgm_radio_queue: _queue.SimpleQueue = _queue.SimpleQueue()
+
+
+def _traiter_cgm_radio(drone: Valkyrie, esp32: ESP32_Link,
+                       gripper: "GripperESP32 | None", cgm_value: int):
+    """Traite un CGM reçu via MAVLink radio (fallback sans ESP32)."""
+    _mission_radio = {
+        CGM.PC_DEMANDE_MISSION_1_VALKYRIE.value: 1,
+        CGM.PC_DEMANDE_MISSION_2_VALKYRIE.value: 2,
+        CGM.PC_DEMANDE_MISSION_3_VALKYRIE.value: 3,
+        CGM.PC_DEMANDE_MISSION_4_VALKYRIE.value: 4,
+        CGM.PC_DEMANDE_MISSION_5_VALKYRIE.value: 5,
+    }
+    if cgm_value in _mission_radio:
+        run_mission(drone, esp32, _mission_radio[cgm_value], gripper)
+    elif cgm_value == CGM.PC_CONFIGURE_VALKYRIE.value:
+        if _ip_ordi:
+            fetch_log_from_dashboard(_ip_ordi)
+    elif cgm_value == CGM.PC_CALIB_GRIPPER_VALKYRIE.value:
+        if gripper is not None:
+            gripper.calibrate()
+    elif cgm_value == CGM.PC_OPEN_GRIPPER_VALKYRIE.value:
+        if gripper is not None:
+            gripper.open_gripper()
+    elif cgm_value == CGM.PC_CLOSE_GRIPPER_VALKYRIE.value:
+        if gripper is not None:
+            gripper.close_gripper()
+
+
 # ==============================================================================
-# BOUCLE PRINCIPALE (attente ordres ESP32 de Valhalla)
+# BOUCLE PRINCIPALE (attente ordres ESP32 ou MAVLink radio)
 # ==============================================================================
 def main_loop(drone: Valkyrie, esp32: ESP32_Link, gripper: GripperESP32 | None = None):
     """
-    Boucle infinie d'écoute des messages ESP-NOW de Valhalla.
-    - CFG:json      --> mise à jour de la config locale
-    - CMD:START:N   --> lancement de la mission N
-    Les urgences (CGM 213/214) sont gérées par les callbacks ESP32 enregistrés dans __main__.
+    Boucle infinie d'écoute des messages de Valhalla.
+    - ESP32 (primaire) : CFG:json, CMD:START:N
+    - MAVLink radio (fallback) : PC_DEMANDE_MISSION_*_VALKYRIE via _cgm_radio_queue
+    Les urgences (CGM 213/214) sont gérées par les callbacks ESP32 et le hook MAVLink.
     """
     print("\n[MAIN] Valkyrie en attente d'ordres de Valhalla (ESP-NOW)...\n")
     drone.send_cgm(CGM.VALKYRIE_WAITING_MISSION)
@@ -430,6 +478,13 @@ def main_loop(drone: Valkyrie, esp32: ESP32_Link, gripper: GripperESP32 | None =
         num_mission = esp32.get_and_clear_mission_start()
         if num_mission is not None:
             run_mission(drone, esp32, num_mission, gripper)
+
+        # Fallback MAVLink radio : CGMs reçus directement depuis le GCS (sans ESP32)
+        while not _cgm_radio_queue.empty():
+            try:
+                _traiter_cgm_radio(drone, esp32, gripper, _cgm_radio_queue.get_nowait())
+            except _queue.Empty:
+                break
 
         # Ping-pong ESP32 : réponse automatique
         cgm_recu = esp32.get_and_clear_cgm()
@@ -514,11 +569,22 @@ if __name__ == "__main__":
 
     def _on_emergency_landing():
         print("[URGENCE] Atterrissage d'urgence Valkyrie !")
-        drone.return_to_launch()
+        drone.change_mode("LAND")
         drone.fin_mission = True
 
     esp32.register_emergency_cgm(CGM.PC_A_DISARM_FORCE_VALKYRIE.value, _on_emergency_stop)
     esp32.register_emergency_cgm(CGM.PC_URGENCY_LANDING_VALKYRIE.value, _on_emergency_landing)
+
+    # Hook MAVLink radio : urgences traitées immédiatement, autres CGMs mis en file
+    def _cgm_hook_radio(cgm):
+        if cgm.value == CGM.PC_A_DISARM_FORCE_VALKYRIE.value:
+            _on_emergency_stop()
+        elif cgm.value == CGM.PC_URGENCY_LANDING_VALKYRIE.value:
+            _on_emergency_landing()
+        else:
+            _cgm_radio_queue.put(cgm.value)
+
+    drone._cgm_hook = _cgm_hook_radio
 
     drone.set_esp32_link(esp32)
 
