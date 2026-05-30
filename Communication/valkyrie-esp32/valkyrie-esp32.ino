@@ -7,16 +7,14 @@
 //  CONFIGURATION MATÉRIELLE (PINS)
 // ═══════════════════════════════════════════════════════════════
 
-#define SW0_PIN      25 // Switch 0
-#define SW1_PIN      26 // Switch 1
-#define SERVO_PIN    28 // Fil Signal de la Pince
+#define SW0_PIN      25
+#define SW1_PIN      26
+#define SERVO_PIN    28
 
-// Configuration UART matériel
-// On utilise l'UART0 par défaut de l'ESP32 (broches TX et RX imprimées sur la carte)
-HardwareSerial PI_SERIAL(0); 
+HardwareSerial PI_SERIAL(0);
 
 // ═══════════════════════════════════════════════════════════════
-//  PARAMÈTRES ET TEMPORISATIONS DE LA PINCE
+//  PARAMÈTRES DE LA PINCE
 // ═══════════════════════════════════════════════════════════════
 
 #define SERVO_STOP   1500
@@ -24,15 +22,20 @@ HardwareSerial PI_SERIAL(0);
 #define SERVO_MAX    2000
 #define DEBOUNCE_MS    25
 
-// --- Logique Temporelle ---
-#define CALIB_TIMEOUT_MS     35000 // 35s max pour trouver les switchs à l'allumage
-#define CALIB_OPEN_TIME_MS   30000 // 30s d'ouverture normale (post-calib ou manuelle)
-#define CATCH_TIMEOUT_MS     20000 // 20s max de fermeture pour essayer d'attraper l'objet
-#define FAIL_OPEN_TIME_MS    20000 // 20s d'ouverture si rien n'a été attrapé
-#define CLOSE_EXTRA_TIME_MS   3000 // 3s de serrage supplémentaire une fois le switch touché
+#define CALIB_TIMEOUT_MS     35000
+#define CALIB_OPEN_TIME_MS   30000
+#define CATCH_TIMEOUT_MS     20000
+#define FAIL_OPEN_TIME_MS    20000
+#define CLOSE_EXTRA_TIME_MS   3000
+
+// --- Trapèze de vitesse ---python -m uvicorn Dashboard.app:app --host 0.0.0.0 --port 8000
+// La montée évite le pic de courant au démarrage.
+// La descente évite le à-coup en fin d'ouverture temporisée.
+#define RAMP_UP_MS    1200   // 0 → pleine vitesse
+#define RAMP_DOWN_MS  1500   // pleine vitesse → 0 (fin d'ouverture)
 
 // ═══════════════════════════════════════════════════════════════
-//  VARIABLES ESP-NOW ET PINCE
+//  VARIABLES
 // ═══════════════════════════════════════════════════════════════
 
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
@@ -45,18 +48,30 @@ Servo gripper;
 enum class GripState : uint8_t {
     IDLE,
     CALIBRATING,
+    STOPPING_TO_OPEN,   // rampe descendante avant ouverture (calib ou timeout fermeture)
     OPENING,
     CLOSING,
     CLOSING_EXTRA,
+    STOPPING_TO_CAUGHT, // rampe descendante après les 3s de serrage
     OBJECT_CAUGHT
 };
 
-GripState     gripState      = GripState::IDLE;
-bool          calibrated     = false;
-bool          invertDir      = true; // Mettre à 'false' si la pince tourne à l'envers
-uint8_t       speedPercent   = 100;
-unsigned long actionStartMs  = 0;
-unsigned long currentOpenDurationMs = CALIB_OPEN_TIME_MS; 
+GripState     gripState             = GripState::IDLE;
+bool          calibrated            = false;
+bool          invertDir             = true;
+uint8_t       speedPercent          = 100;
+unsigned long actionStartMs         = 0;
+unsigned long currentOpenDurationMs = CALIB_OPEN_TIME_MS;
+bool          openRampDownStarted   = false;
+unsigned long pendingOpenDurationMs = CALIB_OPEN_TIME_MS; // durée d'ouverture après STOPPING_TO_OPEN
+
+// --- Trapèze ---
+int           currentPwm  = SERVO_STOP;
+int           rampStartPwm = SERVO_STOP;
+int           rampEndPwm   = SERVO_STOP;
+unsigned long rampStartMs  = 0;
+unsigned long rampDurMs    = 0;
+bool          ramping      = false;
 
 struct Switch {
     const uint8_t pin;
@@ -69,7 +84,7 @@ Switch sw0 = { SW0_PIN, HIGH, HIGH, 0 };
 Switch sw1 = { SW1_PIN, HIGH, HIGH, 0 };
 
 // ═══════════════════════════════════════════════════════════════
-//  FONCTIONS UTILITAIRES — PINCE
+//  FONCTIONS TRAPÈZE
 // ═══════════════════════════════════════════════════════════════
 
 int pwmForDir(bool closing) {
@@ -78,15 +93,55 @@ int pwmForDir(bool closing) {
     return actualClose ? (SERVO_STOP - offset) : (SERVO_STOP + offset);
 }
 
-void servoStop()  { gripper.writeMicroseconds(SERVO_STOP); }
-void servoClose() { gripper.writeMicroseconds(pwmForDir(true)); }
-void servoOpen()  { gripper.writeMicroseconds(pwmForDir(false)); }
+// Démarre une interpolation linéaire de currentPwm vers endPwm en durationMs ms
+void startRamp(int endPwm, unsigned long durationMs) {
+    rampStartPwm = currentPwm;
+    rampEndPwm   = endPwm;
+    rampStartMs  = millis();
+    rampDurMs    = durationMs;
+    ramping      = true;
+}
+
+// À appeler à chaque itération de loop() — applique l'interpolation
+void applyRamp() {
+    if (!ramping) return;
+    unsigned long elapsed = millis() - rampStartMs;
+    if (elapsed >= rampDurMs) {
+        currentPwm = rampEndPwm;
+        ramping    = false;
+    } else {
+        currentPwm = rampStartPwm + (int)((long)(rampEndPwm - rampStartPwm) * elapsed / rampDurMs);
+    }
+    gripper.writeMicroseconds(currentPwm);
+}
+
+// Arrêt immédiat — utilisé sur détection de switch (réactivité max)
+void servoStopImmediate() {
+    ramping    = false;
+    currentPwm = SERVO_STOP;
+    gripper.writeMicroseconds(SERVO_STOP);
+}
+
+// Rampe montante vers la vitesse de fermeture
+void servoStartClose() {
+    startRamp(pwmForDir(true), RAMP_UP_MS);
+}
+
+// Rampe montante vers la vitesse d'ouverture
+void servoStartOpen() {
+    startRamp(pwmForDir(false), RAMP_UP_MS);
+}
+
+// Rampe descendante vers l'arrêt (fin d'ouverture temporisée)
+void servoRampToStop() {
+    startRamp(SERVO_STOP, RAMP_DOWN_MS);
+}
 
 bool readSwitch(Switch &sw) {
     bool raw = digitalRead(sw.pin);
     if (raw != sw.lastRaw) { sw.lastChange = millis(); sw.lastRaw = raw; }
     if ((millis() - sw.lastChange) >= DEBOUNCE_MS) { sw.stable = sw.lastRaw; }
-    return (sw.stable == LOW); // LOW car on utilise INPUT_PULLUP
+    return (sw.stable == LOW);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -107,28 +162,22 @@ void OnDataSent(const uint8_t *mac, esp_now_send_status_t status) {}
 void setup() {
     PI_SERIAL.setRxBufferSize(1024);
     PI_SERIAL.setTxBufferSize(1024);
-    
-    // Initialisation native sur les broches TX0/RX0 par défaut de la carte ESP32
     PI_SERIAL.begin(115200);
-    
     delay(500);
 
-    // --- Pince ---
     pinMode(SW0_PIN, INPUT_PULLUP);
     pinMode(SW1_PIN, INPUT_PULLUP);
     ESP32PWM::allocateTimer(0);
     gripper.setPeriodHertz(50);
     gripper.attach(SERVO_PIN, SERVO_MIN, SERVO_MAX);
-    servoStop();
+    servoStopImmediate();
 
-    // --- WiFi + ESP-NOW ---
     WiFi.mode(WIFI_STA);
     esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE);
 
     if (esp_now_init() == ESP_OK) {
         esp_now_register_recv_cb(OnDataRecv);
         esp_now_register_send_cb((esp_now_send_cb_t)OnDataSent);
-
         esp_now_peer_info_t peer = {};
         memcpy(peer.peer_addr, broadcastAddress, 6);
         peer.channel = 1;
@@ -140,13 +189,13 @@ void setup() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  TRAITEMENT D'UNE COMMANDE PINCE (préfixe "GRIP:")
+//  COMMANDES PINCE
 // ═══════════════════════════════════════════════════════════════
 
 void handleGripCommand(const String &sub) {
     if (sub == "CALIB") {
         calibrated = false;
-        servoClose();
+        servoStartClose();          // rampe montante → fermeture
         actionStartMs = millis();
         gripState = GripState::CALIBRATING;
 
@@ -154,9 +203,10 @@ void handleGripCommand(const String &sub) {
         if (!calibrated) {
             PI_SERIAL.println("GRIP:ERR_NOT_CALIBRATED");
         } else {
-            servoOpen();
+            servoStartOpen();       // rampe montante → ouverture
             actionStartMs = millis();
-            currentOpenDurationMs = CALIB_OPEN_TIME_MS; // 30s pour ouverture manuelle
+            currentOpenDurationMs = CALIB_OPEN_TIME_MS;
+            openRampDownStarted   = false;
             gripState = GripState::OPENING;
         }
 
@@ -164,15 +214,15 @@ void handleGripCommand(const String &sub) {
         if (!calibrated) {
             PI_SERIAL.println("GRIP:ERR_NOT_CALIBRATED");
         } else {
-            servoClose();
+            servoStartClose();      // rampe montante → fermeture
             actionStartMs = millis();
             gripState = GripState::CLOSING;
         }
 
     } else if (sub == "STOP") {
-        servoStop();
+        servoStopImmediate();
         calibrated = false;
-        gripState = GripState::IDLE;
+        gripState  = GripState::IDLE;
         PI_SERIAL.println("GRIP:STOPPED");
     }
 }
@@ -183,25 +233,21 @@ void handleGripCommand(const String &sub) {
 
 void loop() {
     // ----------------------------------------------------------
-    //  1. Lecture série depuis la Raspberry Pi
+    //  1. Lecture série Raspberry Pi
     // ----------------------------------------------------------
     while (PI_SERIAL.available() > 0) {
         char c = PI_SERIAL.read();
-
         if (c == '\n') {
             rx_buffer[rx_index] = '\0';
             String msg = String(rx_buffer);
             msg.trim();
             rx_index = 0;
-
             if (msg.length() == 0) continue;
-
             if (msg.startsWith("GRIP:")) {
                 handleGripCommand(msg.substring(5));
             } else {
                 esp_now_send(broadcastAddress, (uint8_t *)msg.c_str(), msg.length());
             }
-
         } else if (c != '\r') {
             if (rx_index < 248) rx_buffer[rx_index++] = c;
             else rx_index = 0;
@@ -209,58 +255,86 @@ void loop() {
     }
 
     // ----------------------------------------------------------
-    //  2. Machine d'état pince
+    //  2. Application de la rampe PWM (trapèze)
+    // ----------------------------------------------------------
+    applyRamp();
+
+    // ----------------------------------------------------------
+    //  3. Machine d'état pince
     // ----------------------------------------------------------
     bool s0 = readSwitch(sw0);
     bool s1 = readSwitch(sw1);
     bool anySwitch = s0 || s1;
+    unsigned long now = millis();
 
     switch (gripState) {
+
         case GripState::CALIBRATING:
             if (anySwitch) {
-                // Switch touché -> On lance l'ouverture de 30s
+                // Switch touché → rampe descendante avant d'ouvrir
                 PI_SERIAL.println("GRIP:CALIB_OK");
-                servoOpen();
-                actionStartMs = millis();
-                currentOpenDurationMs = CALIB_OPEN_TIME_MS; // 30s
-                gripState = GripState::OPENING;
-                calibrated = true;
-            } else if (millis() - actionStartMs > CALIB_TIMEOUT_MS) {
-                servoStop();
+                calibrated              = true;
+                pendingOpenDurationMs   = CALIB_OPEN_TIME_MS;
+                servoRampToStop();
+                gripState = GripState::STOPPING_TO_OPEN;
+            } else if (now - actionStartMs > CALIB_TIMEOUT_MS) {
+                servoStopImmediate();
                 gripState = GripState::IDLE;
                 PI_SERIAL.println("GRIP:TIMEOUT_CALIB");
             }
             break;
 
-        case GripState::OPENING:
-            // Utilisé pour la fin de calibration, l'ouverture manuelle ET l'ouverture de sécurité
-            if (millis() - actionStartMs >= currentOpenDurationMs) {
-                servoStop();
-                gripState = GripState::IDLE;
-                PI_SERIAL.println("GRIP:OPEN_DONE");
-            }
-            break;
-
-        case GripState::CLOSING:
-            if (anySwitch) {
-                // Contact détecté ! On serre encore 3s pour sécuriser
-                PI_SERIAL.println("GRIP:CONTACT");
-                actionStartMs = millis();
-                gripState = GripState::CLOSING_EXTRA;
-            } else if (millis() - actionStartMs > CATCH_TIMEOUT_MS) {
-                // Rien attrapé après 20s -> On prévient la Pi et on rouvre pour 20s
-                PI_SERIAL.println("GRIP:TIMEOUT_CLOSE");
-                servoOpen();
-                actionStartMs = millis();
-                currentOpenDurationMs = FAIL_OPEN_TIME_MS; // 20s de réouverture
+        case GripState::STOPPING_TO_OPEN:
+            // Attend la fin de la rampe descendante, puis démarre l'ouverture
+            if (!ramping) {
+                servoStartOpen();
+                actionStartMs         = now;
+                currentOpenDurationMs = pendingOpenDurationMs;
+                openRampDownStarted   = false;
                 gripState = GripState::OPENING;
             }
             break;
 
+        case GripState::OPENING: {
+            unsigned long elapsed = now - actionStartMs;
+            if (!openRampDownStarted && elapsed >= currentOpenDurationMs - RAMP_DOWN_MS) {
+                servoRampToStop();
+                openRampDownStarted = true;
+            }
+            if (elapsed >= currentOpenDurationMs) {
+                servoStopImmediate();
+                gripState = GripState::IDLE;
+                PI_SERIAL.println("GRIP:OPEN_DONE");
+            }
+            break;
+        }
+
+        case GripState::CLOSING:
+            if (anySwitch) {
+                // Contact → continue à serrer 3s à pleine vitesse
+                PI_SERIAL.println("GRIP:CONTACT");
+                actionStartMs = now;
+                gripState = GripState::CLOSING_EXTRA;
+            } else if (now - actionStartMs > CATCH_TIMEOUT_MS) {
+                // Timeout → rampe descendante avant réouverture
+                PI_SERIAL.println("GRIP:TIMEOUT_CLOSE");
+                pendingOpenDurationMs = FAIL_OPEN_TIME_MS;
+                servoRampToStop();
+                gripState = GripState::STOPPING_TO_OPEN;
+            }
+            break;
+
         case GripState::CLOSING_EXTRA:
-            if (millis() - actionStartMs >= CLOSE_EXTRA_TIME_MS) {
-                // Serrage de 3s terminé
-                servoStop();
+            // 3s de serrage supplémentaires, puis rampe descendante
+            if (now - actionStartMs >= CLOSE_EXTRA_TIME_MS) {
+                servoRampToStop();
+                gripState = GripState::STOPPING_TO_CAUGHT;
+            }
+            break;
+
+        case GripState::STOPPING_TO_CAUGHT:
+            // Attend la fin de la rampe descendante, puis confirme la saisie
+            if (!ramping) {
                 gripState = GripState::OBJECT_CAUGHT;
                 PI_SERIAL.println("GRIP:OBJECT_CAUGHT");
             }

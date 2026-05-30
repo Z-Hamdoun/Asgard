@@ -133,12 +133,12 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
                   gripper: "GripperESP32 | None" = None):
     """
     Mission 1 complète :
-      1. Décollage + quadrillage spirale
-      2. Precision land avec alignement yaw (nez/pince vers la cible)
+      1. Décollage + quadrillage spirale (e-ArUco)
+      2. Precision land e-ArUco avec alignement yaw (nez/pince vers la cible)
       3. Fermeture pince -- si saisie échoue --> réouverture + nouvelle tentative
-      4. Décollage avec objet saisi --> FOLLOW mode vers Valhalla (2m au-dessus)
+      4. Décollage avec objet saisi --> GCS positionne 2m au-dessus de Valhalla (LOITER)
       5. Centrage PnP sur les 4 marqueurs de Valhalla
-      6. Ouverture pince (lâcher) --> RTL
+      6. Arrêt RC override --> ouverture pince (lâcher) --> RTL
     """
     _MAX_GRIP_RETRIES = 3
 
@@ -160,18 +160,15 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
     if _logger:
         _logger.log("[MISSION 1] Décollage OK.")
 
-    # --- Phase 2 : Quadrillage + precision land avec pince ---
-    # Boucle requadrillage : recommence si cible perdue en LOITER
-    # Boucle saisie : recommence si la pince ne saisit pas l'objet
+    # --- Phase 2 : Quadrillage e-ArUco + precision land pince ---
     objet_saisi = False
     for tentative in range(_MAX_GRIP_RETRIES):
         if _logger:
             _logger.log(f"[MISSION 1] Tentative saisie {tentative + 1}/{_MAX_GRIP_RETRIES} -- quadrillage.")
         print(f"[MISSION 1] Tentative precision land {tentative + 1}/{_MAX_GRIP_RETRIES}")
 
-        # Quadrillage (toujours sur la 1ère tentative ; retentatives recommencent au début)
         while True:
-            cible_trouvee = drone.executer_quadrillage()
+            cible_trouvee = drone.executer_quadrillage(e_analyse=True)
             if not cible_trouvee:
                 print("[MISSION 1] Quadrillage terminé sans trouver la cible.")
                 if _logger:
@@ -179,8 +176,7 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
                 drone.send_cgm(CGM.VALKYRIE_NO_TARGET_FOUND)
                 return
 
-            # Precision loiter + alignement yaw + LAND
-            resultat = drone.precision_loiter_and_land_gripper()
+            resultat = drone.precision_loiter_and_land_gripper(e_analyse=True)
 
             if resultat is False:
                 print("[MISSION 1] Mission interrompue (urgence).")
@@ -190,15 +186,12 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
             if resultat is True:
                 if _logger:
                     _logger.log("[MISSION 1] Atterri sur cible. Tentative saisie pince.")
-                break  # atterri --> passer à la pince
-            # None : cible perdue en LOITER --> requadrillage
+                break
             print("[MISSION 1] Cible perdue. Requadrillage...")
             if _logger:
                 _logger.log("[MISSION 1] Cible perdue en LOITER. Requadrillage.", wanna_print=False)
 
-        # Atterri, moteurs coupés -- tenter la saisie
         if gripper is None:
-            # Pince indisponible : on simule la saisie et on continue la mission
             print("[MISSION 1] Pince non connectée. Simulation de saisie -- mission continue.")
             if _logger:
                 _logger.log("[MISSION 1] Pince absente : saisie simulée, mission continue.")
@@ -247,8 +240,7 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
             gripper.open_gripper()
         return
 
-    # --- Phase 4 : le GCS orchestre le goto via GroundStation.goto_valkyrie_au_dessus_valhalla()
-    #   puis met Valkyrie en LOITER. Valkyrie Python attend ce changement de mode (max 120s).
+    # --- Phase 4 : GCS positionne Valkyrie 2m au-dessus de Valhalla puis LOITER ---
     if _logger:
         _logger.log("[MISSION 1] Phase 4 : attente LOITER posé par le GCS (goto Valhalla).")
     print("[MISSION 1] Phase 4 : en attente que le GCS positionne Valkyrie au-dessus de Valhalla...")
@@ -262,7 +254,6 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
                 gripper.open_gripper()
             return
         if drone.mode() == "LOITER":
-            # CRITIQUE : activer le RC override immédiatement (sinon le drone tombe en LOITER)
             drone._rc_throttle_pwm = 1500
             drone._precision_active = True
             drone._rc_thread = threading.Thread(target=drone._rc_override_loop, daemon=True)
@@ -292,19 +283,22 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
         if _logger:
             _logger.log("[MISSION 1] Centrage PnP timeout -- lâcher quand même.")
 
-    # --- Phase 6 : Lâcher l'objet ---
+    # --- Phase 6 : Lâcher l'objet (RC override maintenu en LOITER) ---
     print("[MISSION 1] Ouverture pince --> lâcher de l'objet.")
     if _logger:
-        _logger.log("[MISSION 1] Phase 6 : ouverture pince, lâcher de l'objet.")
+        _logger.log("[MISSION 1] Phase 6 : ouverture pince, lâcher.")
     if gripper is not None:
         gripper.open_gripper()
 
-    # --- Phase 7 : RTL ---
+    # --- Phase 7 : RTL --- RC override coupé après que le FC reprend la main
     drone.send_cgm(CGM.VALKYRIE_LANDED)
     print("[MISSION 1] Objet livré à Valhalla. RTL Valkyrie.")
     if _logger:
         _logger.log("[MISSION 1] Objet livré. RTL.")
     drone.return_to_launch()
+    drone._precision_active = False
+    if drone._rc_thread:
+        drone._rc_thread.join(timeout=1.0)
 
 
 def run_mission_2(drone: Valkyrie, esp32: ESP32_Link, config: dict):

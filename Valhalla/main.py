@@ -337,8 +337,17 @@ def _check_coords(config: dict, drone: Valhalla) -> bool:
     return True
 
 
+_VALHALLA_RTL_DELAY_S = 60.0   # délai après livraison avant réarmement (laisse Valkyrie s'éloigner)
+_VALHALLA_RTL_ALT_M  = 5.0    # altitude de décollage pour le RTL final
+
+
 def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
-    """Mission 1 : aller au point GPS, larguer Valkyrie, atterrir et attendre sa fin."""
+    """
+    Mission 1 :
+      1. Décollage + goto point GPS configuré
+      2. Atterrissage et attente livraison Valkyrie (max 15 min)
+      3. Après livraison : délai _VALHALLA_RTL_DELAY_S puis réarmement + RTL
+    """
     lat = config["lat_mission"]
     lng = config["lng_mission"]
     alt = config["alt_quadrillage"]
@@ -348,48 +357,93 @@ def run_mission_1(drone: Valhalla, esp32: ESP32_Link, config: dict):
         _logger.log(f"[MISSION 1] Démarrage. Cible GPS lat={lat} lng={lng} alt={alt}m")
     drone.config = config
 
-    if drone.takeoff_pc(altitude=3):
-        print(f"[MISSION 1] Décollage OK. En route vers {lat}, {lng}...")
-        if _logger:
-            _logger.log("[MISSION 1] Décollage OK. En route vers la cible GPS.")
-        if drone.execute_goto_from_config(radius_acceptance=2.0) and not drone.fin_mission:
-            print("[MISSION 1] Point atteint. Envoi config à Valkyrie...")
-            if _logger:
-                _logger.log("[MISSION 1] Point GPS atteint. Envoi config + ordre décollage à Valkyrie.")
-            _valkyrie_done.clear()
-            _valkyrie_result[0] = None
-            # Valkyrie est lancé par le GCS simultanément -- Valhalla attend juste la fin
-            drone.land_and_wait_valkyrie()
-
-            print("[MISSION 1] En attente de la fin de mission Valkyrie (max 15min)...")
-            if _logger:
-                _logger.log("[MISSION 1] Atterri. Attente fin de mission Valkyrie (max 15min).")
-            completed = _valkyrie_done.wait(timeout=900.0)
-
-            if not completed:
-                print("[MISSION 1] Timeout -- aucune réponse de Valkyrie. Retour à l'attente.")
-                if _logger:
-                    _logger.log("[MISSION 1] TIMEOUT -- pas de réponse Valkyrie après 15min.")
-            else:
-                cgm = _valkyrie_result[0]
-                if cgm == CGM.VALKYRIE_LANDED.value:
-                    print("[MISSION 1] Valkyrie a atterri avec succès sur l'ArUco !")
-                    if _logger:
-                        _logger.log("[MISSION 1] Valkyrie a atterri avec succès sur l'ArUco.")
-                else:
-                    obj = CGM.CGM.get(cgm)
-                    msg = obj.name if obj else str(cgm)
-                    print(f"[MISSION 1] Mission Valkyrie terminée en échec : {msg}")
-                    if _logger:
-                        _logger.log(f"[MISSION 1] Mission Valkyrie terminée en échec : {msg}")
-        else:
-            print("[MISSION 1] Goto annulé (urgence ou navigation impossible).")
-            if _logger:
-                _logger.log("[MISSION 1] ECHEC goto -- urgence ou navigation impossible.")
-    else:
+    if not drone.takeoff_pc(altitude=3):
         print("[MISSION 1] Échec du décollage.")
         if _logger:
             _logger.log("[MISSION 1] ECHEC décollage Valhalla.")
+        return
+
+    print(f"[MISSION 1] Décollage OK. En route vers {lat}, {lng}...")
+    if _logger:
+        _logger.log("[MISSION 1] Décollage OK. En route vers la cible GPS.")
+
+    if not drone.execute_goto_from_config(radius_acceptance=2.0) or drone.fin_mission:
+        print("[MISSION 1] Goto annulé (urgence ou navigation impossible).")
+        if _logger:
+            _logger.log("[MISSION 1] ECHEC goto -- urgence ou navigation impossible.")
+        return
+
+    print("[MISSION 1] Point atteint. Atterrissage et attente livraison Valkyrie...")
+    if _logger:
+        _logger.log("[MISSION 1] Point GPS atteint. Atterrissage.")
+    _valkyrie_done.clear()
+    _valkyrie_result[0] = None
+    drone.land_and_wait_valkyrie()
+
+    print("[MISSION 1] En attente de la fin de mission Valkyrie (max 15min)...")
+    if _logger:
+        _logger.log("[MISSION 1] Atterri. Attente fin de mission Valkyrie (max 15min).")
+    completed = _valkyrie_done.wait(timeout=900.0)
+
+    if drone.fin_mission:
+        return
+
+    if not completed:
+        print("[MISSION 1] Timeout -- aucune réponse de Valkyrie.")
+        if _logger:
+            _logger.log("[MISSION 1] TIMEOUT -- pas de réponse Valkyrie après 15min.")
+    else:
+        cgm = _valkyrie_result[0]
+        if cgm == CGM.VALKYRIE_LANDED.value:
+            print("[MISSION 1] Valkyrie a livré l'objet avec succès !")
+            if _logger:
+                _logger.log("[MISSION 1] Livraison Valkyrie confirmée.")
+        else:
+            obj = CGM.CGM.get(cgm)
+            msg = obj.name if obj else str(cgm)
+            print(f"[MISSION 1] Mission Valkyrie terminée en échec : {msg}")
+            if _logger:
+                _logger.log(f"[MISSION 1] Mission Valkyrie terminée en échec : {msg}")
+
+    # --- Retour à la base : délai puis réarmement + RTL ---
+    print(f"[MISSION 1] Attente {_VALHALLA_RTL_DELAY_S:.0f}s avant RTL (laisse Valkyrie s'éloigner)...")
+    if _logger:
+        _logger.log(f"[MISSION 1] Délai {_VALHALLA_RTL_DELAY_S:.0f}s avant réarmement.")
+    deadline_delay = time.time() + _VALHALLA_RTL_DELAY_S
+    while time.time() < deadline_delay:
+        if drone.fin_mission:
+            return
+        time.sleep(0.5)
+
+    print("[MISSION 1] Réarmement Valhalla + RTL...")
+    if _logger:
+        _logger.log("[MISSION 1] Phase finale : réarmement Valhalla et RTL.")
+
+    for _ in range(5):
+        if drone.change_mode("GUIDED"):
+            break
+        time.sleep(2)
+
+    armed = False
+    for _ in range(5):
+        if drone.arm():
+            armed = True
+            break
+        time.sleep(1)
+
+    if armed:
+        drone.send_cgm(CGM.VALHALLA_ARMED)
+        for _ in range(5):
+            if drone.takeoff(_VALHALLA_RTL_ALT_M):
+                break
+            time.sleep(1)
+        drone.send_cgm(CGM.VALHALLA_TOOKOFF)
+        time.sleep(3.0)
+
+    drone.send_cgm(CGM.VALHALLA_LANDING)
+    drone.return_to_launch()
+    if _logger:
+        _logger.log("[MISSION 1] RTL Valhalla lancé.")
 
 
 def run_mission_2(drone: Valhalla, esp32: ESP32_Link, config: dict):
