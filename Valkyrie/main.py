@@ -358,7 +358,7 @@ def run_mission_2(drone: Valkyrie, esp32: ESP32_Link, config: dict):
         if _logger:
             _logger.log("[MISSION 2] LOITER actif. Precision loiter/land démarré.")
 
-        resultat = drone.precision_loiter_and_land(e_analyse=False)
+        resultat = drone.precision_loiter_and_land(e_analyse=True)
 
         if resultat is True:
             print("[MISSION 2] Atterrissage de précision réussi.")
