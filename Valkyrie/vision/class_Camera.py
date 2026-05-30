@@ -135,7 +135,7 @@ class Camera:
                         "bit_depth": 10
                     },
                     main={
-                        "size": (640, 480), # La taille que OpenCV recevra
+                        "size": (848, 480), # La taille que OpenCV recevra
                         "format": "RGB888"
                     },
                     controls={
@@ -231,7 +231,7 @@ class Camera:
                         [-0.00284, 0.09082, 0.00265, -0.00063, -0.07958], dtype=np.float64
                     )
                 else:
-                    # Camera V3 standard — résolution 640x480
+                    # Camera V3 standard — résolution 848x480
                     self._camera_matrix = np.array(
                         [
                             [961.20937, 0.00000, 327.96329],
