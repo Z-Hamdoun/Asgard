@@ -199,7 +199,15 @@ async def _fetch_config_async(
                     elif command in ("update_config", "update_coords"):
                         new_params = data.get("data", {})
                         if new_params:
-                            update_config(new_params)
+                            try:
+                                update_config(new_params)
+                            except Exception as write_err:
+                                print(f"[WIFI] ERREUR écriture config : {write_err}")
+                                await ws.send(json.dumps({
+                                    "type": "status", "command": "config_ack",
+                                    "source": "Valhalla", "error": str(write_err),
+                                }))
+                                break
                             ack_cmd = "coords_ack" if command == "update_coords" else "config_ack"
                             await ws.send(
                                 json.dumps(
