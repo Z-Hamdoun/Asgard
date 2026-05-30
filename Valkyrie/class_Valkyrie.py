@@ -23,7 +23,7 @@ _LOITER_LOCK_DURATION = 3.0   # s -- centrage requis avant de passer en LAND
 _LOITER_LOST_TIMEOUT  = 5.0   # s -- cible perdue en LOITER --> requadrillage
 _LAND_LOST_TIMEOUT    = 5.0   # s -- cible perdue en LAND --> remontée
 _YAW_TOLERANCE_DEG    = 5.0   # ° -- tolérance d'alignement yaw
-_ARUCO_CGM_INTERVAL   = 5.0   # s -- intervalle minimum entre deux CGMs ArUco du même type
+_ARUCO_CGM_INTERVAL   = 2.0   # s -- intervalle minimum entre deux CGMs ArUco du même type
 
 # Seuils FOLLOW mode
 _FOLLOW_ALTITUDE_OFFSET  = 2.0   # m au-dessus de Valhalla (FOLL_OFS_Z = -2.0 en NED)
@@ -135,6 +135,7 @@ class Valkyrie(Drone):
         for _ in range(5):
             if self.takeoff(altitude):
                 took_off = True
+                time.sleep(0.5)
                 break
             time.sleep(1)
 
@@ -196,7 +197,7 @@ class Valkyrie(Drone):
                 if info is None and now_t - _last_scan_log >= 5.0:
                     self.logger.log(
                         f"[QUADRILLAGE] Scan point {point_actuel}/{total_points} — rien détecté",
-                        wanna_print=False,
+                        wanna_print=True,
                     )
                     _last_scan_log = now_t
 
@@ -209,7 +210,7 @@ class Valkyrie(Drone):
                     self.logger.log(
                         f"[QUADRILLAGE] Cible détectée : {info} | "
                         f"dx={dx:.3f}m  dy={dy:.3f}m  dz={dz:.3f}m",
-                        wanna_print=False,
+                        wanna_print=True,
                     )
                     self._maybe_send_aruco_cgm(info)
 
@@ -316,7 +317,7 @@ class Valkyrie(Drone):
                         print(f"\n[VALKYRIE] Cible perdue en LOITER ({_LOITER_LOST_TIMEOUT:.0f}s) --> requadrillage.")
                         self.logger.log(
                             f"[LOITER] Cible perdue ({_LOITER_LOST_TIMEOUT:.0f}s) — requadrillage.",
-                            wanna_print=False,
+                            wanna_print=True,
                         )
                         self.send_cgm(CGM.VALKYRIE_LOITER_LOST_TARGET)
                         self._precision_active = False
@@ -362,7 +363,7 @@ class Valkyrie(Drone):
 
                 if self.motors_disarmed():
                     print("[VALKYRIE] Pose sur l'aruco avec succès !")
-                    self.logger.log("[LAND] Moteurs désarmés — pose réussie sur l'ArUco.", wanna_print=False)
+                    self.logger.log("[LAND] Moteurs désarmés — pose réussie sur l'ArUco.", wanna_print=True)
                     self._precision_active = False
                     if self._rc_thread:
                         self._rc_thread.join(timeout=1.0)
@@ -897,7 +898,7 @@ class Valkyrie(Drone):
         """
         print("[VALKYRIE] Thread RC Override DÉMARRÉ.")
 
-        while self._precision_active and not getattr(self, 'fin_mission', False):
+        while self._precision_active:
             self.master.mav.rc_channels_override_send(
                 self.master.target_system, self.master.target_component,
                 0, 0, self._rc_throttle_pwm, self._rc_yaw_pwm,

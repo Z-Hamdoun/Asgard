@@ -337,6 +337,7 @@ def run_mission_2(drone: Valkyrie, esp32: ESP32_Link, config: dict):
         drone._rc_thread = threading.Thread(target=drone._rc_override_loop, daemon=True)
         drone._rc_thread.start()
 
+        time.sleep(2) # nouveau
         loiter_ok = False
         for _ in range(5):
             if drone.change_mode("LOITER"):
