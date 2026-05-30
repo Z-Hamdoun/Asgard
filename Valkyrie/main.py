@@ -600,6 +600,7 @@ def run_mission(drone: Valkyrie, esp32: ESP32_Link, num_mission: int,
 _cgm_radio_queue: _queue.SimpleQueue = _queue.SimpleQueue()
 
 
+
 def _traiter_cgm_radio(drone: Valkyrie, esp32: ESP32_Link,
                        gripper: "GripperESP32 | None", cgm_value: int):
     """Traite un CGM reçu via MAVLink radio (fallback sans ESP32)."""
