@@ -142,7 +142,7 @@ class Camera:
                         "FrameRate": 30,
                         # On force l'auto-exposition pour éviter les images noires/blanches
                         "AeEnable": True,
-                        "ExposureValue": -1 # Sous-exposer légèrement pour mieux voir le noir de l'ArUco
+                        "ExposureValue": -2.5 # Sous-exposer légèrement pour mieux voir le noir de l'ArUco
                     },
                     buffer_count=6
                 )
