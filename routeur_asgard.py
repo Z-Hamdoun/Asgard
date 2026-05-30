@@ -12,7 +12,7 @@ ADDR_RADIO_VALKYRIE = "udpin:0.0.0.0:14560"
 
 # Flux sortants vers les instances locales
 ADDR_MP_VALHALLA = "udpout:192.168.50.20:14552" # Pour Mission Planner 1
-ADDR_MP_VALKYRIE = "udpout:192.168.50.20:14561" # Pour Mission Planner 2
+ADDR_MP_VALKYRIE = "udpout:127.0.0.1:14561" # Pour Mission Planner 2
 ADDR_DASHBOARD        = "udpout:127.0.0.1:14556" # Pour le script Dashboard local
 ADDR_GCS              = "udpout:127.0.0.1:14554" # Pour le GCS (class_GCS.py) — Valhalla
 ADDR_GCS_VALKYRIE     = "udpout:127.0.0.1:14557" # Pour le GCS (class_GCS.py) — Valkyrie directe

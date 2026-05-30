@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from Communication.class_ESP32_Link import ESP32_Link
 
 # Seuils failsafe (secondes -- indépendants du FPS caméra)
-_LOITER_LOCK_DURATION = 3.0   # s -- centrage requis avant de passer en LAND
+_LOITER_LOCK_DURATION = 10.0  # s -- centrage requis avant de passer en LAND
 _LOITER_LOST_TIMEOUT  = 5.0   # s -- cible perdue en LOITER --> requadrillage
 _LAND_LOST_TIMEOUT    = 5.0   # s -- cible perdue en LAND --> remontée
 _YAW_TOLERANCE_DEG    = 5.0   # ° -- tolérance d'alignement yaw
@@ -181,7 +181,7 @@ class Valkyrie(Drone):
             self.logger.log(
                 f"[QUADRILLAGE] Point {point_actuel}/{total_points} — "
                 f"lat={target_lat:.6f} lon={target_lon:.6f}",
-                wanna_print=False,
+                wanna_print=True,
             )
             self.goto(target_lat, target_lon, self.alt_quadrillage)
 
@@ -220,9 +220,8 @@ class Valkyrie(Drone):
                     self._rc_thread = threading.Thread(target=self._rc_override_loop, daemon=True)
                     self._rc_thread.start()
                     # Passage en loiter
-                    #
-                    # NOTE TO SELF : N OUBLIE SURTOUT PAS D AJOUTER RC 3 1500
-                    #
+
+                    time.sleep(1)
                     for _ in range(5):
                         if self.change_mode("LOITER"):
                             return True
@@ -292,7 +291,7 @@ class Valkyrie(Drone):
                           f"dx={dx:.3f}m  dy={dy:.3f}m", end="\r")
                     self.logger.log(
                         f"[LOITER] {elapsed:.1f}s — dx={dx:.3f}m  dy={dy:.3f}m  dz={dz:.3f}m",
-                        wanna_print=False,
+                        wanna_print=True,
                     )
 
                     if elapsed >= _LOITER_LOCK_DURATION:
@@ -301,7 +300,7 @@ class Valkyrie(Drone):
                         self.logger.log(
                             f"[LOITER] Centré après {elapsed:.1f}s — passage LAND. "
                             f"dx={dx:.3f}m  dy={dy:.3f}m  dz={dz:.3f}m",
-                            wanna_print=False,
+                            wanna_print=True,
                         )
                         self.send_cgm(CGM.VALKYRIE_PRECISION_LAND_STARTING)
                         self._rc_throttle_pwm = 0
@@ -345,7 +344,7 @@ class Valkyrie(Drone):
                     self.send_landing_target(dx, dy, dz)
                     self.logger.log(
                         f"[LAND] dx={dx:.3f}m  dy={dy:.3f}m  dz={dz:.3f}m",
-                        wanna_print=False,
+                        wanna_print=True,
                     )
                     land_lost_since = None
                 else:
@@ -355,7 +354,7 @@ class Valkyrie(Drone):
                         print(f"[VALKYRIE] Cible perdue en LAND ({_LAND_LOST_TIMEOUT:.0f}s) --> remontée.")
                         self.logger.log(
                             f"[LAND] Cible perdue ({_LAND_LOST_TIMEOUT:.0f}s) — remontée.",
-                            wanna_print=False,
+                            wanna_print=True,
                         )
                         self.send_cgm(CGM.VALKYRIE_LAND_ABORTED)
                         land_aborted = True
@@ -444,8 +443,10 @@ class Valkyrie(Drone):
                         self._align_yaw_to_target()
                         print("[VALKYRIE] Début de descente (LAND)...")
                         self.send_cgm(CGM.VALKYRIE_PRECISION_LAND_STARTING)
-                        self._rc_throttle_pwm = 0
                         self.change_mode("LAND")
+                        time.sleep(1)
+                        self._rc_throttle_pwm = 0
+                        
                         break
                 else:
                     if target_lost_since is None:
@@ -455,7 +456,7 @@ class Valkyrie(Drone):
                         target_locked_since = None
 
                     if now - target_lost_since >= _LOITER_LOST_TIMEOUT:
-                        print(f"\n[VALKYRIE] Cible perdue en LOITER ({_LOITER_LOST_TIMEOUT:.0f}s) --> requadrillage.")
+                        print(f"\n[VALKYRIE] Cible perdue en LOITER ({_LOITER_LOST_TIMEOUT}s) --> requadrillage.")
                         self.send_cgm(CGM.VALKYRIE_LOITER_LOST_TARGET)
                         self._precision_active = False
                         self.change_mode("GUIDED")
@@ -527,12 +528,19 @@ class Valkyrie(Drone):
     def _maybe_send_aruco_cgm(self, info) -> None:
         """Envoie un CGM de détection ArUco (inner ou outer) au plus toutes les
         _ARUCO_CGM_INTERVAL secondes pour éviter le spam."""
+        if not isinstance(info, str):
+            return
         now = time.time()
-        if info == self.camera.inner_aruco_id:
+        if info.startswith("INNER:"):
             if now - self._last_inner_cgm >= _ARUCO_CGM_INTERVAL:
                 self.send_cgm(CGM.VALKYRIE_INNER_ARUCO_DETECTED)
                 self._last_inner_cgm = now
-        elif info == self.camera.outer_aruco_id:
+        elif info.startswith("OUTER:"):
+            if now - self._last_outer_cgm >= _ARUCO_CGM_INTERVAL:
+                self.send_cgm(CGM.VALKYRIE_OUTER_ARUCO_DETECTED)
+                self._last_outer_cgm = now
+        else:
+            # analyse() standard — tout ArUco détecté → outer CGM par défaut
             if now - self._last_outer_cgm >= _ARUCO_CGM_INTERVAL:
                 self.send_cgm(CGM.VALKYRIE_OUTER_ARUCO_DETECTED)
                 self._last_outer_cgm = now
