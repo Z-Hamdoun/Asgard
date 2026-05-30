@@ -64,6 +64,7 @@ class Valkyrie(Drone):
         # Rate-limiting CGMs ArUco (évite le spam)
         self._last_outer_cgm = 0.0
         self._last_inner_cgm = 0.0
+        self._last_pnp_cgm   = 0.0
 
         # Lock MAVLink partagé entre les threads (ex: follow_valhalla et heartbeat)
         self._mavlink_lock = threading.Lock()
@@ -210,6 +211,7 @@ class Valkyrie(Drone):
                         f"dx={dx:.3f}m  dy={dy:.3f}m  dz={dz:.3f}m",
                         wanna_print=False,
                     )
+                    self._maybe_send_aruco_cgm(info)
 
                     self._rc_throttle_pwm = 1500 # Maintien d'altitude en Loiter
                     self._precision_active = True
@@ -868,11 +870,17 @@ class Valkyrie(Drone):
             print(f"[PnP] dx={dx:.3f}m dy={dy:.3f}m dz={dz:.3f}m", end="\r")
 
             now = time.time()
+            # CGM détection PnP (rate-limité à _ARUCO_CGM_INTERVAL s)
+            if now - self._last_pnp_cgm >= _ARUCO_CGM_INTERVAL:
+                self.send_cgm(CGM.VALKYRIE_PNP_DETECTED)
+                self._last_pnp_cgm = now
+
             if abs(dx) < _CENTER_THRESHOLD_M and abs(dy) < _CENTER_THRESHOLD_M:
                 if centered_since is None:
                     centered_since = now
                 elif now - centered_since >= _CENTER_LOCK_DURATION:
                     print(f"\n[PnP] Centré sur Valhalla ({_CENTER_LOCK_DURATION:.0f}s stable).")
+                    self.send_cgm(CGM.VALKYRIE_PNP_CENTERED)
                     return True
             else:
                 centered_since = None

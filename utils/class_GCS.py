@@ -12,7 +12,7 @@ def _cgm_category(name: str) -> str:
         return "ESP32"
     if "CONFIG" in n:
         return "CONFIG"
-    if "ARUCO" in n or "DETECT" in n or "TARGET" in n or "QUAD" in n or "MISSION" in n:
+    if "ARUCO" in n or "DETECT" in n or "TARGET" in n or "QUAD" in n or "MISSION" in n or "PNP" in n:
         return "MISSION"
     if ("TAKEOFF" in n or "TOOKOFF" in n or "LAND" in n or "ARM" in n
             or "YAW" in n or "LOITER" in n or "FOLLOW" in n or "GPS" in n):

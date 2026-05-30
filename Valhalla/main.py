@@ -200,11 +200,12 @@ async def _fetch_config_async(
                         new_params = data.get("data", {})
                         if new_params:
                             update_config(new_params)
+                            ack_cmd = "coords_ack" if command == "update_coords" else "config_ack"
                             await ws.send(
                                 json.dumps(
                                     {
                                         "type": "status",
-                                        "command": "config_ack",
+                                        "command": ack_cmd,
                                         "source": "Valhalla",
                                     }
                                 )

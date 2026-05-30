@@ -454,6 +454,22 @@ VALKYRIE_INNER_ARUCO_DETECTED = CGM(
     potential_sender="valkyrie"
 )
 
+VALKYRIE_PNP_DETECTED = CGM(
+    value=226,
+    name="VALKYRIE_PNP_DETECTED",
+    short_description="Marqueurs PnP Valhalla détectés",
+    long_description="Les 4 marqueurs circulaires de Valhalla sont visibles. Centrage PnP en cours.",
+    potential_sender="valkyrie"
+)
+
+VALKYRIE_PNP_CENTERED = CGM(
+    value=114,
+    name="VALKYRIE_PNP_CENTERED",
+    short_description="Centrage PnP réussi -- au-dessus de Valhalla",
+    long_description="Valkyrie est stable au-dessus des marqueurs PnP de Valhalla depuis 3 secondes.",
+    potential_sender="valkyrie"
+)
+
 # --- Warnings (300-399) -------------------------------------------------------
 
 VALKYRIE_YAW_ALIGN_TIMEOUT = CGM(
