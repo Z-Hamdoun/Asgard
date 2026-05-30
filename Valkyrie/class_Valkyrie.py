@@ -20,8 +20,8 @@ if TYPE_CHECKING:
 
 # Seuils failsafe (secondes -- indépendants du FPS caméra)
 _LOITER_LOCK_DURATION = 10.0  # s -- centrage requis avant de passer en LAND
-_LOITER_LOST_TIMEOUT  = 5.0   # s -- cible perdue en LOITER --> requadrillage
-_LAND_LOST_TIMEOUT    = 5.0   # s -- cible perdue en LAND --> remontée
+_LOITER_LOST_TIMEOUT  = 10.0   # s -- cible perdue en LOITER --> requadrillage
+_LAND_LOST_TIMEOUT    = 15.0   # s -- cible perdue en LAND --> remontée
 _YAW_TOLERANCE_DEG    = 5.0   # ° -- tolérance d'alignement yaw
 _ARUCO_CGM_INTERVAL   = 2.0   # s -- intervalle minimum entre deux CGMs ArUco du même type
 
