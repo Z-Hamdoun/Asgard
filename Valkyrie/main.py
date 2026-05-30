@@ -358,7 +358,7 @@ def run_mission_2(drone: Valkyrie, esp32: ESP32_Link, config: dict):
         if _logger:
             _logger.log("[MISSION 2] LOITER actif. Precision loiter/land démarré.")
 
-        resultat = drone.precision_loiter_and_land(e_analyse=True)
+        resultat = drone.precision_loiter_and_land_gripper(e_analyse=True)
 
         if resultat is True:
             print("[MISSION 2] Atterrissage de précision réussi.")
@@ -578,11 +578,17 @@ def run_mission(drone: Valkyrie, esp32: ESP32_Link, num_mission: int,
     config = read_config_safe()
     runner = _MISSION_RUNNERS[num_mission]
     print(f"[MISSION] Lancement mission {num_mission}...")
-    # run_mission_1 accepte gripper ; les autres non (signature générique)
-    if num_mission == 1:
-        runner(drone, esp32, config, gripper)
-    else:
-        runner(drone, esp32, config)
+    if _logger:
+        _logger.log(f"[MISSION] Lancement mission {num_mission}.")
+    try:
+        if num_mission == 1:
+            runner(drone, esp32, config, gripper)
+        else:
+            runner(drone, esp32, config)
+    except Exception:
+        if _logger:
+            _logger.log(f"[MISSION {num_mission}] Exception non gérée :", exception=True)
+        raise
 
     # Si une urgence a coupé la mission, attendre l'atterrissage puis réinitialiser
     if drone.fin_mission:
@@ -694,8 +700,8 @@ if __name__ == "__main__":
     if SIMU:
         drone = Valkyrie(address="127.0.0.1:14560", target_system=2, logger=_logger)
     else:
-        drone = Valkyrie(address="/dev/ttyAMA0", target_system=2, baud=921600, logger=_logger,
-                         camera_wide=_camera_wide)
+        drone = Valkyrie(address="/dev/ttyAMA0", target_system=2, baud=921600,
+                         logger=_logger, camera_wide=_camera_wide)
 
     print("[MAIN] Connexion ESP32...")
     esp32 = ESP32_Link(

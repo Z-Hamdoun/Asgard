@@ -170,11 +170,17 @@ class Valkyrie(Drone):
 
         point_actuel = 1
         total_points = len(offsets)
+        _last_scan_log = 0.0  # log de scan toutes les 5s
 
         for d_north, d_east in offsets:
             target_lat, target_lon = conv_cart_to_geo((lat_depart, lon_depart), (d_north, d_east))
 
             print(f"[VALKYRIE] -> Navigation Point {point_actuel}/{total_points}")
+            self.logger.log(
+                f"[QUADRILLAGE] Point {point_actuel}/{total_points} — "
+                f"lat={target_lat:.6f} lon={target_lon:.6f}",
+                wanna_print=False,
+            )
             self.goto(target_lat, target_lon, self.alt_quadrillage)
 
             while True:
@@ -183,6 +189,15 @@ class Valkyrie(Drone):
                 # Scan visuel
                 scan = self.camera.analyse_e_aruco if e_analyse else self.camera.analyse
                 dx, dy, dz, info, frame = scan(affichage=False)
+
+                # Log périodique "rien détecté" toutes les 5s
+                now_t = time.time()
+                if info is None and now_t - _last_scan_log >= 5.0:
+                    self.logger.log(
+                        f"[QUADRILLAGE] Scan point {point_actuel}/{total_points} — rien détecté",
+                        wanna_print=False,
+                    )
+                    _last_scan_log = now_t
 
                 # Cible trouvee
                 if info is not None:
