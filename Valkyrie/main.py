@@ -302,10 +302,80 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
 
 
 def run_mission_2(drone: Valkyrie, esp32: ESP32_Link, config: dict):
-    """Mission 2 : à implémenter."""
+    """
+    Mission 2 : décollage + precision loiter/land ArUco direct (sans quadrillage).
+      1. Décollage à alt_quadrillage
+      2. RC override + LOITER
+      3. Precision loiter + land ArUco (relance si cible perdue)
+    """
     if _logger:
-        _logger.log("[MISSION 2] Démarrage -- mission non implémentée.")
-    print("[MISSION 2] Non implémentée.")
+        _logger.log("[MISSION 2] Démarrage.")
+    if not drone.load_config(config):
+        print("[MISSION 2] Configuration invalide. Abandon.")
+        if _logger:
+            _logger.log("[MISSION 2] Configuration invalide. Abandon.")
+        return
+
+    # --- Phase 1 : Décollage ---
+    if not drone.takeoff_autonome(config["alt_quadrillage"]):
+        print("[MISSION 2] Échec du décollage.")
+        if _logger:
+            _logger.log("[MISSION 2] ECHEC décollage.")
+        return
+    print("[MISSION 2] Décollage OK.")
+    if _logger:
+        _logger.log("[MISSION 2] Décollage OK.")
+
+    # --- Phase 2 + 3 : LOITER + precision loiter/land (relance si cible perdue) ---
+    while True:
+        if drone.fin_mission:
+            return
+
+        # Démarrage RC override (normalement géré par executer_quadrillage)
+        drone._rc_throttle_pwm = 1500
+        drone._precision_active = True
+        drone._rc_thread = threading.Thread(target=drone._rc_override_loop, daemon=True)
+        drone._rc_thread.start()
+
+        loiter_ok = False
+        for _ in range(5):
+            if drone.change_mode("LOITER"):
+                loiter_ok = True
+                break
+            time.sleep(1)
+
+        if not loiter_ok:
+            print("[MISSION 2] Impossible de passer en LOITER. Abandon.")
+            if _logger:
+                _logger.log("[MISSION 2] ECHEC passage LOITER.")
+            drone._precision_active = False
+            if drone._rc_thread:
+                drone._rc_thread.join(timeout=1.0)
+            drone.send_cgm(CGM.VALKYRIE_MODE_CHANGE_FAIL)
+            return
+
+        print("[MISSION 2] LOITER actif. Precision loiter/land ArUco...")
+        if _logger:
+            _logger.log("[MISSION 2] LOITER actif. Precision loiter/land démarré.")
+
+        resultat = drone.precision_loiter_and_land(e_analyse=False)
+
+        if resultat is True:
+            print("[MISSION 2] Atterrissage de précision réussi.")
+            if _logger:
+                _logger.log("[MISSION 2] Atterrissage de précision réussi.")
+            drone.send_cgm(CGM.VALKYRIE_LANDED)
+            return
+        elif resultat is False:
+            print("[MISSION 2] Mission interrompue (urgence).")
+            if _logger:
+                _logger.log("[MISSION 2] Mission interrompue par urgence.")
+            return
+        else:
+            # None : cible perdue en LOITER → retour en LOITER et nouvelle tentative
+            print("[MISSION 2] Cible perdue. Retour en LOITER...")
+            if _logger:
+                _logger.log("[MISSION 2] Cible perdue -- retour LOITER.")
 
 
 def run_mission_3(drone: Valkyrie, esp32: ESP32_Link, config: dict):
