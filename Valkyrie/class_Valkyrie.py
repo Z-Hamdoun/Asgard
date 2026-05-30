@@ -587,9 +587,13 @@ class Valkyrie(Drone):
         target_yaw_deg = (math.degrees(current_yaw_rad) + angle_deg) % 360
         print(f"[VALKYRIE] Alignement yaw (rvec) : {angle_deg:+.1f}° → cible {target_yaw_deg:.1f}°")
 
-        # Correcteur P : ralentit au fur et à mesure qu'on approche la cible
-        # → évite l'oscillation bang-bang due à l'inertie en LOITER
-        Kp = 2.0  # à ajuster si trop lent (monter à 3.0) ou trop brusque (descendre à 1.5)
+        # Correcteur P + feedforward deadzone.
+        # RC4_DZ (~30 PWM par défaut) fait qu'ArduPilot ignore les commandes dans
+        # [-30, +30] autour de 1500. Sans biais, Kp*error < 30 → aucun mouvement.
+        # On ajoute un biais fixe dans la direction de l'erreur pour sortir de la
+        # deadzone, puis le terme P affine la vitesse de rotation.
+        Kp           = 4.0  # gain proportionnel
+        _DEADZONE_FF = 30   # feedforward pour franchir RC4_DZ (à aligner avec le param FC)
 
         deadline = time.time() + timeout
         try:
@@ -605,8 +609,8 @@ class Valkyrie(Drone):
                         print(f"[VALKYRIE] Yaw aligné (erreur résiduelle {abs(error):.1f}°).")
                         self.send_cgm(CGM.VALKYRIE_YAW_ALIGNED)
                         return True
-                    # PWM proportionnel à l'erreur, borné à [1400, 1600]
-                    self._rc_yaw_pwm = max(1400, min(1600, 1500 + int(Kp * error)))
+                    ff = _DEADZONE_FF if error > 0 else -_DEADZONE_FF
+                    self._rc_yaw_pwm = max(1400, min(1600, 1500 + ff + int(Kp * error)))
                 time.sleep(0.05)
         finally:
             self._rc_yaw_pwm = 0
