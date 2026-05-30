@@ -18,8 +18,8 @@ HardwareSerial PI_SERIAL(0);
 // ═══════════════════════════════════════════════════════════════
 
 #define SERVO_STOP   1500
-#define SERVO_MIN    1000
-#define SERVO_MAX    2000
+#define SERVO_MIN    500 // 1000
+#define SERVO_MAX    2500 // 2000
 #define DEBOUNCE_MS    25
 
 #define CALIB_TIMEOUT_MS     35000
@@ -28,11 +28,13 @@ HardwareSerial PI_SERIAL(0);
 #define FAIL_OPEN_TIME_MS    20000
 #define CLOSE_EXTRA_TIME_MS   3000
 
-// --- Trapèze de vitesse ---python -m uvicorn Dashboard.app:app --host 0.0.0.0 --port 8000
+// --- Trapèze de vitesse ---
 // La montée évite le pic de courant au démarrage.
 // La descente évite le à-coup en fin d'ouverture temporisée.
-#define RAMP_UP_MS    1200   // 0 → pleine vitesse
-#define RAMP_DOWN_MS  1500   // pleine vitesse → 0 (fin d'ouverture)
+#define RAMP_UP_MS         1200   // 0 → pleine vitesse
+#define RAMP_DOWN_MS       1500   // pleine vitesse → 0 (fin d'ouverture)
+#define CLOSE_SPEED_PCT      80   // % vitesse fermeture (1-100)
+#define OPEN_SPEED_PCT       50   // % vitesse ouverture -- plus bas car résistance mécanique > courant
 
 // ═══════════════════════════════════════════════════════════════
 //  VARIABLES
@@ -48,7 +50,8 @@ Servo gripper;
 enum class GripState : uint8_t {
     IDLE,
     CALIBRATING,
-    STOPPING_TO_OPEN,   // roue libre → rampe descendante avant ouverture (timeout fermeture)
+    PAUSING_BEFORE_OPEN, // pause 1s moteur à l'arrêt avant d'ouvrir (après butée)
+    STOPPING_TO_OPEN,    // roue libre → rampe descendante avant ouverture (timeout fermeture)
     OPENING,
     CLOSING,
     CLOSING_EXTRA,
@@ -58,7 +61,6 @@ enum class GripState : uint8_t {
 GripState     gripState             = GripState::IDLE;
 bool          calibrated            = false;
 bool          invertDir             = true;
-uint8_t       speedPercent          = 100;
 unsigned long actionStartMs         = 0;
 unsigned long currentOpenDurationMs = CALIB_OPEN_TIME_MS;
 bool          openRampDownStarted   = false;
@@ -86,8 +88,8 @@ Switch sw1 = { SW1_PIN, HIGH, HIGH, 0 };
 //  FONCTIONS TRAPÈZE
 // ═══════════════════════════════════════════════════════════════
 
-int pwmForDir(bool closing) {
-    int offset = map(speedPercent, 1, 100, 10, 490);
+int pwmForDir(bool closing, uint8_t pct) {
+    int offset = map(pct, 1, 100, 10, 490);
     bool actualClose = closing ^ invertDir;
     return actualClose ? (SERVO_STOP - offset) : (SERVO_STOP + offset);
 }
@@ -123,12 +125,12 @@ void servoStopImmediate() {
 
 // Rampe montante vers la vitesse de fermeture
 void servoStartClose() {
-    startRamp(pwmForDir(true), RAMP_UP_MS);
+    startRamp(pwmForDir(true, CLOSE_SPEED_PCT), RAMP_UP_MS);
 }
 
-// Rampe montante vers la vitesse d'ouverture
+// Rampe montante vers la vitesse d'ouverture (vitesse réduite pour limiter le courant)
 void servoStartOpen() {
-    startRamp(pwmForDir(false), RAMP_UP_MS);
+    startRamp(pwmForDir(false, OPEN_SPEED_PCT), RAMP_UP_MS);
 }
 
 // Rampe descendante vers l'arrêt (fin d'ouverture temporisée)
@@ -199,7 +201,7 @@ void handleGripCommand(const String &sub) {
         gripState = GripState::CALIBRATING;
 
     } else if (sub == "OPEN") {
-        if (!calibrated) {
+        if (false) { //!calibrated
             PI_SERIAL.println("GRIP:ERR_NOT_CALIBRATED");
         } else {
             servoStartOpen();       // rampe montante → ouverture
@@ -210,7 +212,7 @@ void handleGripCommand(const String &sub) {
         }
 
     } else if (sub == "CLOSE") {
-        if (!calibrated) {
+        if (false) { // !calibrated
             PI_SERIAL.println("GRIP:ERR_NOT_CALIBRATED");
         } else {
             servoStartClose();      // rampe montante → fermeture
@@ -270,16 +272,24 @@ void loop() {
 
         case GripState::CALIBRATING:
             if (anySwitch) {
-                // Moteur stalled contre la butée → arrêt immédiat (pas de rampe)
+                // Moteur stalled contre la butée → arrêt immédiat puis pause 1s
                 servoStopImmediate();
                 PI_SERIAL.println("GRIP:CALIB_OK");
                 calibrated            = true;
                 pendingOpenDurationMs = CALIB_OPEN_TIME_MS;
-                gripState = GripState::STOPPING_TO_OPEN; // !ramping déjà vrai → démarre l'ouverture immédiatement
+                actionStartMs         = now;
+                gripState = GripState::PAUSING_BEFORE_OPEN;
             } else if (now - actionStartMs > CALIB_TIMEOUT_MS) {
                 servoStopImmediate();
                 gripState = GripState::IDLE;
                 PI_SERIAL.println("GRIP:TIMEOUT_CALIB");
+            }
+            break;
+
+        case GripState::PAUSING_BEFORE_OPEN:
+            // Pause 1s moteur à l'arrêt avant d'inverser le sens
+            if (now - actionStartMs >= 1000) {
+                gripState = GripState::STOPPING_TO_OPEN; // → appelle servoStartOpen()
             }
             break;
 
