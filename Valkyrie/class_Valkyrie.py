@@ -41,10 +41,11 @@ class Valkyrie(Drone):
                              wide=camera_wide)
 
         # Parametres de la mission (écrasés par load_config)
-        self.alt_quadrillage = 5.0
-        self.pas_quadrillage = 2.0
-        self.taille_zone     = 10.0
-        self.camera_wide     = camera_wide
+        self.alt_quadrillage  = 5.0
+        self.pas_quadrillage  = 2.0
+        self.taille_zone      = 10.0
+        self.camera_wide      = camera_wide
+        self.square_pnp_size  = 33.0   # cm — côté du carré formé par les 4 marqueurs PnP
 
         # Lien ESP32 pour relayer les CGMs vers Valhalla (pas de liaison radio directe)
         self._esp32_link: ESP32_Link | None = None
@@ -87,6 +88,7 @@ class Valkyrie(Drone):
         self.pas_quadrillage = float(config_dict.get("pas_quadrillage", 2.0))
         self.taille_zone     = float(config_dict.get("taille_quadrillage", 10.0))
         self.camera_wide     = bool(config_dict.get("camera_wide", False))
+        self.square_pnp_size = float(config_dict.get("square_pnp_size", 33.0))
 
         # Offset pince pour precision landing
         land_ofs_cm = int(self.grip_x_m * 100)
@@ -421,7 +423,7 @@ class Valkyrie(Drone):
                     if elapsed >= _LOITER_LOCK_DURATION:
                         print()
                         print("[VALKYRIE] Centré ! Alignement yaw pince...")
-                        self._align_yaw_to_target(dx_c, dy_c)
+                        self._align_yaw_to_target()
                         print("[VALKYRIE] Début de descente (LAND)...")
                         self.send_cgm(CGM.VALKYRIE_PRECISION_LAND_STARTING)
                         self._rc_throttle_pwm = 0
@@ -520,22 +522,34 @@ class Valkyrie(Drone):
     # =========================================================================
     # ALIGNEMENT YAW (pince sur axe du nez)
     # =========================================================================
-    def _align_yaw_to_target(self, dx: float, dy: float,
+    def _align_yaw_to_target(self,
                               tolerance_deg: float = _YAW_TOLERANCE_DEG,
                               timeout: float = 10.0) -> bool:
         """
-        Pivote le drone en LOITER pour aligner le nez (et la pince) vers la cible,
-        via RC override sur le canal 4 (yaw).
+        Aligne le nez du drone (et la pince) sur l'orientation physique du marqueur
+        ArUco en utilisant le vecteur de rotation (rvec) issu d'estimatePoseSingleMarkers.
 
-        Aucun changement de mode : on reste en LOITER. Le thread _rc_override_loop
-        déjà actif diffuse _rc_yaw_pwm à 10 Hz. À la fin (convergence ou timeout),
-        _rc_yaw_pwm est remis à 0 --> le FC/pilote reprend le canal yaw, et LOITER
-        gèle automatiquement le cap atteint.
+        Contrairement à atan2(dy, dx), le rvec est stable même quand le drone est
+        parfaitement centré (dx≈0, dy≈0) car il décrit la rotation propre du marqueur,
+        pas la direction drone→cible.
 
-        dx/dy en repère body FRD (x=avant, y=droite), déjà corrigés de l'offset caméra.
-        Retourne True si convergé dans le timeout, False sinon.
+        La matrice R = Rodrigues(rvec) donne l'axe X du marqueur en repère caméra.
+        Transformation caméra→drone (cf. _camera_to_drone réel) :
+            drone_forward = -cam_y   →  -R[1,0]
+            drone_right   =  cam_x   →   R[0,0]
+        angle = atan2(drone_right, drone_forward) = atan2(R[0,0], -R[1,0])
         """
-        angle_deg = math.degrees(math.atan2(dy, dx))
+        import cv2 as _cv2
+
+        rvec = getattr(self.camera, '_last_rvec', None)
+        if rvec is None:
+            print("[VALKYRIE] _align_yaw : rvec absent, alignement ignoré.")
+            return False
+
+        R, _ = _cv2.Rodrigues(rvec)
+        forward = -R[1, 0]
+        right   =  R[0, 0]
+        angle_deg = math.degrees(math.atan2(right, forward))
 
         if abs(angle_deg) < tolerance_deg:
             return True
@@ -545,10 +559,8 @@ class Valkyrie(Drone):
             return False
 
         target_yaw_deg = (math.degrees(current_yaw_rad) + angle_deg) % 360
-
-        # Sens de rotation : PWM > 1500 = CW, PWM < 1500 = CCW
         self._rc_yaw_pwm = 1600 if angle_deg >= 0 else 1400
-        print(f"[VALKYRIE] Alignement yaw : rotation {angle_deg:+.1f}° --> cible {target_yaw_deg:.1f}°")
+        print(f"[VALKYRIE] Alignement yaw (rvec) : {angle_deg:+.1f}° → cible {target_yaw_deg:.1f}°")
 
         deadline = time.time() + timeout
         try:
@@ -565,7 +577,6 @@ class Valkyrie(Drone):
                         return True
                 time.sleep(0.05)
         finally:
-            # Remise à 0 dans tous les cas : pilote/FC reprend le canal yaw
             self._rc_yaw_pwm = 0
 
         print("[VALKYRIE] Timeout alignement yaw -- passage en LAND quand même.")

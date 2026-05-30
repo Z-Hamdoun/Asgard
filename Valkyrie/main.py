@@ -21,7 +21,7 @@ SIMU = False  # True = SITL, False = REEL
 
 # Valeurs par défaut appliquées si un paramètre est absent ou null
 CONFIG_DEFAULTS = {
-    "alt_quadrillage":    5,
+    "alt_quadrillage":    3,
     "taille_quadrillage": 10,
     "pas_quadrillage":    2,
     "camera_wide":        False,

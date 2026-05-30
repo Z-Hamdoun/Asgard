@@ -286,6 +286,7 @@ class Camera:
             self._inner_scale_down   = None
             self._outer_crop         = None
             self._outer_scale_down   = None
+            self._last_rvec: np.ndarray | None = None  # rvec du dernier marqueur détecté
             # -------------------------------------------------------------------
             
             # Créer le dictionnaire ArUco et les paramètres de détection
@@ -510,9 +511,10 @@ class Camera:
                 corner[:, :, 0] = corner[:, :, 0] * last_scale_down + last_crop[1]
                 corner[:, :, 1] = corner[:, :, 1] * last_scale_down + last_crop[0]
 
-            _, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
+            rvecs, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
                 [corner], marker_size, self._camera_matrix, self._dist_coeffs
             )
+            self._last_rvec = rvecs[0][0]
             tvec = tvec[0][0]
 
             bbox = (
@@ -698,9 +700,10 @@ class Camera:
                 # cv2.aruco.drawDetectedMarkers(frame, corners, ids)
                 # self.save_image(image=frame)
 
-                _, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
+                rvecs, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(
                     [corner], self.aruco_size, self._camera_matrix, self._dist_coeffs
                 )
+                self._last_rvec = rvecs[0][0]
                 tvec = tvec[0][0]  # Extraire le vecteur de translation
                 # if self._last_crop is not None and self.DO_CROP:
                 #    self.write_log(f"ID: {aruco_id[0]}, x={tvec[0]:.2f} m, y={tvec[1]:.2f} m, z={tvec[2]:.2f} m, x:{self._last_crop[2]-self._last_crop[0]}, y:{self._last_crop[3]-self._last_crop[1]}, scale:{self._last_scale_down}")

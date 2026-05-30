@@ -48,11 +48,10 @@ Servo gripper;
 enum class GripState : uint8_t {
     IDLE,
     CALIBRATING,
-    STOPPING_TO_OPEN,   // rampe descendante avant ouverture (calib ou timeout fermeture)
+    STOPPING_TO_OPEN,   // roue libre → rampe descendante avant ouverture (timeout fermeture)
     OPENING,
     CLOSING,
     CLOSING_EXTRA,
-    STOPPING_TO_CAUGHT, // rampe descendante après les 3s de serrage
     OBJECT_CAUGHT
 };
 
@@ -271,12 +270,12 @@ void loop() {
 
         case GripState::CALIBRATING:
             if (anySwitch) {
-                // Switch touché → rampe descendante avant d'ouvrir
+                // Moteur stalled contre la butée → arrêt immédiat (pas de rampe)
+                servoStopImmediate();
                 PI_SERIAL.println("GRIP:CALIB_OK");
-                calibrated              = true;
-                pendingOpenDurationMs   = CALIB_OPEN_TIME_MS;
-                servoRampToStop();
-                gripState = GripState::STOPPING_TO_OPEN;
+                calibrated            = true;
+                pendingOpenDurationMs = CALIB_OPEN_TIME_MS;
+                gripState = GripState::STOPPING_TO_OPEN; // !ramping déjà vrai → démarre l'ouverture immédiatement
             } else if (now - actionStartMs > CALIB_TIMEOUT_MS) {
                 servoStopImmediate();
                 gripState = GripState::IDLE;
@@ -325,16 +324,9 @@ void loop() {
             break;
 
         case GripState::CLOSING_EXTRA:
-            // 3s de serrage supplémentaires, puis rampe descendante
+            // 3s de serrage contre l'objet → arrêt immédiat (moteur stalled, pas de rampe)
             if (now - actionStartMs >= CLOSE_EXTRA_TIME_MS) {
-                servoRampToStop();
-                gripState = GripState::STOPPING_TO_CAUGHT;
-            }
-            break;
-
-        case GripState::STOPPING_TO_CAUGHT:
-            // Attend la fin de la rampe descendante, puis confirme la saisie
-            if (!ramping) {
+                servoStopImmediate();
                 gripState = GripState::OBJECT_CAUGHT;
                 PI_SERIAL.println("GRIP:OBJECT_CAUGHT");
             }
