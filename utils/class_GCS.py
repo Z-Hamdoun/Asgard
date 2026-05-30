@@ -1,6 +1,7 @@
 import time
 import math
 import queue as _queue
+import threading
 from pymavlink_code.class_MAVLinCS import MAVLinCS
 import pymavlink_code.code_de_gestion_de_missions as CGM
 
@@ -70,11 +71,33 @@ class GroundStation:
 
         # File thread-safe alimentée par les hooks MAVLinCS - drainée par app.py
         self.cgm_event_queue: _queue.Queue = _queue.Queue()
-        self.valkyrie._cgm_hook = lambda cgm: self.cgm_event_queue.put(_format_cgm_event(cgm))
 
-        # Hook Valhalla : enfile le CGM dans la queue dashboard uniquement.
-        # Toutes les commandes vers Valkyrie partent directement du GCS (jamais via Valhalla).
+        # Event setté quand Valkyrie envoie VALKYRIE_WAITING_MISSION pendant la mission 5
+        self._m5_valkyrie_ready = threading.Event()
+
+        self.valkyrie._cgm_hook = self._on_valkyrie_cgm
         self.valhalla._cgm_hook = lambda cgm: self.cgm_event_queue.put(_format_cgm_event(cgm))
+
+    def _on_valkyrie_cgm(self, cgm) -> None:
+        """Hook CGM Valkyrie : affichage dashboard + détection signal mission 5."""
+        self.cgm_event_queue.put(_format_cgm_event(cgm))
+        if cgm == CGM.VALKYRIE_WAITING_MISSION:
+            self._m5_valkyrie_ready.set()
+
+    def _orchestrer_mission_5(self) -> None:
+        """
+        Thread GCS mission 5 : attend que Valkyrie signale qu'il est en vol et prêt
+        (VALKYRIE_WAITING_MISSION), lit le GPS de Valhalla à cet instant, puis
+        positionne Valkyrie 2m au-dessus et le met en LOITER.
+        """
+        print("[GCS-M5] Attente signal Valkyrie prêt (VALKYRIE_WAITING_MISSION)...")
+        if not self._m5_valkyrie_ready.wait(timeout=180.0):
+            print("[GCS-M5] Timeout -- Valkyrie n'a pas signalé sa disponibilité.")
+            return
+        print("[GCS-M5] Signal reçu. Lecture GPS Valhalla + goto Valkyrie...")
+        ok = self.goto_valkyrie_au_dessus_valhalla()
+        if not ok:
+            print("[GCS-M5] Échec du positionnement au-dessus de Valhalla.")
 
     # ==========================================
     # COMMANDES RADIO DESCENDANTES (PC -> VALHALLA)
@@ -99,6 +122,10 @@ class GroundStation:
         cgm_v  = cgm_map_v.get(num,  CGM.PC_DEMANDE_MISSION_1_VALHALLA)
         cgm_vk = cgm_map_vk.get(num, CGM.PC_DEMANDE_MISSION_1_VALKYRIE)
         print(f"[GCS] Lancement mission {num} → Valhalla ({cgm_v.name}) + Valkyrie ({cgm_vk.name}).")
+        if num == 5:
+            # Réinitialise l'event et lance le thread d'orchestration AVANT d'envoyer les CGMs
+            self._m5_valkyrie_ready.clear()
+            threading.Thread(target=self._orchestrer_mission_5, daemon=True).start()
         self.valhalla.send_cgm(cgm_v)
         self.valkyrie.send_cgm(cgm_vk)
 
