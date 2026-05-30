@@ -11,7 +11,7 @@ from class_Valhalla import Valhalla
 import pymavlink_code.code_de_gestion_de_missions as CGM
 from utils.class_Logger import Logger, make_logger
 
-CONFIG_FILE = "Valhalla/mission_config.json"
+CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mission_config.json")
 
 _logger: Logger | None = None
 
@@ -179,142 +179,153 @@ async def _fetch_config_async(
                 )
             )
 
-            while time.time() < deadline:
+            while True:
+                remaining = deadline - time.time()
+                if remaining <= 0:
+                    break
                 try:
-                    raw = await asyncio.wait_for(ws.recv(), timeout=1.0)
-                    data = json.loads(raw)
-                    command = data.get("command")
+                    # Un seul wait_for avec le temps restant complet évite d'annuler
+                    # ws.recv() à répétition (bug connu websockets < 10 : la cancel
+                    # peut corrompre l'état interne et faire perdre le message suivant).
+                    raw = await asyncio.wait_for(ws.recv(), timeout=remaining)
+                except asyncio.TimeoutError:
+                    break  # deadline atteinte, pas de config reçue
+                except Exception as conn_err:
+                    print(f"[WIFI] Connexion perdue : {conn_err}")
+                    break
 
-                    if data.get("type") == "ping":
-                        await ws.send(
-                            json.dumps(
-                                {
-                                    "type": "pong",
-                                    "source": "Valhalla",
-                                    "sent_at": data.get("sent_at"),
-                                }
-                            )
+                data = json.loads(raw)
+                command = data.get("command")
+
+                if data.get("type") == "ping":
+                    await ws.send(
+                        json.dumps(
+                            {
+                                "type": "pong",
+                                "source": "Valhalla",
+                                "sent_at": data.get("sent_at"),
+                            }
                         )
+                    )
 
-                    elif command in ("update_config", "update_coords"):
-                        new_params = data.get("data", {})
-                        if new_params:
-                            try:
-                                update_config(new_params)
-                            except Exception as write_err:
-                                print(f"[WIFI] ERREUR écriture config : {write_err}")
-                                await ws.send(json.dumps({
-                                    "type": "status", "command": "config_ack",
-                                    "source": "Valhalla", "error": str(write_err),
-                                }))
-                                break
-                            ack_cmd = "coords_ack" if command == "update_coords" else "config_ack"
-                            await ws.send(
-                                json.dumps(
-                                    {
-                                        "type": "status",
-                                        "command": ack_cmd,
-                                        "source": "Valhalla",
-                                    }
-                                )
-                            )
-                            config_received = True
-                            print("[WIFI] Config reçue. Déconnexion.")
+                elif command in ("update_config", "update_coords"):
+                    new_params = data.get("data", {})
+                    if new_params:
+                        try:
+                            update_config(new_params)
+                        except Exception as write_err:
+                            print(f"[WIFI] ERREUR écriture config : {write_err}")
+                            await ws.send(json.dumps({
+                                "type": "status", "command": "config_ack",
+                                "source": "Valhalla", "error": str(write_err),
+                            }))
                             break
-
-                    elif command == "ask_coords":
-                        cfg = read_config_safe()
+                        ack_cmd = "coords_ack" if command == "update_coords" else "config_ack"
                         await ws.send(
                             json.dumps(
                                 {
                                     "type": "status",
-                                    "command": "ask_coords_ack",
+                                    "command": ack_cmd,
                                     "source": "Valhalla",
-                                    "data": {
-                                        "lat_mission": cfg.get("lat_mission", 0.0),
-                                        "lng_mission": cfg.get("lng_mission", 0.0),
-                                    },
+                                }
+                            )
+                        )
+                        config_received = True
+                        print("[WIFI] Config reçue. Déconnexion.")
+                        break
+
+                elif command == "ask_coords":
+                    cfg = read_config_safe()
+                    await ws.send(
+                        json.dumps(
+                            {
+                                "type": "status",
+                                "command": "ask_coords_ack",
+                                "source": "Valhalla",
+                                "data": {
+                                    "lat_mission": cfg.get("lat_mission", 0.0),
+                                    "lng_mission": cfg.get("lng_mission", 0.0),
+                                },
+                            }
+                        )
+                    )
+
+                elif command == "git_pull":
+                    try:
+                        repo_path = os.path.abspath(
+                            os.path.join(os.path.dirname(__file__), "..")
+                        )
+                        result = subprocess.check_output(
+                            ["git", "pull"], cwd=repo_path
+                        ).decode("utf-8")
+                        await ws.send(
+                            json.dumps(
+                                {
+                                    "type": "log",
+                                    "command": "pull_ack",
+                                    "source": "Valhalla",
+                                    "output": result,
+                                }
+                            )
+                        )
+                    except Exception as e:
+                        await ws.send(
+                            json.dumps(
+                                {
+                                    "type": "status",
+                                    "command": "pull_fail",
+                                    "source": "Valhalla",
+                                    "output": str(e),
                                 }
                             )
                         )
 
-                    elif command == "git_pull":
-                        try:
-                            repo_path = os.path.abspath(
-                                os.path.join(os.path.dirname(__file__), "..")
+                elif command == "esp32-btn":
+                    print("[WIFI] Test de connectivité ESP32 demandé...")
+                    _esp32_pong_event.clear()
+                    _esp32_ping_sent_at[0] = time.time()
+                    esp32.send_cgm(CGM.ESP32_PING.value)
+                    pong_ok = False
+                    for _ in range(50):
+                        await asyncio.sleep(0.1)
+                        if _esp32_pong_event.is_set():
+                            pong_ok = True
+                            break
+                    if pong_ok:
+                        latency_ms = int(
+                            (time.time() - _esp32_ping_sent_at[0]) * 1000
+                        )
+                        print(f"[WIFI] ESP32 PONG reçu ! Latence : {latency_ms}ms")
+                        await ws.send(
+                            json.dumps(
+                                {
+                                    "type": "status",
+                                    "command": "esp32_pong",
+                                    "source": "Valhalla",
+                                    "output": f"ESP32 Link OK : {latency_ms}ms",
+                                }
                             )
-                            result = subprocess.check_output(
-                                ["git", "pull"], cwd=repo_path
-                            ).decode("utf-8")
-                            await ws.send(
-                                json.dumps(
-                                    {
-                                        "type": "log",
-                                        "command": "pull_ack",
-                                        "source": "Valhalla",
-                                        "output": result,
-                                    }
-                                )
-                            )
-                        except Exception as e:
-                            await ws.send(
-                                json.dumps(
-                                    {
-                                        "type": "status",
-                                        "command": "pull_fail",
-                                        "source": "Valhalla",
-                                        "output": str(e),
-                                    }
-                                )
-                            )
+                        )
+                    else:
+                        print("[WIFI] ESP32 PONG timeout (5s).")
+                        await ws.send(json.dumps({
+                            "type": "status", "command": "esp32_timeout",
+                            "source": "Valhalla",
+                            "output": "ESP32 Link TIMEOUT (>5s)",
+                        }))
 
-                    elif command == "esp32-btn":
-                        print("[WIFI] Test de connectivité ESP32 demandé...")
-                        _esp32_pong_event.clear()
-                        _esp32_ping_sent_at[0] = time.time()
-                        esp32.send_cgm(CGM.ESP32_PING.value)
-                        pong_ok = False
-                        for _ in range(50):
-                            await asyncio.sleep(0.1)
-                            if _esp32_pong_event.is_set():
-                                pong_ok = True
-                                break
-                        if pong_ok:
-                            latency_ms = int(
-                                (time.time() - _esp32_ping_sent_at[0]) * 1000
-                            )
-                            print(f"[WIFI] ESP32 PONG reçu ! Latence : {latency_ms}ms")
-                            await ws.send(
-                                json.dumps(
-                                    {
-                                        "type": "status",
-                                        "command": "esp32_pong",
-                                        "source": "Valhalla",
-                                        "output": f"ESP32 Link OK : {latency_ms}ms",
-                                    }
-                                )
-                            )
-                        else:
-                            print("[WIFI] ESP32 PONG timeout (5s).")
-                            await ws.send(json.dumps({"type": "status", "command": "esp32_timeout",
-                                                      "source": "Valhalla",
-                                                      "output": "ESP32 Link TIMEOUT (>5s)"}))
+                elif command == "print_log":
+                    log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs.log")
+                    try:
+                        with open(log_path, "r", encoding="utf-8") as f:
+                            content = f.read()
+                    except Exception:
+                        content = "(aucun log disponible)"
+                    await sendlog(ws, "log_ack", content)
 
-                    elif command == "print_log":
-                        log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs.log")
-                        try:
-                            with open(log_path, "r", encoding="utf-8") as f:
-                                content = f.read()
-                        except Exception:
-                            content = "(aucun log disponible)"
-                        await sendlog(ws, "log_ack", content)
-
-                    elif command == "disconnect":
-                        print("[WIFI] Déconnexion demandée par le Dashboard.")
-                        break
-
-                except asyncio.TimeoutError:
-                    pass  # Normal, on reboucle
+                elif command == "disconnect":
+                    print("[WIFI] Déconnexion demandée par le Dashboard.")
+                    break
 
     except Exception as e:
         print(f"[WIFI] Erreur de connexion : {e}")

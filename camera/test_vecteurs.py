@@ -3,7 +3,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Imports depuis les vrais modules Valkyrie (même code qu'en mission)
 from Valkyrie.vision.class_Camera import Camera
-from pnp.algo import PnPLandingSystem
 
 # ============================================================
 #  CHOIX DU MODE
@@ -20,6 +19,20 @@ CAMERA_WIDE = False
 PNP_MARKER_DISTANCE_M = 0.33
 
 # ============================================================
+#  VERSION PnP  (uniquement pour MODE="pnp")
+#  1 : algo.py   — version originale
+#  2 : algo_v2.py — anti-flip + compensation d'attitude optionnelle
+#      Note : attitude=(roll, pitch) non disponible ici (pas de drone).
+#             Le gain principal testé ici est l'anti-flip.
+# ============================================================
+PNP_VERSION = 2
+
+# ============================================================
+
+if PNP_VERSION == 2:
+    from pnp.algo_v2 import PnPLandingSystem
+else:
+    from pnp.algo import PnPLandingSystem
 
 camera = Camera(simulation=None, wide=CAMERA_WIDE)
 
@@ -32,6 +45,7 @@ if MODE == "pnp":
 
 fx = camera._camera_matrix[0, 0]
 print(f"Mode     : {MODE}")
+print(f"PnP      : v{PNP_VERSION}  {'(anti-flip + attitude compensation)' if PNP_VERSION == 2 else '(original)'}")
 print(f"Camera   : fx={fx:.1f}  {'WIDE' if CAMERA_WIDE else 'STANDARD'}")
 print(f"{'─' * 60}")
 print(f"{'État':<12} {'dx (m)':>10} {'dy (m)':>10} {'dz (m)':>10}  info")
@@ -52,10 +66,13 @@ try:
             if frame is None:
                 print("Pas de frame".ljust(70), end="\r")
                 continue
-            result = pnp.get_landing_vector(frame)
+            if PNP_VERSION == 2:
+                result = pnp.get_landing_vector(frame, attitude=None)
+            else:
+                result = pnp.get_landing_vector(frame)
             if isinstance(result, tuple) and len(result) == 3 and isinstance(result[0], float):
                 dx, dy, dz = result
-                info = "PnP OK"
+                info = f"PnP v{PNP_VERSION} OK"
             else:
                 dx, dy, dz, info = 0.0, 0.0, 0.0, None
 
