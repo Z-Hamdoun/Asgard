@@ -569,7 +569,7 @@ sendCoordsBTN.onclick = function() {
 
 requestCoordsBTN.onclick = function() {
     if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ command: "ask_coords", target: "Valkyrie" }));
+        ws.send(JSON.stringify({ command: "ask_coords", target: "Valhalla" }));
         uiLog("GCS", "INFO", "MISSION", "Requête de coordonnées envoyée");
     } else {
         uiLog("GCS", "FAIL", "SYSTEM", "Dashboard hors ligne");

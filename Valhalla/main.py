@@ -213,6 +213,22 @@ async def _fetch_config_async(
                             print("[WIFI] Config reçue. Déconnexion.")
                             break
 
+                    elif command == "ask_coords":
+                        cfg = read_config_safe()
+                        await ws.send(
+                            json.dumps(
+                                {
+                                    "type": "status",
+                                    "command": "ask_coords_ack",
+                                    "source": "Valhalla",
+                                    "data": {
+                                        "lat_mission": cfg.get("lat_mission", 0.0),
+                                        "lng_mission": cfg.get("lng_mission", 0.0),
+                                    },
+                                }
+                            )
+                        )
+
                     elif command == "git_pull":
                         try:
                             repo_path = os.path.abspath(
@@ -329,9 +345,11 @@ def check_esp32_or_rtl(esp32: ESP32_Link, drone) -> bool:
 # ==============================================================================
 
 def _check_coords(config: dict, drone: Valhalla) -> bool:
-    """Vérifie que les coordonnées GPS cibles sont présentes. Envoie un CGM d'erreur sinon."""
-    if config.get("lat_mission") is None or config.get("lng_mission") is None:
-        print("[MISSION] Aucune coordonnée GPS ! Configurez d'abord.")
+    """Vérifie que les coordonnées GPS cibles sont valides (présentes et non nulles)."""
+    lat = config.get("lat_mission")
+    lng = config.get("lng_mission")
+    if lat is None or lng is None or (abs(lat) < 0.001 and abs(lng) < 0.001):
+        print("[MISSION] Coordonnées GPS absentes ou invalides (0,0) ! Configurez d'abord.")
         drone.send_cgm(CGM.VALHALLA_NO_TARGET_FOUND)
         return False
     return True
