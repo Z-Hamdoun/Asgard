@@ -522,6 +522,82 @@ class Valkyrie(Drone):
                     if self.change_mode("LOITER"):
                         break
 
+    def precision_loiter_center_only(self, e_analyse: bool = False) -> "bool | None":
+        """
+        Precision loiter jusqu'à stabilisation au centre — sans LAND.
+        Utilisé par Mission 2 (lâcher en vol) : une fois centré, le caller
+        ouvre la pince et fait RTL.
+
+        Returns:
+            True  : centré (stable _LOITER_LOCK_DURATION secondes)
+            False : fin_mission reçu
+            None  : cible perdue (_LOITER_LOST_TIMEOUT) → requadrillage
+        """
+        print("[VALKYRIE] Début du Precision Loiter (centrage seul)...")
+        scan = self.camera.analyse_e_aruco if e_analyse else self.camera.analyse
+
+        target_locked_since = None
+        target_lost_since   = None
+
+        while True:
+            if getattr(self, 'fin_mission', False):
+                self._precision_active = False
+                if self._rc_thread:
+                    self._rc_thread.join(timeout=1.0)
+                return False
+
+            dx, dy, dz, info, _ = scan(affichage=False)
+            now = time.time()
+
+            if info is not None:
+                self._maybe_send_aruco_cgm(info)
+                self.send_landing_target(dx, dy, dz)
+                if target_locked_since is None:
+                    target_locked_since = now
+                target_lost_since = None
+
+                elapsed = now - target_locked_since
+                print(f"[LOITER] centrage {elapsed:.1f}/{_LOITER_LOCK_DURATION:.0f}s  "
+                      f"dx={dx:.3f}m  dy={dy:.3f}m", end="\r")
+                self.logger.log(
+                    f"[LOITER] {elapsed:.1f}s — dx={dx:.3f}m  dy={dy:.3f}m  dz={dz:.3f}m",
+                    wanna_print=False,
+                )
+
+                if elapsed >= _LOITER_LOCK_DURATION:
+                    print()
+                    print("[VALKYRIE] Centré ! Prêt pour lâcher en vol.")
+                    self.logger.log(
+                        f"[LOITER] Centré après {elapsed:.1f}s — "
+                        f"dx={dx:.3f}m  dy={dy:.3f}m  dz={dz:.3f}m",
+                        wanna_print=True,
+                    )
+                    self.send_cgm(CGM.VALKYRIE_PRECISION_LAND_STARTING)
+                    self._precision_active = False
+                    if self._rc_thread:
+                        self._rc_thread.join(timeout=1.0)
+                    return True
+            else:
+                if target_lost_since is None:
+                    target_lost_since = now
+                if now - target_lost_since >= 2.0:
+                    target_locked_since = None
+
+                if now - target_lost_since >= _LOITER_LOST_TIMEOUT:
+                    print(f"\n[VALKYRIE] Cible perdue en LOITER ({_LOITER_LOST_TIMEOUT:.0f}s) --> requadrillage.")
+                    self.logger.log(
+                        f"[LOITER] Cible perdue ({_LOITER_LOST_TIMEOUT:.0f}s) — requadrillage.",
+                        wanna_print=True,
+                    )
+                    self.send_cgm(CGM.VALKYRIE_LOITER_LOST_TARGET)
+                    self._precision_active = False
+                    self.change_mode("GUIDED")
+                    if self._rc_thread:
+                        self._rc_thread.join(timeout=1.0)
+                    return None
+
+            time.sleep(0.05)
+
     # =========================================================================
     # CGMs ARUCO (rate-limited)
     # =========================================================================

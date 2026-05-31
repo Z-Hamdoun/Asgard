@@ -22,7 +22,7 @@ HardwareSerial PI_SERIAL(0);
 #define SERVO_MAX    2500 // 2000
 #define DEBOUNCE_MS    25
 
-#define CALIB_TIMEOUT_MS     30000 // 35 s
+#define CALIB_TIMEOUT_MS     15000 // 35 s
 #define CALIB_OPEN_TIME_MS   10000 // 30 s
 #define CATCH_TIMEOUT_MS     20000
 #define FAIL_OPEN_TIME_MS    10000 // 20 s

@@ -301,12 +301,16 @@ def run_mission_1(drone: Valkyrie, esp32: ESP32_Link, config: dict,
         drone._rc_thread.join(timeout=1.0)
 
 
-def run_mission_2(drone: Valkyrie, esp32: ESP32_Link, config: dict):
+def run_mission_2(drone: Valkyrie, esp32: ESP32_Link, config: dict,
+                  gripper: "GripperESP32 | None" = None):
     """
-    Mission 2 : décollage + precision loiter/land ArUco direct (sans quadrillage).
-      1. Décollage à alt_quadrillage
-      2. RC override + LOITER
-      3. Precision loiter + land ArUco (relance si cible perdue)
+    Mission 2 : lâcher d'objet en vol avec précision.
+      1. Fermeture pince au sol jusqu'à saisie confirmée (bouton pressé)
+      2. Décollage à alt_quadrillage
+      3. Quadrillage spirale pour trouver la cible ArUco
+      4. Precision loiter centrage seul (sans LAND)
+      5. Ouverture pince en vol → lâcher de l'objet
+      6. RTL
     """
     if _logger:
         _logger.log("[MISSION 2] Démarrage.")
@@ -316,67 +320,93 @@ def run_mission_2(drone: Valkyrie, esp32: ESP32_Link, config: dict):
             _logger.log("[MISSION 2] Configuration invalide. Abandon.")
         return
 
-    # --- Phase 1 : Décollage ---
+    # --- Phase 1 : Fermeture pince au sol ---
+    print("[MISSION 2] Fermeture de la pince (saisie de l'objet)...")
+    if _logger:
+        _logger.log("[MISSION 2] Phase 1 : fermeture pince au sol.")
+    if gripper is not None:
+        caught = gripper.close_gripper()
+        if not caught:
+            print("[MISSION 2] Objet non saisi. Abandon.")
+            if _logger:
+                _logger.log("[MISSION 2] Pince : objet non saisi. Abandon.")
+            return
+        print("[MISSION 2] Objet saisi (bouton pressé). Décollage...")
+        if _logger:
+            _logger.log("[MISSION 2] Objet saisi. Décollage.")
+    else:
+        print("[MISSION 2] Pince non connectée. Simulation de saisie -- mission continue.")
+        if _logger:
+            _logger.log("[MISSION 2] Pince absente : saisie simulée.")
+
+    # --- Phase 2 : Décollage ---
     if not drone.takeoff_autonome(config["alt_quadrillage"]):
         print("[MISSION 2] Échec du décollage.")
         if _logger:
             _logger.log("[MISSION 2] ECHEC décollage.")
+        if gripper is not None:
+            gripper.open_gripper()
         return
     print("[MISSION 2] Décollage OK.")
     if _logger:
         _logger.log("[MISSION 2] Décollage OK.")
 
-    # --- Phase 2 + 3 : LOITER + precision loiter/land (relance si cible perdue) ---
+    # --- Phases 3 + 4 : Quadrillage + precision loiter centrage (boucle requadrillage) ---
     while True:
         if drone.fin_mission:
+            if gripper is not None:
+                gripper.open_gripper()
             return
 
-        # Démarrage RC override (normalement géré par executer_quadrillage)
-        drone._rc_throttle_pwm = 1500
-        drone._precision_active = True
-        drone._rc_thread = threading.Thread(target=drone._rc_override_loop, daemon=True)
-        drone._rc_thread.start()
-
-        time.sleep(2) # nouveau
-        loiter_ok = False
-        for _ in range(5):
-            if drone.change_mode("LOITER"):
-                loiter_ok = True
-                break
-            time.sleep(1)
-
-        if not loiter_ok:
-            print("[MISSION 2] Impossible de passer en LOITER. Abandon.")
-            if _logger:
-                _logger.log("[MISSION 2] ECHEC passage LOITER.")
-            drone._precision_active = False
-            if drone._rc_thread:
-                drone._rc_thread.join(timeout=1.0)
-            drone.send_cgm(CGM.VALKYRIE_MODE_CHANGE_FAIL)
-            return
-
-        print("[MISSION 2] LOITER actif. Precision loiter/land ArUco...")
         if _logger:
-            _logger.log("[MISSION 2] LOITER actif. Precision loiter/land démarré.")
+            _logger.log("[MISSION 2] Début du quadrillage spirale.")
+        cible_trouvee = drone.executer_quadrillage(e_analyse=False)
 
-        resultat = drone.precision_loiter_and_land_gripper(e_analyse=True)
+        if not cible_trouvee:
+            print("[MISSION 2] Quadrillage terminé sans trouver la cible.")
+            if _logger:
+                _logger.log("[MISSION 2] Quadrillage terminé — cible introuvable.")
+            drone.send_cgm(CGM.VALKYRIE_NO_TARGET_FOUND)
+            if gripper is not None:
+                gripper.open_gripper()
+            drone.change_mode("RTL")
+            return
+
+        if drone.fin_mission:
+            if gripper is not None:
+                gripper.open_gripper()
+            return
+
+        if _logger:
+            _logger.log("[MISSION 2] Cible ArUco trouvée. Début precision loiter centrage.")
+        resultat = drone.precision_loiter_center_only(e_analyse=False)
 
         if resultat is True:
-            print("[MISSION 2] Atterrissage de précision réussi.")
+            # --- Phase 5 : Ouverture pince en vol ---
+            print("[MISSION 2] Centré. Ouverture pince -- lâcher de l'objet...")
             if _logger:
-                _logger.log("[MISSION 2] Atterrissage de précision réussi.")
+                _logger.log("[MISSION 2] Centré sur cible. Ouverture pince en vol.")
+            if gripper is not None:
+                gripper.open_gripper()
+            # --- Phase 6 : RTL ---
+            print("[MISSION 2] RTL.")
+            if _logger:
+                _logger.log("[MISSION 2] RTL après lâcher.")
             drone.send_cgm(CGM.VALKYRIE_LANDED)
+            drone.change_mode("RTL")
             return
         elif resultat is False:
             print("[MISSION 2] Mission interrompue (urgence).")
             if _logger:
                 _logger.log("[MISSION 2] Mission interrompue par urgence.")
+            if gripper is not None:
+                gripper.open_gripper()
             return
         else:
-            # None : cible perdue en LOITER → retour en LOITER et nouvelle tentative
-            print("[MISSION 2] Cible perdue. Retour en LOITER...")
+            # None : cible perdue → requadrillage
+            print("[MISSION 2] Cible perdue. Relance du quadrillage...")
             if _logger:
-                _logger.log("[MISSION 2] Cible perdue -- retour LOITER.")
+                _logger.log("[MISSION 2] Cible perdue en LOITER -- requadrillage.")
 
 
 def run_mission_3(drone: Valkyrie, esp32: ESP32_Link, config: dict):
@@ -582,7 +612,7 @@ def run_mission(drone: Valkyrie, esp32: ESP32_Link, num_mission: int,
     if _logger:
         _logger.log(f"[MISSION] Lancement mission {num_mission}.")
     try:
-        if num_mission == 1:
+        if num_mission in (1, 2):
             runner(drone, esp32, config, gripper)
         else:
             runner(drone, esp32, config)
