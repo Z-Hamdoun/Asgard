@@ -527,7 +527,9 @@ def run_mission_3(drone: Valhalla, esp32: ESP32_Link, config: dict):
 
 
 def run_mission_4(drone: Valhalla, esp32: ESP32_Link, config: dict):
-    """Mission 4 : lance Valkyrie (quadrillage + e-ArUco Precision Land + pince) via MAVLink radio."""
+    """Mission 4 : Valkyrie suit Valhalla en mode FOLLOW (drone-to-drone via GLOBAL_POSITION_INT).
+    Valhalla peut se déplacer librement pendant ce temps. Il attend simplement que
+    Valkyrie signale la fin de mission (VALKYRIE_LANDED) ou le timeout."""
     if _logger:
         _logger.log("[MISSION 4] Démarrage.")
     print("[MISSION 4] Lancement mission 4 Valkyrie (MAVLink radio)...")

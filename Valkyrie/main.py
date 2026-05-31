@@ -462,57 +462,81 @@ def run_mission_3(drone: Valkyrie, esp32: ESP32_Link, config: dict):
                 _logger.log("[MISSION 3] Cible perdue en LOITER -- requadrillage.")
 
 
+_FOLLOW_TIMEOUT = 600.0  # 10 min max en mode FOLLOW avant RTL automatique
+
+
 def run_mission_4(drone: Valkyrie, esp32: ESP32_Link, config: dict):
-    """Mission 4 : quadrillage spiral + Precision Land e-ArUco (inner/outer) + pince."""
+    """
+    Mission 4 : Follow Valhalla (drone-to-drone via GLOBAL_POSITION_INT).
+
+    Prérequis Mission Planner (configuré à l'avance sur Valkyrie) :
+        FOLL_ENABLE    = 1
+        FOLL_SYSID     = 1  (sys_id Valhalla)
+        FOLL_OFS_Z     = -2 (2m au-dessus)
+        FOLL_DIST_MAX  = 0  (pas de limite)
+        FOLL_YAW_BEHAVE = 1 (nez vers la cible)
+
+    MAVProxy doit router les GLOBAL_POSITION_INT de Valhalla vers Valkyrie.
+
+      1. Décollage
+      2. Mode FOLLOW
+      3. Attente fin_mission ou timeout
+      4. RTL
+    """
     if _logger:
         _logger.log("[MISSION 4] Démarrage.")
     if not drone.load_config(config):
         print("[MISSION 4] Configuration invalide. Abandon.")
         if _logger:
-            _logger.log("[MISSION 4] ECHEC -- configuration invalide.")
+            _logger.log("[MISSION 4] Configuration invalide. Abandon.")
         return
 
+    # --- Phase 1 : Décollage ---
     if not drone.takeoff_autonome(config["alt_quadrillage"]):
         print("[MISSION 4] Échec du décollage.")
         if _logger:
             _logger.log("[MISSION 4] ECHEC décollage.")
         return
-
     print("[MISSION 4] Décollage OK.")
     if _logger:
         _logger.log(f"[MISSION 4] Décollage OK à {config['alt_quadrillage']}m.")
 
-    # Boucle requadrillage : on retente si la cible est perdue en LOITER
-    while True:
-        if _logger:
-            _logger.log("[MISSION 4] Début du quadrillage spiral (e-ArUco).")
-        cible_trouvee = drone.executer_quadrillage(e_analyse=True)
-        if not cible_trouvee:
-            print("[MISSION 4] Quadrillage terminé sans trouver la cible.")
-            if _logger:
-                _logger.log("[MISSION 4] Quadrillage terminé -- cible introuvable.")
-            drone.send_cgm(CGM.VALKYRIE_NO_TARGET_FOUND)
-            return
+    # --- Phase 2 : Mode FOLLOW ---
+    follow_ok = False
+    for _ in range(5):
+        if drone.change_mode("FOLLOW"):
+            follow_ok = True
+            break
+        time.sleep(1)
 
+    if not follow_ok:
+        print("[MISSION 4] Impossible de passer en FOLLOW. RTL.")
         if _logger:
-            _logger.log("[MISSION 4] Cible e-ArUco trouvée. Début precision loiter/land gripper.")
-        resultat = drone.precision_loiter_and_land_gripper(e_analyse=True)
+            _logger.log("[MISSION 4] ECHEC passage mode FOLLOW. RTL.")
+        drone.send_cgm(CGM.VALKYRIE_MODE_CHANGE_FAIL)
+        drone.change_mode("RTL")
+        return
 
-        if resultat is True:
-            print("[MISSION 4] Atterrissage de précision réussi.")
+    print("[MISSION 4] Mode FOLLOW actif. Suivi de Valhalla en cours...")
+    if _logger:
+        _logger.log("[MISSION 4] Mode FOLLOW actif.")
+    drone.send_cgm(CGM.VALKYRIE_WAITING_MISSION)
+
+    # --- Phase 3 : Attente fin_mission ou timeout ---
+    deadline = time.time() + _FOLLOW_TIMEOUT
+    while time.time() < deadline:
+        if drone.fin_mission:
             if _logger:
-                _logger.log("[MISSION 4] Atterrissage de précision réussi.")
-            drone.send_cgm(CGM.VALKYRIE_LANDED)
+                _logger.log("[MISSION 4] Urgence reçue en mode FOLLOW.")
             return
-        elif resultat is False:
-            print("[MISSION 4] Mission interrompue (fin_mission).")
-            if _logger:
-                _logger.log("[MISSION 4] Mission interrompue par urgence.")
-            return
-        else:  # None --> cible perdue en LOITER --> requadrillage
-            print("[MISSION 4] Cible perdue. Relance du quadrillage...")
-            if _logger:
-                _logger.log("[MISSION 4] Cible perdue en LOITER -- requadrillage.")
+        time.sleep(0.5)
+
+    # --- Phase 4 : RTL après timeout ---
+    print(f"[MISSION 4] Timeout ({_FOLLOW_TIMEOUT:.0f}s). RTL.")
+    if _logger:
+        _logger.log(f"[MISSION 4] Timeout Follow. RTL.")
+    drone.send_cgm(CGM.VALKYRIE_LANDED)
+    drone.change_mode("RTL")
 
 
 def run_mission_5(drone: Valkyrie, esp32: ESP32_Link, config: dict):
