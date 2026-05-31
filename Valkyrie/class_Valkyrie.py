@@ -303,8 +303,9 @@ class Valkyrie(Drone):
                             wanna_print=True,
                         )
                         self.send_cgm(CGM.VALKYRIE_PRECISION_LAND_STARTING)
-                        self._rc_throttle_pwm = 0
                         self.change_mode("LAND")
+                        time.sleep(1)
+                        self._rc_throttle_pwm = 0
                         break
                 else:
                     if target_lost_since is None:
