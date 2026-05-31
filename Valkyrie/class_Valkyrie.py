@@ -565,7 +565,7 @@ class Valkyrie(Drone):
                     wanna_print=False,
                 )
 
-                if elapsed >= _LOITER_LOCK_DURATION:
+                if elapsed >=  120:
                     print()
                     print("[VALKYRIE] Centré ! Prêt pour lâcher en vol.")
                     self.logger.log(
