@@ -57,8 +57,8 @@ class Valkyrie(Drone):
 
         # Gestion du thread RC
         self._precision_active = False
-        self._rc_throttle_pwm = 0
-        self._rc_yaw_pwm      = 0   # 0 = pas d'override (pilote/FC reprend le canal)
+        self._rc_throttle_pwm = 65535
+        self._rc_yaw_pwm      = 65535   # 0 = pas d'override (pilote/FC reprend le canal)
         self._rc_thread = None
 
         # Rate-limiting CGMs ArUco (évite le spam)
@@ -305,7 +305,7 @@ class Valkyrie(Drone):
                         self.send_cgm(CGM.VALKYRIE_PRECISION_LAND_STARTING)
                         self.change_mode("LAND")
                         time.sleep(1)
-                        self._rc_throttle_pwm = 0
+                        self._rc_throttle_pwm = 65535
                         break
                 else:
                     if target_lost_since is None:
@@ -446,7 +446,7 @@ class Valkyrie(Drone):
                         self.send_cgm(CGM.VALKYRIE_PRECISION_LAND_STARTING)
                         self.change_mode("LAND")
                         time.sleep(1)
-                        self._rc_throttle_pwm = 0
+                        self._rc_throttle_pwm = 65535
                         
                         break
                 else:
@@ -990,8 +990,8 @@ class Valkyrie(Drone):
         while self._precision_active:
             self.master.mav.rc_channels_override_send(
                 self.master.target_system, self.master.target_component,
-                0, 0, self._rc_throttle_pwm, self._rc_yaw_pwm,
-                0, 0, 0, 2000
+                65535, 65535, self._rc_throttle_pwm, self._rc_yaw_pwm,
+                65535, 65535, 65535, 2000
             )
             time.sleep(0.1)
 
